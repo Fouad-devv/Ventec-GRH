@@ -29,12 +29,12 @@ export const LandingPage = () => {
         <div className='flex items-center gap-4'>
           <img src={logo} alt='Ventec logo' className='h-9 md:h-12 w-auto rounded-lg object-cover border border-white/20 shadow-lg' />
           <div>
-            <p className='text-sm uppercase tracking-[0.3em] text-cyan-300'>Ventec RH</p>
+            <p className='hidden md:block text-sm uppercase tracking-[0.3em] text-cyan-300'>Ventec RH</p>
             <h1 className='hidden md:block text-xl font-semibold'>Solution de gestion RH</h1>
           </div>
         </div>
 
-        <nav className='hidden items-center gap-6 md:flex'>
+        <nav className=' items-center gap-6 flex'>
           <Link to='/signin' className='rounded-full bg-cyan-500 px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 hover:bg-cyan-400'>Connexion</Link>
         </nav>
       </header>
