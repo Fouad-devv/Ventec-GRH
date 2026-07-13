@@ -15,8 +15,9 @@ export const LandingPage = () => {
 
   if (!isLoaded) {
     return (
-      <div className='bg-slate-950 text-white h-screen flex items-center justify-center'>
-        <span className='text-xl font-semibold'>Chargement...</span>
+      <div className='bg-slate-950 text-white h-screen flex flex-col items-center justify-center'>
+        <div className='h-12 w-12 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin' />
+        <span className='mt-4 text-base font-medium text-slate-100'>Chargement...</span>
       </div>
     );
   }

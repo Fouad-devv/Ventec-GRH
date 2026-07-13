@@ -18,8 +18,9 @@ export const AuthPage = () => {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-        <span className="text-xl font-semibold">Chargement...</span>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white">
+        <div className="h-12 w-12 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin" />
+        <span className="mt-4 text-base font-medium text-slate-100">Chargement en cours</span>
       </div>
     );
   }
