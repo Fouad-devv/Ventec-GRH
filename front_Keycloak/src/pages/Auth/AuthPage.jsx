@@ -7,6 +7,7 @@ export const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const mode = location.pathname.includes('/signup') ? 'signup' : 'signin';
+  const isClerkFlowRoute = location.pathname.includes('/factor-one') || location.pathname.includes('/verify') || location.pathname.includes('/sso-callback');
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -18,6 +19,20 @@ export const AuthPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 text-white">
         Loading...
+      </div>
+    );
+  }
+
+  if (isClerkFlowRoute) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl p-6 sm:p-10">
+          {mode === 'signup' ? (
+            <SignUp routing="path" path="/signup" forceRedirectUrl="/home" />
+          ) : (
+            <SignIn routing="path" path="/signin" forceRedirectUrl="/home" />
+          )}
+        </div>
       </div>
     );
   }
