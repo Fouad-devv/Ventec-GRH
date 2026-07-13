@@ -1,0 +1,11 @@
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Spring Boot configuration files
+**/application.properties
+**/application-*.properties
+**/application.yml
+**/application-*.yml
