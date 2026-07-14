@@ -8,11 +8,11 @@
         <version>3.5.10</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>JL_groupe </groupId>
-    <artifactId>JL_PROJECT</artifactId>
+    <groupId>com.ventec</groupId>
+    <artifactId>grh-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>JL_PROJECT</name>
-    <description>BACKEND_JL</description>
+    <name>grh-backend</name>
+    <description>BACKEND_GRH_Ventec</description>
     <url/>
     <licenses>
         <license/>
