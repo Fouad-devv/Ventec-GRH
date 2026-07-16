@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import logo from '../../assets/Ventec-logo.jpeg';
 
+
 export const LandingPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
