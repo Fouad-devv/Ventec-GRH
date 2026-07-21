@@ -84,7 +84,7 @@ export const AuthPage = () => {
       </div>
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full overflow-hidden rounded-[2rem] border border-slate-300 dark:border-white/[0.08] bg-slate-200 dark:bg-white/[0.02] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.12)] dark:shadow-[0_40px_120px_-20px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+        <div className="w-full overflow-hidden rounded-[2rem] border border-slate-300 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.12)] dark:shadow-[0_40px_120px_-20px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
           <div className="grid lg:grid-cols-[1.1fr_1fr]">
 
             {/* ── Left info panel ── */}
@@ -143,7 +143,7 @@ export const AuthPage = () => {
             </div>
 
             {/* ── Right auth panel ── */}
-            <div className="flex flex-col justify-center px-8 py-14 sm:px-12 bg-slate-200/50 dark:bg-slate-950/40">
+            <div className="flex flex-col justify-center px-8 py-14 sm:px-12 bg-slate-50 dark:bg-slate-950/40">
 
               {/* Mobile logo */}
               <div className="flex flex-col lg:hidden items-center gap-3 mb-10">
@@ -176,15 +176,10 @@ export const AuthPage = () => {
                 </SignInButton>
               </div>
 
-              {/* Divider */}
-              <div className="my-8 flex items-center gap-4">
-                <div className="flex-1 h-px bg-slate-300 dark:bg-white/[0.07]" />
-                <span className="text-xs text-slate-400 dark:text-slate-600 font-medium">ou</span>
-                <div className="flex-1 h-px bg-slate-300 dark:bg-white/[0.07]" />
-              </div>
+  
 
               {/* Trust badge */}
-              <div className="flex items-center gap-3 rounded-xl border border-slate-300 dark:border-white/[0.07] bg-slate-100 dark:bg-white/[0.025] p-4">
+              <div className="flex items-center mt-6 gap-3 rounded-xl border border-slate-300 dark:border-white/[0.07] bg-slate-100 dark:bg-white/[0.025] p-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10">
                   <HiShieldCheck className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
                 </div>
