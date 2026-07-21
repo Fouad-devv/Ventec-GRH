@@ -113,7 +113,6 @@ export const LandingPage = () => {
           </div>
         </div>
         <nav className='flex items-center gap-3'>
-          <span className='hidden sm:block text-xs text-slate-500 font-medium'>Application interne</span>
           <div className='hidden sm:block w-px h-4 bg-slate-200 dark:bg-white/10' />
           <ThemeToggle />
           <Link to='/signin'
