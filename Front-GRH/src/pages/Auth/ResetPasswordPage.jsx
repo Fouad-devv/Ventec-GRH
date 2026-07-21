@@ -8,7 +8,7 @@ export const ResetPasswordPage = () => {
         <p className="text-slate-600 mb-6">
           Enter your email address and follow the instructions sent to your inbox.
         </p>
-        <SignIn signUpUrl="/signup" forceRedirectUrl="/home" routing="path" path="/signin" />
+        <SignIn forceRedirectUrl="/home" routing="path" path="/signin" />
       </div>
     </div>
   );

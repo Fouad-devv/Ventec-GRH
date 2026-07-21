@@ -51,8 +51,7 @@ export const LandingPage = () => {
               <p className='mt-6 max-w-xl text-slate-300'>Suivi des employés, gestion des congés, évaluations, et tableaux de bord en temps réel pour une entreprise plus agile.</p>
 
               <div className='mt-10 flex flex-wrap gap-4'>
-                <Link to='/signup' className='rounded-full bg-white px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-black/15 transition hover:bg-slate-100'>Créer un compte</Link>
-                <Link to='/signin' className='rounded-full border border-white/20 bg-white/5 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10'>Se connecter</Link>
+                <Link to='/signin' className='rounded-full bg-white px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-black/15 transition hover:bg-slate-100'>Se connecter</Link>
               </div>
             </div>
 
@@ -113,7 +112,6 @@ export const LandingPage = () => {
           <p>Projet RH Ventec © 2026</p>
           <div className='flex flex-wrap gap-4'>
             <Link to='/signin' className='text-sm text-slate-200 hover:text-white'>Connexion</Link>
-            <Link to='/signup' className='text-sm text-slate-200 hover:text-white'>Inscription</Link>
             <a href='https://www.ventec.ma/fr/' target='_blank' rel='noreferrer' className='text-sm text-cyan-300 hover:text-cyan-200'>Site officiel</a>
           </div>
         </div>
