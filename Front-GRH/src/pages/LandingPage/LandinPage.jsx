@@ -103,10 +103,10 @@ export const LandingPage = () => {
       </div>
 
       {/* ── Header ── */}
-      <header className='a-header relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
+      <header className='a-header h-17 relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
         <div className='flex items-center gap-3'>
           <img src={logo} alt='Ventec logo'
-            className='h-10 w-auto rounded-lg object-cover border border-slate-200 dark:border-white/20 shadow-lg shadow-cyan-500/10 transition-transform duration-300 hover:scale-105' />
+            className='h-10 w-auto rounded-lg object-cover     transition-transform duration-300 hover:scale-103' />
           <div>
             <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-500 dark:text-cyan-400 font-semibold'>Ventec</p>
             <h1 className='hidden md:block text-base font-semibold text-slate-900 dark:text-white leading-tight'>Plateforme RH</h1>
@@ -157,97 +157,6 @@ export const LandingPage = () => {
 
           </div>
 
-          {/* ── Dashboard mock-up ── */}
-          <div className='h-dash mt-20 relative'>
-            <div className='absolute -inset-4 rounded-[2.5rem] bg-gradient-to-b from-cyan-500/8 to-violet-500/5 blur-2xl' />
-            <div className='relative rounded-[2rem] border border-slate-300 dark:border-white/[0.07] bg-slate-200 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40 p-6 sm:p-8'>
-
-              <div className='flex items-center justify-between mb-6'>
-                <div>
-                  <p className='text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Tableau de bord</p>
-                  <p className='text-base font-semibold text-slate-900 dark:text-white mt-0.5'>Vue d'ensemble RH · Ventec</p>
-                </div>
-                <div className='flex items-center gap-2'>
-                  <div className='h-2 w-2 rounded-full bg-emerald-400 animate-pulse' />
-                  <span className='text-xs text-slate-500 dark:text-slate-400'>En ligne</span>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6'>
-                {[
-                  { label: 'Total Employés', value: '152', icon: HiUserGroup,      color: 'cyan',    sub: '+3 ce mois' },
-                  { label: 'Postes ouverts', value: '8',   icon: HiBriefcase,      color: 'violet',  sub: '2 urgents' },
-                  { label: 'Candidatures',   value: '47',  icon: HiClipboardCheck, color: 'sky',     sub: '+12 cette semaine' },
-                  { label: 'Entretiens',     value: '6',   icon: HiClock,          color: 'emerald', sub: 'Cette semaine' },
-                ].map((m) => (
-                  <div key={m.label}
-                    className='rounded-2xl bg-transparent dark:bg-white/[0.04] border border-slate-300 dark:border-white/[0.06] p-4 transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07] hover:border-slate-400 dark:hover:border-white/[0.12] hover:-translate-y-1'>
-                    <div className={`inline-flex rounded-xl p-2 ${iconColorMap[m.color]}`}>
-                      <m.icon className='w-4 h-4' />
-                    </div>
-                    <p className='mt-3 text-2xl font-bold text-slate-900 dark:text-white'>{m.value}</p>
-                    <p className='text-xs text-slate-500 mt-0.5'>{m.label}</p>
-                    <p className='text-[10px] text-slate-400 dark:text-slate-600 mt-1'>{m.sub}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className='grid sm:grid-cols-2 gap-4'>
-                <div className='rounded-2xl bg-transparent dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.05] p-5 transition-colors duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.05]'>
-                  <p className='text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-4'>Dernières candidatures</p>
-                  <div className='space-y-3'>
-                    {[
-                      { name: 'Ahmed Benali',   post: 'Dev Full Stack', status: 'Entretien', color: 'cyan' },
-                      { name: 'Sara Moussaoui', post: 'Chargée RH',    status: 'En cours',  color: 'amber' },
-                      { name: 'Karim Idrissi',  post: 'Chef de projet', status: 'Validé',    color: 'emerald' },
-                    ].map((c) => {
-                      const sMap = {
-                        cyan:    'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
-                        amber:   'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-                        emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-                      };
-                      return (
-                        <div key={c.name} className='flex items-center justify-between group/row'>
-                          <div className='flex items-center gap-2.5'>
-                            <div className='h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300 shrink-0 transition-transform duration-200 group-hover/row:scale-110'>
-                              {c.name[0]}
-                            </div>
-                            <div>
-                              <p className='text-xs font-medium text-slate-800 dark:text-slate-200'>{c.name}</p>
-                              <p className='text-[10px] text-slate-500 dark:text-slate-600'>{c.post}</p>
-                            </div>
-                          </div>
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${sMap[c.color]}`}>{c.status}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className='rounded-2xl bg-transparent dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.05] p-5 transition-colors duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.05]'>
-                  <p className='text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-4'>Postes ouverts</p>
-                  <div className='space-y-3'>
-                    {[
-                      { title: 'Développeur Backend',    dept: 'IT',         count: 2 },
-                      { title: 'Responsable Commercial', dept: 'Ventes',     count: 1 },
-                      { title: 'Ingénieur Qualité',      dept: 'Production', count: 3 },
-                    ].map((job) => (
-                      <div key={job.title} className='flex items-center justify-between'>
-                        <div>
-                          <p className='text-xs font-medium text-slate-800 dark:text-slate-200'>{job.title}</p>
-                          <p className='text-[10px] text-slate-500 dark:text-slate-600'>{job.dept}</p>
-                        </div>
-                        <div className='flex items-center gap-1 text-slate-400 dark:text-slate-500'>
-                          <HiUserGroup className='w-3 h-3' />
-                          <span className='text-[10px]'>{job.count} poste{job.count > 1 ? 's' : ''}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
 
