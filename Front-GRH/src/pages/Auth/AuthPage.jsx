@@ -135,15 +135,7 @@ export const AuthPage = () => {
                 </div>
               </div>
 
-              {/* Stats row */}
-              <div className="grid grid-cols-3 gap-2 pt-8 border-t border-white/[0.07]">
-                {STATS.map(({ value, label }) => (
-                  <div key={label} className="text-center">
-                    <p className="text-xl font-bold text-white">{value}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">{label}</p>
-                  </div>
-                ))}
-              </div>
+              
             </div>
 
             {/* ── Right auth panel ── */}
