@@ -33,11 +33,9 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: '+150', label: 'Utilisateurs' },
-  { value: '99.9%', label: 'Disponibilité' },
-  { value: '<1s', label: 'Réponse' },
-];
+
+
+//_____________________________________
 
 export const AuthPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
@@ -46,7 +44,9 @@ export const AuthPage = () => {
   const isClerkFlowRoute =
     location.pathname.includes('/factor-one') ||
     location.pathname.includes('/verify') ||
-    location.pathname.includes('/sso-callback');
+    location.pathname.includes('/sso-callback')
+  ;
+
 
   useEffect(() => {
     if (isLoaded && isSignedIn) navigate('/home', { replace: true });
@@ -70,6 +70,10 @@ export const AuthPage = () => {
       </div>
     );
   }
+
+
+
+
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#07090f]" style={DOT_BG}>
