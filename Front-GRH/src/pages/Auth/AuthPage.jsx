@@ -3,50 +3,50 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HiShieldCheck, HiLightningBolt, HiChartBar, HiArrowRight } from 'react-icons/hi';
 import logo from '../../assets/Ventec-logo.jpeg';
-
-const DOT_BG = {
-  backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.045) 1px, transparent 0)',
-  backgroundSize: '28px 28px',
-};
+import { ThemeToggle } from '../../components/ThemeToggle';
+import { useTheme } from '../../context/ThemeContext';
 
 const FEATURES = [
   {
     icon: HiShieldCheck,
     label: 'Sécurité enterprise',
-    desc: 'Contrôle d\'accès et authentification avancée',
-    color: 'text-cyan-400',
+    desc: "Contrôle d'accès et authentification avancée",
+    color: 'text-cyan-500 dark:text-cyan-400',
     bg: 'bg-cyan-500/10',
   },
   {
     icon: HiLightningBolt,
     label: 'Accès instantané',
     desc: 'Données RH disponibles en temps réel',
-    color: 'text-violet-400',
+    color: 'text-violet-500 dark:text-violet-400',
     bg: 'bg-violet-500/10',
   },
   {
     icon: HiChartBar,
     label: 'Rapports intelligents',
     desc: 'Analyses et insights automatisés',
-    color: 'text-sky-400',
+    color: 'text-sky-500 dark:text-sky-400',
     bg: 'bg-sky-500/10',
   },
 ];
-
-
-
-//_____________________________________
 
 export const AuthPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
+
   const isClerkFlowRoute =
     location.pathname.includes('/factor-one') ||
     location.pathname.includes('/verify') ||
-    location.pathname.includes('/sso-callback')
-  ;
+    location.pathname.includes('/sso-callback');
 
+  const dotBg = {
+    backgroundImage: isDark
+      ? 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.045) 1px, transparent 0)'
+      : 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0)',
+    backgroundSize: '28px 28px',
+  };
 
   useEffect(() => {
     if (isLoaded && isSignedIn) navigate('/home', { replace: true });
@@ -54,67 +54,68 @@ export const AuthPage = () => {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white">
-        <div className="h-12 w-12 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin" />
-        <span className="mt-4 text-sm font-medium text-slate-400">Chargement en cours…</span>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
+        <div className="h-12 w-12 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin" />
+        <span className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-400">Chargement en cours…</span>
       </div>
     );
   }
 
   if (isClerkFlowRoute) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-10" style={DOT_BG}>
-        <div className="w-full max-w-3xl rounded-3xl bg-slate-900/95 p-6 sm:p-10 shadow-2xl border border-white/10">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center px-4 py-10" style={dotBg}>
+        <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900/95 p-6 sm:p-10 shadow-2xl border border-slate-200 dark:border-white/10">
           <SignIn routing="path" path="/signin" forceRedirectUrl="/home" />
         </div>
       </div>
     );
   }
 
-
-
-
-
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07090f]" style={DOT_BG}>
+    <div className="relative min-h-screen overflow-hidden bg-slate-100 dark:bg-[#07090f]" style={dotBg}>
       {/* Ambient orbs */}
-      <div className="pointer-events-none absolute -top-48 -left-48 h-[560px] w-[560px] rounded-full bg-cyan-500/[0.07] blur-[130px]" />
-      <div className="pointer-events-none absolute top-1/3 -right-20 h-[480px] w-[480px] rounded-full bg-violet-600/[0.09] blur-[110px]" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-[400px] w-[400px] rounded-full bg-sky-500/[0.07] blur-[110px]" />
+      <div className="pointer-events-none absolute -top-48 -left-48 h-[560px] w-[560px] rounded-full bg-cyan-500/[0.05] dark:bg-cyan-500/[0.07] blur-[130px]" />
+      <div className="pointer-events-none absolute top-1/3 -right-20 h-[480px] w-[480px] rounded-full bg-violet-600/[0.06] dark:bg-violet-600/[0.09] blur-[110px]" />
+      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-[400px] w-[400px] rounded-full bg-sky-500/[0.05] dark:bg-sky-500/[0.07] blur-[110px]" />
+
+      {/* Theme toggle — top right */}
+      <div className="absolute top-5 right-5 z-20">
+        <ThemeToggle />
+      </div>
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full overflow-hidden rounded-[2rem] border border-white/[0.08] bg-white/[0.02] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+        <div className="w-full overflow-hidden rounded-[2rem] border border-slate-300 dark:border-white/[0.08] bg-slate-200 dark:bg-white/[0.02] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.12)] dark:shadow-[0_40px_120px_-20px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
           <div className="grid lg:grid-cols-[1.1fr_1fr]">
 
             {/* ── Left info panel ── */}
-            <div className="hidden lg:flex flex-col justify-between px-12 py-14 border-r border-white/[0.07]">
+            <div className="hidden lg:flex flex-col justify-between px-12 py-14 border-r border-slate-300 dark:border-white/[0.07]">
 
               {/* Brand */}
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <div className="absolute inset-0 rounded-xl bg-cyan-400/25 blur-lg" />
+                  <div className="absolute inset-0 rounded-xl bg-cyan-400/20 blur-lg" />
                   <img
                     src={logo}
                     alt="Ventec"
-                    className="relative h-11 w-full md:w-auto rounded-xl object-cover border border-white/20 shadow-lg"
+                    className="relative h-11 w-full md:w-auto rounded-xl object-cover border border-slate-200 dark:border-white/20 shadow-lg"
                   />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Ventec</p>
-                  <p className="text-xs font-medium text-white/50">Système RH</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-500 dark:text-cyan-400">Ventec</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-white/50">Système RH</p>
                 </div>
               </div>
 
               {/* Heading & description */}
               <div className="flex-1 flex flex-col justify-center py-14">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-cyan-400 mb-7">
-                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-cyan-600 dark:text-cyan-400 mb-7">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse" />
                   Plateforme nouvelle génération
                 </div>
 
-                <h1 className="text-[2.1rem] font-bold leading-tight tracking-tight text-white">
+                <h1 className="text-[2.1rem] font-bold leading-tight tracking-tight text-slate-900 dark:text-white">
                   Gérez vos RH avec{' '}
-                  <span className="bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-400 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-cyan-500 via-sky-400 to-violet-500 dark:from-cyan-400 dark:via-sky-400 dark:to-violet-400 bg-clip-text text-transparent">
                     intelligence
                   </span>
                 </h1>
@@ -131,7 +132,7 @@ export const AuthPage = () => {
                         <Icon className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white/90">{label}</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-white/90">{label}</p>
                         <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
                       </div>
                     </div>
@@ -139,24 +140,23 @@ export const AuthPage = () => {
                 </div>
               </div>
 
-              
             </div>
 
             {/* ── Right auth panel ── */}
-            <div className="flex flex-col justify-center px-8 py-14 sm:px-12 bg-slate-950/40">
+            <div className="flex flex-col justify-center px-8 py-14 sm:px-12 bg-slate-200/50 dark:bg-slate-950/40">
 
               {/* Mobile logo */}
               <div className="flex flex-col lg:hidden items-center gap-3 mb-10">
-                <img src={logo} alt="Ventec" className="h-9 w-auto rounded-xl object-cover border border-white/20" />
-                <p className="text-sm font-bold text-white">Ventec RH</p>
+                <img src={logo} alt="Ventec" className="h-9 w-auto rounded-xl object-cover border border-slate-200 dark:border-white/20" />
+                <p className="text-sm font-bold text-slate-900 dark:text-white">Ventec RH</p>
               </div>
 
               {/* Header */}
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-400">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-500 dark:text-cyan-400">
                   Connexion
                 </p>
-                <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                   Bienvenue
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
@@ -178,19 +178,19 @@ export const AuthPage = () => {
 
               {/* Divider */}
               <div className="my-8 flex items-center gap-4">
-                <div className="flex-1 h-px bg-white/[0.07]" />
-                <span className="text-xs text-slate-600 font-medium">ou</span>
-                <div className="flex-1 h-px bg-white/[0.07]" />
+                <div className="flex-1 h-px bg-slate-300 dark:bg-white/[0.07]" />
+                <span className="text-xs text-slate-400 dark:text-slate-600 font-medium">ou</span>
+                <div className="flex-1 h-px bg-slate-300 dark:bg-white/[0.07]" />
               </div>
 
               {/* Trust badge */}
-              <div className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-300 dark:border-white/[0.07] bg-slate-100 dark:bg-white/[0.025] p-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10">
-                  <HiShieldCheck className="h-5 w-5 text-cyan-400" />
+                  <HiShieldCheck className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white/80">Connexion sécurisée</p>
-                  <p className="text-[11px] text-slate-600 mt-0.5">Chiffrement de bout en bout · Certifié SOC 2</p>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-white/80">Connexion sécurisée</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-600 mt-0.5">Chiffrement de bout en bout · Certifié SOC 2</p>
                 </div>
               </div>
 

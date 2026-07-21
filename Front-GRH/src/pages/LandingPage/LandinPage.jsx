@@ -7,6 +7,7 @@ import {
   HiOfficeBuilding, HiClock,
 } from 'react-icons/hi';
 import logo from '../../assets/Ventec-logo.jpeg';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 export const LandingPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
@@ -18,20 +19,20 @@ export const LandingPage = () => {
 
   if (!isLoaded) {
     return (
-      <div className='bg-slate-950 text-white h-screen flex flex-col items-center justify-center'>
-        <div className='h-12 w-12 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin' />
-        <span className='mt-4 text-base font-medium text-slate-100'>Chargement...</span>
+      <div className='bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white h-screen flex flex-col items-center justify-center'>
+        <div className='h-12 w-12 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin' />
+        <span className='mt-4 text-base font-medium text-slate-600 dark:text-slate-100'>Chargement...</span>
       </div>
     );
   }
 
   const features = [
-    { icon: HiBriefcase,     color: 'cyan',    title: 'Gestion du recrutement', desc: 'Publiez des offres, suivez les candidatures et gérez votre pipeline de recrutement de A à Z.' },
-    { icon: HiUserGroup,     color: 'violet',  title: 'Gestion des talents',     desc: 'Centralisez les profils, compétences et parcours professionnels dans un seul espace sécurisé.' },
-    { icon: HiChartBar,      color: 'sky',     title: 'Tableaux de bord RH',     desc: 'Indicateurs clés et rapports en temps réel pour piloter vos décisions avec précision.' },
-    { icon: HiClipboardCheck,color: 'emerald', title: 'Suivi des entretiens',    desc: 'Planifiez et évaluez les entretiens avec des grilles structurées et un historique complet.' },
-    { icon: HiShieldCheck,   color: 'rose',    title: 'Accès sécurisé',          desc: "Authentification robuste avec gestion des rôles et permissions par niveau d'accès." },
-    { icon: HiLightningBolt, color: 'amber',   title: 'Workflows automatisés',   desc: "Automatisez notifications, validations et rappels pour gagner du temps sur l'administration." },
+    { icon: HiBriefcase,      color: 'cyan',    title: 'Gestion du recrutement', desc: 'Publiez des offres, suivez les candidatures et gérez votre pipeline de recrutement de A à Z.' },
+    { icon: HiUserGroup,      color: 'violet',  title: 'Gestion des talents',     desc: 'Centralisez les profils, compétences et parcours professionnels dans un seul espace sécurisé.' },
+    { icon: HiChartBar,       color: 'sky',     title: 'Tableaux de bord RH',     desc: 'Indicateurs clés et rapports en temps réel pour piloter vos décisions avec précision.' },
+    { icon: HiClipboardCheck, color: 'emerald', title: 'Suivi des entretiens',    desc: 'Planifiez et évaluez les entretiens avec des grilles structurées et un historique complet.' },
+    { icon: HiShieldCheck,    color: 'rose',    title: 'Accès sécurisé',          desc: "Authentification robuste avec gestion des rôles et permissions par niveau d'accès." },
+    { icon: HiLightningBolt,  color: 'amber',   title: 'Workflows automatisés',   desc: "Automatisez notifications, validations et rappels pour gagner du temps sur l'administration." },
   ];
 
   const pipeline = [
@@ -42,25 +43,25 @@ export const LandingPage = () => {
   ];
 
   const iconColorMap = {
-    cyan:    'bg-cyan-500/15 text-cyan-400',
-    violet:  'bg-violet-500/15 text-violet-400',
-    sky:     'bg-sky-500/15 text-sky-400',
-    emerald: 'bg-emerald-500/15 text-emerald-400',
-    rose:    'bg-rose-500/15 text-rose-400',
-    amber:   'bg-amber-500/15 text-amber-400',
+    cyan:    'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400',
+    violet:  'bg-violet-500/15 text-violet-600 dark:text-violet-400',
+    sky:     'bg-sky-500/15 text-sky-600 dark:text-sky-400',
+    emerald: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    rose:    'bg-rose-500/15 text-rose-600 dark:text-rose-400',
+    amber:   'bg-amber-500/15 text-amber-600 dark:text-amber-400',
   };
 
   const stepColorMap = {
-    cyan:    'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
-    sky:     'bg-sky-500/15 text-sky-300 border-sky-500/25',
-    violet:  'bg-violet-500/15 text-violet-300 border-violet-500/25',
-    emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
+    cyan:    'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
+    sky:     'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
+    violet:  'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30',
+    emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
   };
 
   return (
-    <div className='min-h-screen bg-slate-950 text-white'>
+    <div className='min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white'>
 
-      {/* ── Keyframes (hero only — scroll-reveal uses inline style transitions) ── */}
+      {/* ── Keyframes ── */}
       <style>{`
         @keyframes fadeInUp   { from { opacity:0; transform:translateY(28px) } to { opacity:1; transform:none } }
         @keyframes fadeInDown { from { opacity:0; transform:translateY(-18px) } to { opacity:1; transform:none } }
@@ -77,9 +78,8 @@ export const LandingPage = () => {
         .orb-2 { animation: float 11s ease-in-out 1.8s infinite }
         .orb-3 { animation: float 13s ease-in-out 3.5s infinite }
 
-        /* hover micro-interactions */
         .feat-card { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease, background-color .25s ease }
-        .feat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,.5) }
+        .feat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,.12) }
         .feat-icon { transition: transform .3s cubic-bezier(.16,1,.3,1) }
         .feat-card:hover .feat-icon { transform: scale(1.15) rotate(-4deg) }
 
@@ -96,26 +96,26 @@ export const LandingPage = () => {
 
       {/* ── Ambient orbs ── */}
       <div className='fixed inset-0 pointer-events-none' style={{ zIndex: 0 }}>
-        <div className='orb-1 absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-cyan-500/10 blur-[120px]' />
-        <div className='orb-2 absolute top-[35%] right-[-15%] w-[500px] h-[500px] rounded-full bg-violet-500/10 blur-[120px]' />
-        <div className='orb-3 absolute bottom-[5%] left-[15%] w-[400px] h-[400px] rounded-full bg-sky-500/8 blur-[100px]' />
-        <div className='absolute inset-0 opacity-[0.018]'
-          style={{ backgroundImage:'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize:'28px 28px' }} />
+        <div className='orb-1 absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-cyan-500/[0.06] dark:bg-cyan-500/10 blur-[120px]' />
+        <div className='orb-2 absolute top-[35%] right-[-15%] w-[500px] h-[500px] rounded-full bg-violet-500/[0.06] dark:bg-violet-500/10 blur-[120px]' />
+        <div className='orb-3 absolute bottom-[5%] left-[15%] w-[400px] h-[400px] rounded-full bg-sky-500/[0.05] dark:bg-sky-500/8 blur-[100px]' />
+        <div className='absolute inset-0 opacity-[0.35] dark:opacity-[1] dot-pattern' />
       </div>
 
       {/* ── Header ── */}
-      <header className='a-header relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-white/[0.06]'>
+      <header className='a-header relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
         <div className='flex items-center gap-3'>
           <img src={logo} alt='Ventec logo'
-            className='h-10 w-auto rounded-lg object-cover border border-white/20 shadow-lg shadow-cyan-500/10 transition-transform duration-300 hover:scale-105' />
+            className='h-10 w-auto rounded-lg object-cover border border-slate-200 dark:border-white/20 shadow-lg shadow-cyan-500/10 transition-transform duration-300 hover:scale-105' />
           <div>
-            <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-400 font-semibold'>Ventec</p>
-            <h1 className='hidden md:block text-base font-semibold text-white leading-tight'>Plateforme RH</h1>
+            <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-500 dark:text-cyan-400 font-semibold'>Ventec</p>
+            <h1 className='hidden md:block text-base font-semibold text-slate-900 dark:text-white leading-tight'>Plateforme RH</h1>
           </div>
         </div>
-        <nav className='flex items-center gap-4'>
+        <nav className='flex items-center gap-3'>
           <span className='hidden sm:block text-xs text-slate-500 font-medium'>Application interne</span>
-          <div className='hidden sm:block w-px h-4 bg-white/10' />
+          <div className='hidden sm:block w-px h-4 bg-slate-200 dark:bg-white/10' />
+          <ThemeToggle />
           <Link to='/signin'
             className='btn-glow flex items-center gap-2 rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors'>
             Connexion <HiArrowRight className='w-4 h-4' />
@@ -129,21 +129,21 @@ export const LandingPage = () => {
           <div className='flex flex-col items-center text-center'>
 
             <div className='h-badge mb-7 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2'>
-              <div className='h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse' />
-              <span className='text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300'>
+              <div className='h-1.5 w-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse' />
+              <span className='text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300'>
                 Application Interne · Ventec
               </span>
             </div>
 
             <h2 className='h-title max-w-4xl text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl'>
               Gérez vos{' '}
-              <span className='bg-gradient-to-r from-cyan-400 via-sky-300 to-violet-400 bg-clip-text text-transparent'>
+              <span className='bg-gradient-to-r from-cyan-500 via-sky-400 to-violet-500 dark:from-cyan-400 dark:via-sky-300 dark:to-violet-400 bg-clip-text text-transparent'>
                 Ressources Humaines
               </span>
               {' '}avec précision
             </h2>
 
-            <p className='h-sub mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed'>
+            <p className='h-sub mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400 leading-relaxed'>
               Plateforme centralisée pour le recrutement, la gestion des talents et le suivi
               des performances au sein de Ventec.
             </p>
@@ -160,16 +160,16 @@ export const LandingPage = () => {
           {/* ── Dashboard mock-up ── */}
           <div className='h-dash mt-20 relative'>
             <div className='absolute -inset-4 rounded-[2.5rem] bg-gradient-to-b from-cyan-500/8 to-violet-500/5 blur-2xl' />
-            <div className='relative rounded-[2rem] border border-white/[0.07] bg-slate-900/60 backdrop-blur-xl shadow-2xl shadow-black/40 p-6 sm:p-8'>
+            <div className='relative rounded-[2rem] border border-slate-300 dark:border-white/[0.07] bg-slate-200 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40 p-6 sm:p-8'>
 
               <div className='flex items-center justify-between mb-6'>
                 <div>
-                  <p className='text-[10px] uppercase tracking-widest text-cyan-400 font-semibold'>Tableau de bord</p>
-                  <p className='text-base font-semibold text-white mt-0.5'>Vue d'ensemble RH · Ventec</p>
+                  <p className='text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Tableau de bord</p>
+                  <p className='text-base font-semibold text-slate-900 dark:text-white mt-0.5'>Vue d'ensemble RH · Ventec</p>
                 </div>
                 <div className='flex items-center gap-2'>
                   <div className='h-2 w-2 rounded-full bg-emerald-400 animate-pulse' />
-                  <span className='text-xs text-slate-400'>En ligne</span>
+                  <span className='text-xs text-slate-500 dark:text-slate-400'>En ligne</span>
                 </div>
               </div>
 
@@ -181,19 +181,19 @@ export const LandingPage = () => {
                   { label: 'Entretiens',     value: '6',   icon: HiClock,          color: 'emerald', sub: 'Cette semaine' },
                 ].map((m) => (
                   <div key={m.label}
-                    className='rounded-2xl bg-white/[0.04] border border-white/[0.06] p-4 transition-all duration-300 hover:bg-white/[0.07] hover:border-white/[0.12] hover:-translate-y-1'>
+                    className='rounded-2xl bg-transparent dark:bg-white/[0.04] border border-slate-300 dark:border-white/[0.06] p-4 transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07] hover:border-slate-400 dark:hover:border-white/[0.12] hover:-translate-y-1'>
                     <div className={`inline-flex rounded-xl p-2 ${iconColorMap[m.color]}`}>
                       <m.icon className='w-4 h-4' />
                     </div>
-                    <p className='mt-3 text-2xl font-bold text-white'>{m.value}</p>
+                    <p className='mt-3 text-2xl font-bold text-slate-900 dark:text-white'>{m.value}</p>
                     <p className='text-xs text-slate-500 mt-0.5'>{m.label}</p>
-                    <p className='text-[10px] text-slate-600 mt-1'>{m.sub}</p>
+                    <p className='text-[10px] text-slate-400 dark:text-slate-600 mt-1'>{m.sub}</p>
                   </div>
                 ))}
               </div>
 
               <div className='grid sm:grid-cols-2 gap-4'>
-                <div className='rounded-2xl bg-white/[0.03] border border-white/[0.05] p-5 transition-colors duration-300 hover:bg-white/[0.05]'>
+                <div className='rounded-2xl bg-transparent dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.05] p-5 transition-colors duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.05]'>
                   <p className='text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-4'>Dernières candidatures</p>
                   <div className='space-y-3'>
                     {[
@@ -201,16 +201,20 @@ export const LandingPage = () => {
                       { name: 'Sara Moussaoui', post: 'Chargée RH',    status: 'En cours',  color: 'amber' },
                       { name: 'Karim Idrissi',  post: 'Chef de projet', status: 'Validé',    color: 'emerald' },
                     ].map((c) => {
-                      const sMap = { cyan:'bg-cyan-500/15 text-cyan-300', amber:'bg-amber-500/15 text-amber-300', emerald:'bg-emerald-500/15 text-emerald-300' };
+                      const sMap = {
+                        cyan:    'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
+                        amber:   'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+                        emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+                      };
                       return (
                         <div key={c.name} className='flex items-center justify-between group/row'>
                           <div className='flex items-center gap-2.5'>
-                            <div className='h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-300 shrink-0 transition-transform duration-200 group-hover/row:scale-110'>
+                            <div className='h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300 shrink-0 transition-transform duration-200 group-hover/row:scale-110'>
                               {c.name[0]}
                             </div>
                             <div>
-                              <p className='text-xs font-medium text-slate-200'>{c.name}</p>
-                              <p className='text-[10px] text-slate-600'>{c.post}</p>
+                              <p className='text-xs font-medium text-slate-800 dark:text-slate-200'>{c.name}</p>
+                              <p className='text-[10px] text-slate-500 dark:text-slate-600'>{c.post}</p>
                             </div>
                           </div>
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${sMap[c.color]}`}>{c.status}</span>
@@ -220,7 +224,7 @@ export const LandingPage = () => {
                   </div>
                 </div>
 
-                <div className='rounded-2xl bg-white/[0.03] border border-white/[0.05] p-5 transition-colors duration-300 hover:bg-white/[0.05]'>
+                <div className='rounded-2xl bg-transparent dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.05] p-5 transition-colors duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.05]'>
                   <p className='text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-4'>Postes ouverts</p>
                   <div className='space-y-3'>
                     {[
@@ -230,10 +234,10 @@ export const LandingPage = () => {
                     ].map((job) => (
                       <div key={job.title} className='flex items-center justify-between'>
                         <div>
-                          <p className='text-xs font-medium text-slate-200'>{job.title}</p>
-                          <p className='text-[10px] text-slate-600'>{job.dept}</p>
+                          <p className='text-xs font-medium text-slate-800 dark:text-slate-200'>{job.title}</p>
+                          <p className='text-[10px] text-slate-500 dark:text-slate-600'>{job.dept}</p>
                         </div>
-                        <div className='flex items-center gap-1 text-slate-500'>
+                        <div className='flex items-center gap-1 text-slate-400 dark:text-slate-500'>
                           <HiUserGroup className='w-3 h-3' />
                           <span className='text-[10px]'>{job.count} poste{job.count > 1 ? 's' : ''}</span>
                         </div>
@@ -248,13 +252,13 @@ export const LandingPage = () => {
       </main>
 
       {/* ── Features ── */}
-      <section className='relative z-10 border-t border-white/[0.06] py-24'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-24'>
         <div className='mx-auto max-w-6xl px-6'>
 
           <div className='text-center mb-14'>
-            <p className='text-[11px] uppercase tracking-[0.3em] text-cyan-400 font-semibold mb-3'>Fonctionnalités</p>
-            <h3 className='text-3xl sm:text-4xl font-bold text-white'>Tout ce dont vous avez besoin</h3>
-            <p className='mt-4 text-slate-400 max-w-xl mx-auto'>
+            <p className='text-[11px] uppercase tracking-[0.3em] text-cyan-500 dark:text-cyan-400 font-semibold mb-3'>Fonctionnalités</p>
+            <h3 className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white'>Tout ce dont vous avez besoin</h3>
+            <p className='mt-4 text-slate-600 dark:text-slate-400 max-w-xl mx-auto'>
               Un ensemble complet d'outils RH pensés pour les besoins spécifiques de Ventec.
             </p>
           </div>
@@ -263,13 +267,13 @@ export const LandingPage = () => {
             {features.map((feat) => (
               <div
                 key={feat.title}
-                className='feat-card aspect-square sm:aspect-auto flex flex-col items-center justify-center text-center sm:items-start sm:justify-start sm:text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 sm:p-6 overflow-hidden hover:bg-white/[0.06] hover:border-white/[0.13]'
+                className='feat-card aspect-square sm:aspect-auto flex flex-col items-center justify-center text-center sm:items-start sm:justify-start sm:text-left rounded-2xl border border-slate-300 dark:border-white/[0.07] bg-slate-200 dark:bg-white/[0.03] p-4 sm:p-6 overflow-hidden hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-slate-400 dark:hover:border-white/[0.13]'
               >
                 <div className={`feat-icon inline-flex rounded-xl p-3 mb-3 sm:mb-4 ${iconColorMap[feat.color]}`}>
                   <feat.icon className='w-6 h-6 sm:w-5 sm:h-5' />
                 </div>
-                <h4 className='text-sm font-semibold text-white mb-1 sm:mb-2 leading-snug'>{feat.title}</h4>
-                <p className='text-xs sm:text-sm text-slate-400 leading-relaxed line-clamp-2 sm:line-clamp-none'>{feat.desc}</p>
+                <h4 className='text-sm font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2 leading-snug'>{feat.title}</h4>
+                <p className='text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2 sm:line-clamp-none'>{feat.desc}</p>
               </div>
             ))}
           </div>
@@ -277,16 +281,16 @@ export const LandingPage = () => {
       </section>
 
       {/* ── Pipeline ── */}
-      <section className='relative z-10 border-t border-white/[0.06] py-24'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-24'>
         <div className='mx-auto max-w-5xl px-6'>
 
           <div className='text-center mb-14'>
-            <p className='text-[11px] uppercase tracking-[0.3em] text-violet-400 font-semibold mb-3'>Processus</p>
-            <h3 className='text-3xl sm:text-4xl font-bold text-white'>Pipeline de recrutement</h3>
+            <p className='text-[11px] uppercase tracking-[0.3em] text-violet-500 dark:text-violet-400 font-semibold mb-3'>Processus</p>
+            <h3 className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white'>Pipeline de recrutement</h3>
           </div>
 
           <div className='relative grid sm:grid-cols-4 gap-6'>
-            <div className='hidden sm:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent' />
+            <div className='hidden sm:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-white/[0.1] to-transparent' />
 
             {pipeline.map((p) => (
               <div
@@ -296,7 +300,7 @@ export const LandingPage = () => {
                 <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-lg font-bold border ${stepColorMap[p.color]}`}>
                   {p.step}
                 </div>
-                <p className='text-sm font-semibold text-white'>{p.title}</p>
+                <p className='text-sm font-semibold text-slate-900 dark:text-white'>{p.title}</p>
                 <p className='text-xs text-slate-500 leading-relaxed'>{p.desc}</p>
               </div>
             ))}
@@ -305,16 +309,14 @@ export const LandingPage = () => {
       </section>
 
       {/* ── CTA banner ── */}
-      <section className='relative z-10 border-t border-white/[0.06] py-20'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-20'>
         <div className='mx-auto max-w-3xl px-6'>
-          <div
-            className='relative rounded-[2rem] border border-white/[0.08] bg-slate-900/60 backdrop-blur-xl shadow-2xl shadow-black/30 overflow-hidden p-10 sm:p-14 text-center'
-          >
+          <div className='relative rounded-[2rem] border border-slate-300 dark:border-white/[0.08] bg-slate-200 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/30 overflow-hidden p-10 sm:p-14 text-center'>
             <div className='absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-violet-500/5 pointer-events-none' />
             <div className='relative'>
-              <HiOfficeBuilding className='w-10 h-10 text-cyan-400 mx-auto mb-5 transition-transform duration-300 hover:scale-110' />
-              <h3 className='text-3xl font-bold text-white'>Prêt à commencer ?</h3>
-              <p className='mt-3 text-slate-400'>
+              <HiOfficeBuilding className='w-10 h-10 text-cyan-500 dark:text-cyan-400 mx-auto mb-5 transition-transform duration-300 hover:scale-110' />
+              <h3 className='text-3xl font-bold text-slate-900 dark:text-white'>Prêt à commencer ?</h3>
+              <p className='mt-3 text-slate-600 dark:text-slate-400'>
                 Connectez-vous avec votre compte Ventec pour accéder à la plateforme RH.
               </p>
               <div className='mt-8'>
@@ -325,7 +327,7 @@ export const LandingPage = () => {
               </div>
               <div className='mt-7 flex flex-wrap justify-center gap-5 text-sm text-slate-500'>
                 {['Accès sécurisé', 'Usage interne uniquement', 'Données confidentielles'].map((label) => (
-                  <div key={label} className='flex items-center gap-1.5 transition-colors duration-200 hover:text-slate-300'>
+                  <div key={label} className='flex items-center gap-1.5 transition-colors duration-200 hover:text-slate-700 dark:hover:text-slate-300'>
                     <HiCheckCircle className='w-4 h-4 text-emerald-500' />
                     {label}
                   </div>
@@ -337,16 +339,16 @@ export const LandingPage = () => {
       </section>
 
       {/* ── Footer ── */}
-      <footer className='relative z-10 border-t border-white/[0.06] py-8'>
+      <footer className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-8'>
         <div className='mx-auto flex max-w-7xl flex-col gap-3 px-6 text-slate-500 sm:flex-row sm:items-center sm:justify-between'>
           <div className='flex items-center gap-3'>
-            <img src={logo} alt='Ventec logo' className='h-6 w-auto rounded opacity-50' />
+            <img src={logo} alt='Ventec logo' className='h-6 w-auto rounded opacity-40 dark:opacity-50' />
             <p className='text-xs'>Plateforme RH interne · Ventec © 2026</p>
           </div>
           <div className='flex flex-wrap gap-6 text-xs'>
-            <Link to='/signin' className='nav-link text-slate-400 hover:text-white transition-colors'>Connexion</Link>
+            <Link to='/signin' className='nav-link text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors'>Connexion</Link>
             <a href='https://www.ventec.ma/fr/' target='_blank' rel='noreferrer'
-              className='nav-link text-cyan-400 hover:text-cyan-300 transition-colors'>
+              className='nav-link text-cyan-500 dark:text-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors'>
               Site officiel Ventec
             </a>
           </div>
