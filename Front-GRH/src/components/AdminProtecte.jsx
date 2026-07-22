@@ -1,19 +1,21 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 
 export const AdminRouteProtector = ({ children }) => {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoading, isAuthenticated, hasRole, login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (!isLoading && !isAuthenticated) {
+      login();
+    } else if (!isLoading && isAuthenticated && !hasRole('ADMIN')) {
       navigate('/', { replace: true });
     }
-  }, [isLoaded, isSignedIn, navigate]);
+  }, [isLoading, isAuthenticated, hasRole, login, navigate]);
 
-  if (!isLoaded) return <p className="p-10 text-center">Loading...</p>;
-  if (!isSignedIn) return <p className="p-10 text-center">Redirecting to login...</p>;
+  if (isLoading)                              return <p className="p-10 text-center">Chargement...</p>;
+  if (!isAuthenticated || !hasRole('ADMIN')) return null;
 
   return children;
 };

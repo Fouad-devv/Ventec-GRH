@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   HiUserGroup, HiBriefcase, HiChartBar, HiClipboardCheck,
   HiArrowRight, HiCheckCircle, HiLightningBolt, HiShieldCheck,
@@ -10,14 +10,14 @@ import logo from '../../assets/Ventec-logo.jpeg';
 import { ThemeToggle } from '../../components/ThemeToggle';
 
 export const LandingPage = () => {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoading, isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) navigate('/home', { replace: true });
-  }, [isLoaded, isSignedIn, navigate]);
+    if (!isLoading && isAuthenticated) navigate('/home', { replace: true });
+  }, [isLoading, isAuthenticated, navigate]);
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <div className='bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white h-screen flex flex-col items-center justify-center'>
         <div className='h-12 w-12 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin' />
@@ -103,22 +103,23 @@ export const LandingPage = () => {
       </div>
 
       {/* ── Header ── */}
-      <header className='a-header h-17 relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
+      <header className='a-header relative z-10 bg-white dark:bg-transparent mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
         <div className='flex items-center gap-3'>
           <img src={logo} alt='Ventec logo'
-            className='h-10 w-auto rounded-lg object-cover     transition-transform duration-300 hover:scale-103' />
+            className='h-10 w-auto rounded-lg object-cover border border-slate-200 dark:border-white/20 shadow-lg shadow-cyan-500/10 transition-transform duration-300 hover:scale-105' />
           <div>
             <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-500 dark:text-cyan-400 font-semibold'>Ventec</p>
             <h1 className='hidden md:block text-base font-semibold text-slate-900 dark:text-white leading-tight'>Plateforme RH</h1>
           </div>
         </div>
         <nav className='flex items-center gap-3'>
+          <span className='hidden sm:block text-xs text-slate-500 font-medium'>Application interne</span>
           <div className='hidden sm:block w-px h-4 bg-slate-200 dark:bg-white/10' />
           <ThemeToggle />
-          <Link to='/signin'
+          <button onClick={login}
             className='btn-glow flex items-center gap-2 rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors'>
             Connexion <HiArrowRight className='w-4 h-4' />
-          </Link>
+          </button>
         </nav>
       </header>
 
@@ -148,14 +149,105 @@ export const LandingPage = () => {
             </p>
 
             <div className='h-cta mt-10'>
-              <Link to='/signin'
+              <button onClick={login}
                 className='btn-glow inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20'>
                 Accéder à la plateforme <HiArrowRight className='w-4 h-4' />
-              </Link>
+              </button>
             </div>
 
           </div>
 
+          {/* ── Dashboard mock-up ── */}
+          <div className='h-dash mt-20 relative'>
+            <div className='absolute -inset-4 rounded-[2.5rem] bg-gradient-to-b from-cyan-500/8 to-violet-500/5 blur-2xl' />
+            <div className='relative rounded-[2rem] border border-slate-300 dark:border-white/[0.07] bg-slate-200 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40 p-6 sm:p-8'>
+
+              <div className='flex items-center justify-between mb-6'>
+                <div>
+                  <p className='text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Tableau de bord</p>
+                  <p className='text-base font-semibold text-slate-900 dark:text-white mt-0.5'>Vue d'ensemble RH · Ventec</p>
+                </div>
+                <div className='flex items-center gap-2'>
+                  <div className='h-2 w-2 rounded-full bg-emerald-400 animate-pulse' />
+                  <span className='text-xs text-slate-500 dark:text-slate-400'>En ligne</span>
+                </div>
+              </div>
+
+              <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6'>
+                {[
+                  { label: 'Total Employés', value: '152', icon: HiUserGroup,      color: 'cyan',    sub: '+3 ce mois' },
+                  { label: 'Postes ouverts', value: '8',   icon: HiBriefcase,      color: 'violet',  sub: '2 urgents' },
+                  { label: 'Candidatures',   value: '47',  icon: HiClipboardCheck, color: 'sky',     sub: '+12 cette semaine' },
+                  { label: 'Entretiens',     value: '6',   icon: HiClock,          color: 'emerald', sub: 'Cette semaine' },
+                ].map((m) => (
+                  <div key={m.label}
+                    className='rounded-2xl bg-transparent dark:bg-white/[0.04] border border-slate-300 dark:border-white/[0.06] p-4 transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07] hover:border-slate-400 dark:hover:border-white/[0.12] hover:-translate-y-1'>
+                    <div className={`inline-flex rounded-xl p-2 ${iconColorMap[m.color]}`}>
+                      <m.icon className='w-4 h-4' />
+                    </div>
+                    <p className='mt-3 text-2xl font-bold text-slate-900 dark:text-white'>{m.value}</p>
+                    <p className='text-xs text-slate-500 mt-0.5'>{m.label}</p>
+                    <p className='text-[10px] text-slate-400 dark:text-slate-600 mt-1'>{m.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className='grid sm:grid-cols-2 gap-4'>
+                <div className='rounded-2xl bg-transparent dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.05] p-5 transition-colors duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.05]'>
+                  <p className='text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-4'>Dernières candidatures</p>
+                  <div className='space-y-3'>
+                    {[
+                      { name: 'Ahmed Benali',   post: 'Dev Full Stack', status: 'Entretien', color: 'cyan' },
+                      { name: 'Sara Moussaoui', post: 'Chargée RH',    status: 'En cours',  color: 'amber' },
+                      { name: 'Karim Idrissi',  post: 'Chef de projet', status: 'Validé',    color: 'emerald' },
+                    ].map((c) => {
+                      const sMap = {
+                        cyan:    'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
+                        amber:   'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+                        emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+                      };
+                      return (
+                        <div key={c.name} className='flex items-center justify-between group/row'>
+                          <div className='flex items-center gap-2.5'>
+                            <div className='h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300 shrink-0 transition-transform duration-200 group-hover/row:scale-110'>
+                              {c.name[0]}
+                            </div>
+                            <div>
+                              <p className='text-xs font-medium text-slate-800 dark:text-slate-200'>{c.name}</p>
+                              <p className='text-[10px] text-slate-500 dark:text-slate-600'>{c.post}</p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${sMap[c.color]}`}>{c.status}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className='rounded-2xl bg-transparent dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.05] p-5 transition-colors duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.05]'>
+                  <p className='text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-4'>Postes ouverts</p>
+                  <div className='space-y-3'>
+                    {[
+                      { title: 'Développeur Backend',    dept: 'IT',         count: 2 },
+                      { title: 'Responsable Commercial', dept: 'Ventes',     count: 1 },
+                      { title: 'Ingénieur Qualité',      dept: 'Production', count: 3 },
+                    ].map((job) => (
+                      <div key={job.title} className='flex items-center justify-between'>
+                        <div>
+                          <p className='text-xs font-medium text-slate-800 dark:text-slate-200'>{job.title}</p>
+                          <p className='text-[10px] text-slate-500 dark:text-slate-600'>{job.dept}</p>
+                        </div>
+                        <div className='flex items-center gap-1 text-slate-400 dark:text-slate-500'>
+                          <HiUserGroup className='w-3 h-3' />
+                          <span className='text-[10px]'>{job.count} poste{job.count > 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -201,10 +293,7 @@ export const LandingPage = () => {
             <div className='hidden sm:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-white/[0.1] to-transparent' />
 
             {pipeline.map((p) => (
-              <div
-                key={p.step}
-                className='pipe-step relative flex flex-col items-center text-center gap-3'
-              >
+              <div key={p.step} className='pipe-step relative flex flex-col items-center text-center gap-3'>
                 <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-lg font-bold border ${stepColorMap[p.color]}`}>
                   {p.step}
                 </div>
@@ -228,10 +317,10 @@ export const LandingPage = () => {
                 Connectez-vous avec votre compte Ventec pour accéder à la plateforme RH.
               </p>
               <div className='mt-8'>
-                <Link to='/signin'
+                <button onClick={login}
                   className='btn-glow inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20'>
                   Se connecter <HiArrowRight className='w-4 h-4' />
-                </Link>
+                </button>
               </div>
               <div className='mt-7 flex flex-wrap justify-center gap-5 text-sm text-slate-500'>
                 {['Accès sécurisé', 'Usage interne uniquement', 'Données confidentielles'].map((label) => (
@@ -254,7 +343,7 @@ export const LandingPage = () => {
             <p className='text-xs'>Plateforme RH interne · Ventec © 2026</p>
           </div>
           <div className='flex flex-wrap gap-6 text-xs'>
-            <Link to='/signin' className='nav-link text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors'>Connexion</Link>
+            <button onClick={login} className='nav-link text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors'>Connexion</button>
             <a href='https://www.ventec.ma/fr/' target='_blank' rel='noreferrer'
               className='nav-link text-cyan-500 dark:text-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors'>
               Site officiel Ventec

@@ -1,36 +1,26 @@
-import { useEffect } from "react";
-import axios from "axios";
-import { useAuth } from "@clerk/clerk-react";
+import { useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const axiosPrivate = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
 const useAxiosPrivate = () => {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const requestIntercept = axiosPrivate.interceptors.request.use(
-      async (config) => {
-        if (!isSignedIn) return config;
+    const requestIntercept = axiosPrivate.interceptors.request.use((config) => {
+      if (!isAuthenticated) return config;
 
-        try {
-          const token = await getToken();
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        } catch (err) {
-          console.error("Token retrieval failed", err);
-        }
+      const token = getToken();
+      if (token) config.headers.Authorization = `Bearer ${token}`;
 
-        return config;
-      }
-    );
+      return config;
+    });
 
-    return () => {
-      axiosPrivate.interceptors.request.eject(requestIntercept);
-    };
-  }, [getToken, isSignedIn]);
+    return () => axiosPrivate.interceptors.request.eject(requestIntercept);
+  }, [getToken, isAuthenticated]);
 
   return axiosPrivate;
 };
