@@ -11,9 +11,7 @@ services:
     ports:
       - "8081:8080"
     volumes:
-      # auto-import the realm on first start
       - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
-      # persist Keycloak data across restarts
       - keycloak_data:/opt/keycloak/data
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
@@ -28,7 +26,15 @@ services:
       context: ./grh-backend/grh-backend
       dockerfile: Dockerfile
     container_name: GRH-backend
-    env_file: .env
+    environment:
+      # DB (from root .env)
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # Backend reaches Keycloak via internal Docker network (container name + internal port)
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
     ports:
       - "5000:5000"
     depends_on:
@@ -46,6 +52,13 @@ services:
     build:
       context: ./Front-GRH
       dockerfile: Dockerfile
+      args:
+        # VITE_ vars are baked into the JS bundle at build time.
+        # They must point to URLs reachable from the USER'S BROWSER.
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
+        VITE_API_URL: ${VITE_API_URL}
     container_name: GRH-frontend
     ports:
       - "5173:80"
