@@ -1,6 +1,6 @@
 <#macro page title bodyClass="">
 <!DOCTYPE html>
-<html lang="${locale.currentLanguageTag}" data-theme="dark">
+<html lang="${(locale.currentLanguageTag)!'fr'}" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -40,16 +40,16 @@
     </div>
 
     <h1 class="vt-brand-headline">
-      Gérez vos<br/><span>Ressources Humaines</span><br/>avec intelligence
+      Simplifiez votre<br/><span>Recrutement</span><br/>avec intelligence
     </h1>
     <p class="vt-brand-sub">
-      Plateforme intégrée de gestion du personnel — congés, paie, présences, et bien plus.
+      Plateforme intégrée de gestion des ressources humaines — recrutement, candidats, entretiens, et bien plus.
     </p>
 
     <ul class="vt-features">
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Gestion des congés et absences</li>
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Suivi des présences en temps réel</li>
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Tableaux de bord analytiques</li>
+      <li class="vt-feature"><span class="vt-feature-dot"></span>Gestion des offres d'emploi</li>
+      <li class="vt-feature"><span class="vt-feature-dot"></span>Suivi des candidatures en temps réel</li>
+      <li class="vt-feature"><span class="vt-feature-dot"></span>Planification des entretiens</li>
       <li class="vt-feature"><span class="vt-feature-dot"></span>Accès sécurisé et centralisé</li>
     </ul>
 

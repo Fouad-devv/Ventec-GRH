@@ -40,7 +40,7 @@
           autocapitalize="off"
           spellcheck="false"
           autofocus
-          value="${(login.username!'')?html}"
+          value="${login.username!''}"
           aria-required="true"
         />
       </div>

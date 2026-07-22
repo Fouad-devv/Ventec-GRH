@@ -35,7 +35,7 @@
           type="text"
           autocomplete="username"
           autofocus
-          value="${(auth.attemptedUsername!'')?html}"
+          value="${auth.attemptedUsername!''}"
           aria-required="true"
         />
       </div>
