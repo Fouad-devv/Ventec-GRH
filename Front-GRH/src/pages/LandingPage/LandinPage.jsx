@@ -103,10 +103,10 @@ export const LandingPage = () => {
       </div>
 
       {/* ── Header ── */}
-      <header className='a-header relative z-10 bg-white dark:bg-transparent mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
+      <header className='a-header h-16 md:h-18 relative z-10 bg-white dark:bg-white/[0.06] mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
         <div className='flex items-center gap-3'>
           <img src={logo} alt='Ventec logo'
-            className='h-10 w-auto rounded-lg object-cover border border-slate-200 dark:border-white/20 shadow-lg shadow-cyan-500/10 transition-transform duration-300 hover:scale-105' />
+            className='h-8 md:h-9 w-auto rounded-lg object-cover dark:border-white/20 transition-transform duration-300 hover:scale-105' />
           <div>
             <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-500 dark:text-cyan-400 font-semibold'>Ventec</p>
             <h1 className='hidden md:block text-base font-semibold text-slate-900 dark:text-white leading-tight'>Plateforme RH</h1>
