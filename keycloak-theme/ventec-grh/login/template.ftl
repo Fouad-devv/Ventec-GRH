@@ -47,7 +47,6 @@
     </p>
 
     <ul class="vt-features">
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Gestion des offres d'emploi</li>
       <li class="vt-feature"><span class="vt-feature-dot"></span>Suivi des candidatures en temps réel</li>
       <li class="vt-feature"><span class="vt-feature-dot"></span>Planification des entretiens</li>
       <li class="vt-feature"><span class="vt-feature-dot"></span>Accès sécurisé et centralisé</li>
