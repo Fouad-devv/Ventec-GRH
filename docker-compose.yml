@@ -8,11 +8,16 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Use Neon PostgreSQL instead of the default embedded H2
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
     ports:
       - "8081:8080"
     volumes:
+      # Realm is imported on first start; skipped if realm already exists in DB
       - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
-      - keycloak_data:/opt/keycloak/data
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
       interval: 10s
@@ -66,5 +71,4 @@ services:
       backend:
         condition: service_healthy
 
-volumes:
-  keycloak_data:
+# No local volumes needed — Keycloak state lives in Neon PostgreSQL
