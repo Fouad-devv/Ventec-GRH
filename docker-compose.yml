@@ -1,23 +1,27 @@
+networks:
+  grh-network:
+    driver: bridge
+
 services:
 
   # ── Keycloak ────────────────────────────────────────────────────
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.keycloak
     container_name: GRH-Ventec-keycloak
     command: start-dev --import-realm
+    networks:
+      - grh-network
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      # Use Neon PostgreSQL instead of the default embedded H2
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_PWD}
       KC_DB: postgres
       KC_DB_URL: ${KC_DB_URL}
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
     ports:
       - "8081:8080"
-    volumes:
-      # Realm is imported on first start; skipped if realm already exists in DB
-      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
       interval: 10s
@@ -31,12 +35,12 @@ services:
       context: ./grh-backend/grh-backend
       dockerfile: Dockerfile
     container_name: GRH-backend
+    networks:
+      - grh-network
     environment:
-      # DB (from root .env)
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      # Backend reaches Keycloak via internal Docker network (container name + internal port)
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
@@ -58,17 +62,15 @@ services:
       context: ./Front-GRH
       dockerfile: Dockerfile
       args:
-        # VITE_ vars are baked into the JS bundle at build time.
-        # They must point to URLs reachable from the USER'S BROWSER.
         VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
         VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
         VITE_API_URL: ${VITE_API_URL}
     container_name: GRH-frontend
+    networks:
+      - grh-network
     ports:
       - "5173:80"
     depends_on:
       backend:
         condition: service_healthy
-
-# No local volumes needed — Keycloak state lives in Neon PostgreSQL

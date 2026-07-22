@@ -1,0 +1,7 @@
+FROM quay.io/keycloak/keycloak:latest
+
+# Copy the custom login theme into the Keycloak themes directory
+COPY keycloak-theme/ventec-grh /opt/keycloak/themes/ventec-grh
+
+# Copy the realm export so the image is fully self-contained
+COPY realm-export.json /opt/keycloak/data/import/realm-export.json
