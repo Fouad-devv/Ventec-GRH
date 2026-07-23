@@ -58,6 +58,10 @@ export const LandingPage = () => {
     emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
   };
 
+
+
+
+
   return (
     <div className='min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white'>
 
@@ -101,6 +105,7 @@ export const LandingPage = () => {
         <div className='orb-3 absolute bottom-[5%] left-[15%] w-[400px] h-[400px] rounded-full bg-sky-500/[0.05] dark:bg-sky-500/8 blur-[100px]' />
         <div className='absolute inset-0 opacity-[0.35] dark:opacity-[1] dot-pattern' />
       </div>
+
 
       {/* ── Header ── */}
       <header className='a-header h-16 md:h-18 relative z-10 bg-white dark:bg-white/[0.06] mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
