@@ -1,3 +1,5 @@
+name: GRH-VENTEC
+
 networks:
   grh-network:
     driver: bridge
