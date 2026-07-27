@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export const ThemeToggle = () => {
   const { isDark, toggleTheme } = useTheme();
+  
   return (
     <button
       onClick={toggleTheme}
