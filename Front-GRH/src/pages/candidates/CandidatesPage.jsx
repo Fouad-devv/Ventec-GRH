@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/PageHeader';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { CreateCandidateModal } from './CreateCandidateModal';
+import { usePageActions } from '../../context/HeaderContext';
 
 export const CandidatesPage = () => {
   const axios = useAxiosPrivate();
@@ -15,6 +16,15 @@ export const CandidatesPage = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
+
+  usePageActions(
+    <button
+      onClick={() => setShowCreate(true)}
+      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+    >
+      <MdAdd className="w-4 h-4" /> Ajouter
+    </button>
+  );
 
   const load = () => {
     setLoading(true);
@@ -34,18 +44,7 @@ export const CandidatesPage = () => {
 
   return (
     <div className="p-6">
-      <PageHeader
-        title="Candidats"
-        subtitle={`${candidates.length} candidat${candidates.length !== 1 ? 's' : ''}`}
-        action={
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-          >
-            <MdAdd className="w-4 h-4" /> Ajouter
-          </button>
-        }
-      />
+      <PageHeader subtitle={`${candidates.length} candidat${candidates.length !== 1 ? 's' : ''}`} />
 
       <div className="relative mb-5 max-w-xs">
         <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />

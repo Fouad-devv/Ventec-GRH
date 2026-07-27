@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { MdAdd, MdSearch, MdFilterList } from 'react-icons/md';
+import { MdAdd, MdSearch } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { CreatePostingModal } from './CreatePostingModal';
+import { usePageActions } from '../../context/HeaderContext';
 
 export const PostingsPage = () => {
   const axios = useAxiosPrivate();
@@ -17,6 +18,15 @@ export const PostingsPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+
+  usePageActions(
+    <button
+      onClick={() => setShowCreate(true)}
+      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+    >
+      <MdAdd className="w-4 h-4" /> Nouvelle offre
+    </button>
+  );
 
   const load = () => {
     setLoading(true);
@@ -35,20 +45,8 @@ export const PostingsPage = () => {
 
   return (
     <div className="p-6">
-      <PageHeader
-        title="Offres d'emploi"
-        subtitle={`${postings.length} offre${postings.length !== 1 ? 's' : ''}`}
-        action={
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-          >
-            <MdAdd className="w-4 h-4" /> Nouvelle offre
-          </button>
-        }
-      />
+      <PageHeader subtitle={`${postings.length} offre${postings.length !== 1 ? 's' : ''}`} />
 
-      {/* Filters */}
       <div className="flex gap-3 mb-5">
         <div className="relative flex-1 max-w-xs">
           <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />

@@ -66,7 +66,6 @@ export const Sidebar = () => {
         {isAdmin && (
           <>
             <div className="pt-3 pb-1 px-3">
-              {/* Divider line shown when collapsed, text label when expanded */}
               <div className="h-px bg-slate-200 dark:bg-slate-700 opacity-100 group-hover/sidebar:opacity-0 lg:opacity-0 transition-opacity duration-200" />
               <p className="whitespace-nowrap text-xs font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wider opacity-0 group-hover/sidebar:opacity-100 lg:opacity-100 transition-opacity duration-200 -mt-px">
                 Admin
@@ -97,7 +96,7 @@ export const Sidebar = () => {
       {/* Footer */}
       <div className="px-2 py-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
 
-        {/* User info row */}
+        {/* User info */}
         <div className="flex items-center gap-2 px-2">
           <div className="w-8 h-8 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold">
             {initial}
@@ -110,6 +109,8 @@ export const Sidebar = () => {
               {userInfo?.email || ''}
             </p>
           </div>
+        </div>
+
         {/* Logout */}
         <button
           onClick={logout}
@@ -120,6 +121,7 @@ export const Sidebar = () => {
             Déconnexion
           </span>
         </button>
+
       </div>
     </aside>
   );
