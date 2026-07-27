@@ -22,9 +22,10 @@ export const PostingsPage = () => {
   usePageActions(
     <button
       onClick={() => setShowCreate(true)}
-      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium"
     >
-      <MdAdd className="w-4 h-4" /> Nouvelle offre
+      <MdAdd className="w-4 h-4 shrink-0" />
+      <span className="hidden sm:inline">Nouvelle offre</span>
     </button>
   );
 

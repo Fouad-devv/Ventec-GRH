@@ -22,11 +22,11 @@ const AppLayoutInner = () => {
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+        <header className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-2">
+          <h1 className="text-sm sm:text-base lg:text-xl font-bold text-slate-900 dark:text-white truncate">
             {getTitle(pathname)}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {actions}
             <ThemeToggle />
           </div>
