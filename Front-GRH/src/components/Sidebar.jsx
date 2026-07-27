@@ -10,7 +10,6 @@ import {
   MdLogout,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
-import { ThemeToggle } from './ThemeToggle';
 
 const navItems = [
   { to: '/app/dashboard', icon: MdDashboard, label: 'Tableau de bord' },
@@ -111,16 +110,6 @@ export const Sidebar = () => {
               {userInfo?.email || ''}
             </p>
           </div>
-          <div className="shrink-0 opacity-0 group-hover/sidebar:opacity-100 lg:opacity-100 transition-opacity duration-200">
-            <ThemeToggle />
-          </div>
-        </div>
-
-        {/* ThemeToggle centered when collapsed (hidden when expanded or on large screens) */}
-        <div className="flex justify-center lg:hidden group-hover/sidebar:hidden">
-          <ThemeToggle />
-        </div>
-
         {/* Logout */}
         <button
           onClick={logout}
