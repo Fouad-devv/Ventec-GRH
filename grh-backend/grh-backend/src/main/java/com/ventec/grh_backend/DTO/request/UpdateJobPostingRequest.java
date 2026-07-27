@@ -1,4 +1,4 @@
-package com.ventec.grh_backend.dto.request;
+package com.ventec.grh_backend.DTO.request;
 
 import java.time.LocalDate;
 
