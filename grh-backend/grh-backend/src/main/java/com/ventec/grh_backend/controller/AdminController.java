@@ -1,7 +1,7 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.dto.request.SyncUserRequest;
-import com.ventec.grh_backend.dto.response.UserResponse;
+import com.ventec.grh_backend.DTO.request.SyncUserRequest;
+import com.ventec.grh_backend.DTO.response.UserResponse;
 import com.ventec.grh_backend.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

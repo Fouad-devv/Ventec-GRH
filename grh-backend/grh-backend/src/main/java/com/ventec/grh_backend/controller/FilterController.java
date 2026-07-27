@@ -1,6 +1,6 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.dto.response.FilterJobResponse;
+import com.ventec.grh_backend.DTO.response.FilterJobResponse;
 import com.ventec.grh_backend.service.FilterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

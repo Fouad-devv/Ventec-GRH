@@ -1,7 +1,7 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.dto.request.UpdateDocumentChecklistRequest;
-import com.ventec.grh_backend.dto.response.DocumentChecklistResponse;
+import com.ventec.grh_backend.DTO.request.UpdateDocumentChecklistRequest;
+import com.ventec.grh_backend.DTO.response.DocumentChecklistResponse;
 import com.ventec.grh_backend.service.DocumentChecklistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

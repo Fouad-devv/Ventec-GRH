@@ -2,8 +2,8 @@ package com.ventec.grh_backend.service;
 
 import com.ventec.grh_backend.domain.Notification;
 import com.ventec.grh_backend.domain.User;
-import com.ventec.grh_backend.dto.request.CreateNotificationRequest;
-import com.ventec.grh_backend.dto.response.NotificationResponse;
+import com.ventec.grh_backend.DTO.request.CreateNotificationRequest;
+import com.ventec.grh_backend.DTO.response.NotificationResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.NotificationRepository;
 import com.ventec.grh_backend.repository.UserRepository;

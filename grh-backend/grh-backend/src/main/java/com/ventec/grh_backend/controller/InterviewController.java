@@ -1,8 +1,8 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.dto.request.ScheduleInterviewRequest;
-import com.ventec.grh_backend.dto.request.UpdateInterviewRequest;
-import com.ventec.grh_backend.dto.response.InterviewResponse;
+import com.ventec.grh_backend.DTO.request.ScheduleInterviewRequest;
+import com.ventec.grh_backend.DTO.request.UpdateInterviewRequest;
+import com.ventec.grh_backend.DTO.response.InterviewResponse;
 import com.ventec.grh_backend.service.InterviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

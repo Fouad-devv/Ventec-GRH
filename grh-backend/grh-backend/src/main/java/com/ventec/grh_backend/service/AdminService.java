@@ -1,8 +1,8 @@
 package com.ventec.grh_backend.service;
 
 import com.ventec.grh_backend.domain.User;
-import com.ventec.grh_backend.dto.request.SyncUserRequest;
-import com.ventec.grh_backend.dto.response.UserResponse;
+import com.ventec.grh_backend.DTO.request.SyncUserRequest;
+import com.ventec.grh_backend.DTO.response.UserResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

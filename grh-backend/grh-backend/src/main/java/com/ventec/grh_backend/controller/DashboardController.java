@@ -1,6 +1,6 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.dto.response.DashboardStatsResponse;
+import com.ventec.grh_backend.DTO.response.DashboardStatsResponse;
 import com.ventec.grh_backend.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

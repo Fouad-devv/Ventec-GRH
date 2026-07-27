@@ -1,6 +1,6 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.dto.response.CandidateResponse;
+import com.ventec.grh_backend.DTO.response.CandidateResponse;
 import com.ventec.grh_backend.service.CandidateService;
 import com.ventec.grh_backend.service.StorageService;
 import lombok.RequiredArgsConstructor;
