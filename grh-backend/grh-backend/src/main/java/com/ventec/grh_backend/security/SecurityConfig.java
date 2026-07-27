@@ -1,5 +1,6 @@
 package com.ventec.grh_backend.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -20,6 +21,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final KeycloakJwtConverter keycloakJwtConverter;
+
+    @Value("${cors.allowed-origins}")
+    private String[] allowedOrigins;
 
     public SecurityConfig(KeycloakJwtConverter keycloakJwtConverter) {
         this.keycloakJwtConverter = keycloakJwtConverter;
@@ -46,11 +50,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:5175"
-        ));
+        config.setAllowedOrigins(List.of(allowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

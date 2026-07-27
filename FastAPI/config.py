@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     openai_api_key: str = ""
-    backend_url: str = "http://backend:5000/api"
+    backend_url: str
     model_name: str = "gpt-4o-mini"
 
     class Config:

@@ -40,9 +40,9 @@ services:
     networks:
       - grh-network-test
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       BACKEND_URL: http://backend:5000/api
-      MODEL_NAME: ${AI_MODEL_NAME:-gpt-4o-mini}
+      MODEL_NAME: ${AI_MODEL_NAME}
     ports:
       - "8001:8000"
     healthcheck:
@@ -68,6 +68,13 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       AI_SERVICE_URL: http://ai-service:8000
+      STORAGE_PATH: ${STORAGE_PATH}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
     ports:
       - "5001:5000"
     depends_on:

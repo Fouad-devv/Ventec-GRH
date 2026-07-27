@@ -8,5 +8,5 @@ export const candidatesApi = (axios) => ({
   }),
   update: (id, params) => axios.put(`${BASE}/${id}`, null, { params }),
   delete: (id) => axios.delete(`${BASE}/${id}`),
-  cvUrl: (id) => `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/candidates/${id}/cv`,
+  cvUrl: (id) => `${import.meta.env.VITE_API_URL}/candidates/${id}/cv`,
 });
