@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_name: str = "gpt-4o-mini"
 
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
 
 
 settings = Settings()
