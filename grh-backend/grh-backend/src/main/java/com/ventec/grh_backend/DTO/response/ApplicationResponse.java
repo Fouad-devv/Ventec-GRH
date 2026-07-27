@@ -1,4 +1,4 @@
-package com.ventec.grh_backend.dto.response;
+package com.ventec.grh_backend.DTO.response;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
