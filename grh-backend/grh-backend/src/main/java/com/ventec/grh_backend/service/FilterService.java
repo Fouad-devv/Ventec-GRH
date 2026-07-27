@@ -6,7 +6,7 @@ import com.ventec.grh_backend.domain.Application;
 import com.ventec.grh_backend.domain.Candidate;
 import com.ventec.grh_backend.domain.FilterJob;
 import com.ventec.grh_backend.domain.JobPosting;
-import com.ventec.grh_backend.dto.response.FilterJobResponse;
+import com.ventec.grh_backend.DTO.response.FilterJobResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.*;
 import lombok.RequiredArgsConstructor;

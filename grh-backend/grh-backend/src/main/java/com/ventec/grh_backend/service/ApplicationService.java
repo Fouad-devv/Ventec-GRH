@@ -2,8 +2,8 @@ package com.ventec.grh_backend.service;
 
 import com.ventec.grh_backend.domain.Application;
 import com.ventec.grh_backend.domain.User;
-import com.ventec.grh_backend.dto.request.UpdateApplicationStatusRequest;
-import com.ventec.grh_backend.dto.response.ApplicationResponse;
+import com.ventec.grh_backend.DTO.request.UpdateApplicationStatusRequest;
+import com.ventec.grh_backend.DTO.response.ApplicationResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.ApplicationRepository;
 import com.ventec.grh_backend.repository.UserRepository;

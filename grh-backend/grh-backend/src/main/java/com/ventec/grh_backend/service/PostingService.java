@@ -2,9 +2,9 @@ package com.ventec.grh_backend.service;
 
 import com.ventec.grh_backend.domain.JobPosting;
 import com.ventec.grh_backend.domain.User;
-import com.ventec.grh_backend.dto.request.CreateJobPostingRequest;
-import com.ventec.grh_backend.dto.request.UpdateJobPostingRequest;
-import com.ventec.grh_backend.dto.response.JobPostingResponse;
+import com.ventec.grh_backend.DTO.request.CreateJobPostingRequest;
+import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
+import com.ventec.grh_backend.DTO.response.JobPostingResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.JobPostingRepository;
 import com.ventec.grh_backend.repository.UserRepository;

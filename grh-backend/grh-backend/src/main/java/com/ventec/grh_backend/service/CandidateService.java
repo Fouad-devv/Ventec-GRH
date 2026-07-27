@@ -1,7 +1,7 @@
 package com.ventec.grh_backend.service;
 
 import com.ventec.grh_backend.domain.Candidate;
-import com.ventec.grh_backend.dto.response.CandidateResponse;
+import com.ventec.grh_backend.DTO.response.CandidateResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.CandidateRepository;
 import lombok.RequiredArgsConstructor;
