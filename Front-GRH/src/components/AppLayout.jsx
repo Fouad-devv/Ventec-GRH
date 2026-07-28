@@ -48,23 +48,29 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
       )}
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {/* Hamburger — small screens only */}
+        <header className="grid grid-cols-3 items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0 shrink-0">
+          {/* Left — hamburger on small screens */}
+          <div>
             {!isLarge && (
               <button
                 onClick={onToggle}
                 aria-label="Open sidebar"
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <MdMenu className="w-5 h-5" />
               </button>
             )}
-            <h1 className="text-sm sm:text-base lg:text-xl font-bold text-slate-900 dark:text-white truncate">
+          </div>
+
+          {/* Center — page title, pinned toward the bottom */}
+          <div className="flex justify-center self-end pb-2">
+            <h1 className="text-sm sm:text-base lg:text-3xl font-bold lg:font-extrabold lg:tracking-tight text-slate-900 dark:text-white truncate text-center">
               {getTitle(pathname)}
             </h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+
+          {/* Right — actions + theme toggle */}
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
             {actions}
             <ThemeToggle />
           </div>
