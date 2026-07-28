@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   MdDashboard,
@@ -9,6 +10,7 @@ import {
   MdAdminPanelSettings,
   MdLogout,
   MdClose,
+  MdKeyboardArrowDown,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,10 +27,17 @@ const adminItems = [
   { to: '/app/admin', icon: MdAdminPanelSettings, label: 'Administration' },
 ];
 
-export const Sidebar = ({ expanded, isLarge, onClose }) => {
+export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
   const { logout, userInfo, hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
   const initial = userInfo?.given_name?.[0] || userInfo?.preferred_username?.[0] || '?';
+  const displayRole = hasRole('ADMIN') ? 'Admin' : hasRole('MANAGER') ? 'Manager' : 'RH';
+
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) setShowUserMenu(false);
+  }, [expanded]);
 
   const labelClass = `whitespace-nowrap transition-opacity duration-200 ${
     expanded ? 'opacity-100' : 'opacity-0'
@@ -54,7 +63,6 @@ export const Sidebar = ({ expanded, isLarge, onClose }) => {
         <span className={`font-bold text-slate-900 dark:text-white text-lg ${labelClass}`}>
           GRH Ventec
         </span>
-        {/* X close button — mobile only, pushed to the right */}
         {!isLarge && (
           <button
             onClick={onClose}
@@ -116,30 +124,77 @@ export const Sidebar = ({ expanded, isLarge, onClose }) => {
       </nav>
 
       {/* Footer */}
-      <div className="px-2 py-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+      <div className="relative px-2 py-3 border-t border-slate-200 dark:border-slate-800">
 
-        {/* User info */}
-        <div className="flex items-center gap-2 px-2">
-          <div className="w-8 h-8 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold">
+        {/* Floating user card — absolute, overlays nav, no layout impact */}
+        {showUserMenu && (
+          <div className="absolute bottom-full left-2 right-2 mb-2 z-10 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+            {/* Card header */}
+            <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-200 dark:border-slate-700">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                  {userInfo?.name || userInfo?.preferred_username || 'Utilisateur'}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {userInfo?.email || '—'}
+                </p>
+              </div>
+            </div>
+            {/* Logout */}
+            <div className="px-4 py-3">
+              <button
+                onClick={logout}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 rounded-xl transition-colors shadow-sm"
+              >
+                <MdLogout className="w-4 h-4" />
+                Déconnexion
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* User summary row — always visible */}
+        <button
+          onClick={() => {
+            if (!expanded) {
+              onExpand?.();
+              setShowUserMenu(true);
+            } else {
+              setShowUserMenu((v) => !v);
+            }
+          }}
+          className="flex items-center gap-2 w-full px-2 py-2 rounded-xl transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+        >
+          {/* Avatar */}
+          <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
             {initial}
           </div>
-          <div className={`flex-1 min-w-0 overflow-hidden transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0'}`}>
-            <p className="text-sm font-medium text-slate-900 dark:text-white truncate whitespace-nowrap">
-              {userInfo?.name || userInfo?.preferred_username || 'Utilisateur'}
+          <div className={`flex-1 min-w-0 overflow-hidden transition-opacity duration-200 flex flex-col items-start ${expanded ? 'opacity-100' : 'opacity-0'}`}>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate whitespace-nowrap leading-tight">
+              {userInfo?.given_name
+                ? `${userInfo.given_name} ${userInfo.family_name || ''}`
+                : userInfo?.preferred_username || 'Utilisateur'}
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate whitespace-nowrap">
-              {userInfo?.email || ''}
-            </p>
+            <span className={`mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-md ${
+              hasRole('ADMIN')
+                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                : hasRole('MANAGER')
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                : 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300'
+            }`}>
+              {displayRole}
+            </span>
           </div>
-        </div>
-
-        {/* Logout */}
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
-        >
-          <MdLogout className="w-4 h-4 shrink-0" />
-          <span className={labelClass}>Déconnexion</span>
+          {expanded && (
+            <MdKeyboardArrowDown
+              className={`w-4 h-4 shrink-0 text-slate-400 transition-transform duration-200 ${
+                showUserMenu ? 'rotate-180' : ''
+              }`}
+            />
+          )}
         </button>
 
       </div>

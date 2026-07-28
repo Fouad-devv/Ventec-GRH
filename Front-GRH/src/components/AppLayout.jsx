@@ -18,7 +18,7 @@ const getTitle = (pathname) => {
 
 const LG = 1024;
 
-const AppLayoutInner = ({ expanded, onToggle, onClose, isLarge }) => {
+const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
   const { pathname } = useLocation();
   const { actions } = useHeaderContext();
 
@@ -34,7 +34,7 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, isLarge }) => {
         />
       )}
 
-      <Sidebar expanded={expanded} isLarge={isLarge} onClose={onClose} />
+      <Sidebar expanded={expanded} isLarge={isLarge} onClose={onClose} onExpand={onExpand} />
 
       {/* Chevron toggle — large screens only, on sidebar border */}
       {isLarge && (
@@ -111,9 +111,16 @@ export const AppLayout = () => {
 
   const close = () => setExpanded(false);
 
+  const expand = () => {
+    setExpanded(true);
+    if (window.innerWidth >= LG) {
+      localStorage.setItem('sidebar-expanded', 'true');
+    }
+  };
+
   return (
     <HeaderProvider>
-      <AppLayoutInner expanded={expanded} onToggle={toggle} onClose={close} isLarge={isLarge} />
+      <AppLayoutInner expanded={expanded} onToggle={toggle} onClose={close} onExpand={expand} isLarge={isLarge} />
     </HeaderProvider>
   );
 };
