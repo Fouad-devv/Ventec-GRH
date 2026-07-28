@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { MdAdd, MdSearch, MdDownload } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { CreateCandidateModal } from './CreateCandidateModal';
-import { usePageActions } from '../../context/HeaderContext';
 
 export const CandidatesPage = () => {
   const axios = useAxiosPrivate();
@@ -16,16 +14,6 @@ export const CandidatesPage = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
-
-  usePageActions(
-    <button
-      onClick={() => setShowCreate(true)}
-      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium"
-    >
-      <MdAdd className="w-4 h-4 shrink-0" />
-      <span className="hidden sm:inline">Ajouter</span>
-    </button>
-  );
 
   const load = () => {
     setLoading(true);
@@ -45,7 +33,18 @@ export const CandidatesPage = () => {
 
   return (
     <div className="p-6">
-      <PageHeader subtitle={`${candidates.length} candidat${candidates.length !== 1 ? 's' : ''}`} />
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {candidates.length} candidat{candidates.length !== 1 ? 's' : ''}
+        </p>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
+        >
+          <MdAdd className="w-5 h-5" />
+          Ajouter un candidat
+        </button>
+      </div>
 
       <div className="relative mb-5 max-w-xs">
         <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
