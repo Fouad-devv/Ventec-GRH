@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import { MdMenu, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import { Sidebar } from './Sidebar';
 import { ThemeToggle } from './ThemeToggle';
 import { HeaderProvider, useHeaderContext } from '../context/HeaderContext';
@@ -16,30 +16,54 @@ const getTitle = (pathname) => {
   return '';
 };
 
-const AppLayoutInner = ({ expanded, onToggle }) => {
+const LG = 1024;
+
+const AppLayoutInner = ({ expanded, onToggle, onClose, isLarge }) => {
   const { pathname } = useLocation();
   const { actions } = useHeaderContext();
 
+  const btnLeft = expanded ? 'left-64' : 'left-16';
+
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-      <Sidebar expanded={expanded} />
+      {/* Backdrop — mobile only, when sidebar is open */}
+      {!isLarge && expanded && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={onToggle}
+        />
+      )}
 
-      {/* Toggle button pinned to sidebar right border */}
-      <button
-        onClick={onToggle}
-        aria-label="Toggle sidebar"
-        className={`absolute top-7 sm:top-8 -translate-x-1/2 z-50 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-[left,colors] duration-300 ease-in-out ${
-          expanded ? 'left-64' : 'left-16'
-        }`}
-      >
-        {expanded ? <MdChevronLeft className="w-4 h-4" /> : <MdChevronRight className="w-4 h-4" />}
-      </button>
+      <Sidebar expanded={expanded} isLarge={isLarge} onClose={onClose} />
+
+      {/* Chevron toggle — large screens only, on sidebar border */}
+      {isLarge && (
+        <button
+          onClick={onToggle}
+          aria-label="Toggle sidebar"
+          className={`absolute top-7 sm:top-8 -translate-x-1/2 z-[51] w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-[left,colors] duration-300 ease-in-out ${btnLeft}`}
+        >
+          {expanded ? <MdChevronLeft className="w-4 h-4" /> : <MdChevronRight className="w-4 h-4" />}
+        </button>
+      )}
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-2">
-          <h1 className="text-sm sm:text-base lg:text-xl font-bold text-slate-900 dark:text-white truncate">
-            {getTitle(pathname)}
-          </h1>
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Hamburger — small screens only */}
+            {!isLarge && (
+              <button
+                onClick={onToggle}
+                aria-label="Open sidebar"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+              >
+                <MdMenu className="w-5 h-5" />
+              </button>
+            )}
+            <h1 className="text-sm sm:text-base lg:text-xl font-bold text-slate-900 dark:text-white truncate">
+              {getTitle(pathname)}
+            </h1>
+          </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {actions}
             <ThemeToggle />
@@ -53,9 +77,8 @@ const AppLayoutInner = ({ expanded, onToggle }) => {
   );
 };
 
-const LG = 1024;
-
 export const AppLayout = () => {
+  const [isLarge, setIsLarge] = useState(window.innerWidth >= LG);
   const [expanded, setExpanded] = useState(() => {
     if (window.innerWidth < LG) return false;
     const saved = localStorage.getItem('sidebar-expanded');
@@ -64,7 +87,9 @@ export const AppLayout = () => {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth < LG) {
+      const large = window.innerWidth >= LG;
+      setIsLarge(large);
+      if (!large) {
         setExpanded(false);
       } else {
         const saved = localStorage.getItem('sidebar-expanded');
@@ -84,9 +109,11 @@ export const AppLayout = () => {
       return next;
     });
 
+  const close = () => setExpanded(false);
+
   return (
     <HeaderProvider>
-      <AppLayoutInner expanded={expanded} onToggle={toggle} />
+      <AppLayoutInner expanded={expanded} onToggle={toggle} onClose={close} isLarge={isLarge} />
     </HeaderProvider>
   );
 };

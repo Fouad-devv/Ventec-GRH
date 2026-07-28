@@ -8,6 +8,7 @@ import {
   MdNotifications,
   MdAdminPanelSettings,
   MdLogout,
+  MdClose,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,7 +25,7 @@ const adminItems = [
   { to: '/app/admin', icon: MdAdminPanelSettings, label: 'Administration' },
 ];
 
-export const Sidebar = ({ expanded }) => {
+export const Sidebar = ({ expanded, isLarge, onClose }) => {
   const { logout, userInfo, hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
   const initial = userInfo?.given_name?.[0] || userInfo?.preferred_username?.[0] || '?';
@@ -33,10 +34,16 @@ export const Sidebar = ({ expanded }) => {
     expanded ? 'opacity-100' : 'opacity-0'
   }`;
 
+  const handleNavClick = () => {
+    if (!isLarge) onClose?.();
+  };
+
   return (
     <aside
-      className={`flex flex-col h-screen shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-[width] duration-300 ease-in-out overflow-hidden z-40 ${
-        expanded ? 'w-64' : 'w-16'
+      className={`flex flex-col h-screen shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-[width] duration-300 ease-in-out overflow-hidden ${
+        isLarge
+          ? `z-40 ${expanded ? 'w-64' : 'w-16'}`
+          : `fixed inset-y-0 left-0 z-50 ${expanded ? 'w-64' : 'w-0'}`
       }`}
     >
       {/* Logo */}
@@ -47,6 +54,16 @@ export const Sidebar = ({ expanded }) => {
         <span className={`font-bold text-slate-900 dark:text-white text-lg ${labelClass}`}>
           GRH Ventec
         </span>
+        {/* X close button — mobile only, pushed to the right */}
+        {!isLarge && (
+          <button
+            onClick={onClose}
+            aria-label="Close sidebar"
+            className="ml-auto p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+          >
+            <MdClose className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -55,6 +72,7 @@ export const Sidebar = ({ expanded }) => {
           <NavLink
             key={to}
             to={to}
+            onClick={handleNavClick}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
@@ -80,6 +98,7 @@ export const Sidebar = ({ expanded }) => {
               <NavLink
                 key={to}
                 to={to}
+                onClick={handleNavClick}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
