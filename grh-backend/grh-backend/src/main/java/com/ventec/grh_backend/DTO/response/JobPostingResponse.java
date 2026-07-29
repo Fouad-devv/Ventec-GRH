@@ -19,5 +19,6 @@ public record JobPostingResponse(
         String createdByName,
         LocalDate deadline,
         OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        String ficheFonctionPath
 ) {}

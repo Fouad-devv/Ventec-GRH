@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +28,8 @@ public class PostingService {
     private final JobPostingRepository jobPostingRepository;
     private final UserRepository userRepository;
     private final ApplicationRepository applicationRepository;
+    private final ExportService exportService;
+    private final StorageService storageService;
 
     public JobPostingResponse createPosting(CreateJobPostingRequest req, String keycloakId) {
         User user = userRepository.findByKeycloakId(keycloakId)
@@ -140,6 +143,24 @@ public class PostingService {
                 .toList();
     }
 
+    public JobPostingResponse uploadFicheFonction(UUID id, MultipartFile file) {
+        JobPosting posting = jobPostingRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
+        storageService.delete(posting.getFicheFonctionPath());
+        posting.setFicheFonctionPath(storageService.store(file, "fiches-fonction"));
+        return toResponse(jobPostingRepository.save(posting));
+    }
+
+    public JobPostingResponse generateAndStoreFicheFonction(UUID id) {
+        byte[] docBytes = exportService.exportFicheFonctionDocx(id);
+        String path = storageService.storeBytes(docBytes, "fiche-fonction-" + id + ".docx", "fiches-fonction");
+        JobPosting posting = jobPostingRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
+        storageService.delete(posting.getFicheFonctionPath());
+        posting.setFicheFonctionPath(path);
+        return toResponse(jobPostingRepository.save(posting));
+    }
+
     public JobPostingResponse toResponse(JobPosting p) {
         User creator = p.getCreatedBy();
         return new JobPostingResponse(
@@ -148,7 +169,8 @@ public class PostingService {
                 p.getMinExperience(), p.getSkillsWeights(), p.getStatus(),
                 creator != null ? creator.getId() : null,
                 creator != null ? creator.getFirstName() + " " + creator.getLastName() : null,
-                p.getDeadline(), p.getCreatedAt(), p.getUpdatedAt()
+                p.getDeadline(), p.getCreatedAt(), p.getUpdatedAt(),
+                p.getFicheFonctionPath()
         );
     }
 }

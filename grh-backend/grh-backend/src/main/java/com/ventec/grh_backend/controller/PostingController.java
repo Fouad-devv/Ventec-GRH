@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -111,6 +112,20 @@ public class PostingController {
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                 .body(content);
+    }
+
+    @PostMapping("/{id}/fiche-fonction")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<JobPostingResponse> uploadFicheFonction(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(postingService.uploadFicheFonction(id, file));
+    }
+
+    @PostMapping("/{id}/generate-fiche-fonction")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<JobPostingResponse> generateFicheFonction(@PathVariable UUID id) {
+        return ResponseEntity.ok(postingService.generateAndStoreFicheFonction(id));
     }
 
     @PostMapping("/generate-description")

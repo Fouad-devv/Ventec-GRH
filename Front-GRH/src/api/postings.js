@@ -10,6 +10,12 @@ export const postingsApi = (axios) => ({
   delete: (id) => axios.delete(`${BASE}/${id}`),
   generateDescription: (data) => axios.post(`${BASE}/generate-description`, data),
   duplicate: (id) => axios.post(`${BASE}/${id}/duplicate`),
+  uploadFicheFonction: (id, file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return axios.post(`${BASE}/${id}/fiche-fonction`, fd);
+  },
+  generateFicheFonction: (id) => axios.post(`${BASE}/${id}/generate-fiche-fonction`),
   exportDocxUrl: (id) => `${import.meta.env.VITE_API_URL}/postings/${id}/export/docx`,
   exportFicheFonctionUrl: (id) => `${import.meta.env.VITE_API_URL}/postings/${id}/export/fiche-fonction`,
   getHistory: () => axios.get(`${BASE}/history`),

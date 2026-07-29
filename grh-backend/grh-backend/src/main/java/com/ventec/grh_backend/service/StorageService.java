@@ -48,6 +48,19 @@ public class StorageService {
         }
     }
 
+    public String storeBytes(byte[] data, String filename, String subdir) {
+        try {
+            Path dir = Paths.get(storagePath, subdir);
+            Files.createDirectories(dir);
+            String uniqueFilename = UUID.randomUUID() + "_" + filename;
+            Path target = dir.resolve(uniqueFilename);
+            Files.write(target, data);
+            return subdir + "/" + uniqueFilename;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store bytes: " + e.getMessage(), e);
+        }
+    }
+
     public void delete(String relativePath) {
         if (relativePath == null) return;
         try {
