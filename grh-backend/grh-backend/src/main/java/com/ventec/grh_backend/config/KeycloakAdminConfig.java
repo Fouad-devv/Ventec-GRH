@@ -16,17 +16,21 @@ public class KeycloakAdminConfig {
     @Value("${keycloak.admin.client-id:admin-cli}")
     private String clientId;
 
-    @Value("${keycloak.admin.client-secret:}")
-    private String clientSecret;
+    @Value("${keycloak.admin.username}")
+    private String adminUsername;
+
+    @Value("${keycloak.admin.password}")
+    private String adminPassword;
 
     @Bean
     public Keycloak keycloakAdmin() {
         return KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
                 .realm("master")
-                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+                .grantType(OAuth2Constants.PASSWORD)
                 .clientId(clientId)
-                .clientSecret(clientSecret)
+                .username(adminUsername)
+                .password(adminPassword)
                 .build();
     }
 }

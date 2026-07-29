@@ -1,28 +1,17 @@
-import { useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import keycloak from '../keycloak/keycloak';
 
 const axiosPrivate = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
-const useAxiosPrivate = () => {
-  const { getToken, isAuthenticated } = useAuth();
+// Attach token at request time — no effect/closure timing issues
+axiosPrivate.interceptors.request.use((config) => {
+  const token = keycloak.token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-  useEffect(() => {
-    const requestIntercept = axiosPrivate.interceptors.request.use((config) => {
-      if (!isAuthenticated) return config;
-
-      const token = getToken();
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-
-      return config;
-    });
-
-    return () => axiosPrivate.interceptors.request.eject(requestIntercept);
-  }, [getToken, isAuthenticated]);
-
-  return axiosPrivate;
-};
+const useAxiosPrivate = () => axiosPrivate;
 
 export default useAxiosPrivate;
