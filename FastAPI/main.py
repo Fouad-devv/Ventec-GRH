@@ -12,7 +12,7 @@ import json as _json
 import logging
 
 import httpx
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 
@@ -144,12 +144,8 @@ def _require_openai():
     return _openai_client
 
 
-@app.post("/extract-cv", response_model=ExtractCvResponse)
-async def extract_cv(req: ExtractCvRequest):
-    """Extracts structured data from raw CV text using LLM."""
-    if not settings.openai_api_key:
-        return ExtractCvResponse(skills=[], experience_years=None,
-                                 education=None, current_position=None, location=None)
+async def _run_cv_extraction(text: str) -> ExtractCvResponse:
+    """Shared logic for CV extraction from text."""
     client = _require_openai()
     prompt = f"""Extrait les informations suivantes du CV ci-dessous et retourne UNIQUEMENT un JSON valide :
 {{
@@ -166,28 +162,58 @@ Règles :
 - Ne retourne que le JSON, sans texte autour
 
 CV :
-{req.text[:5000]}
+{text[:5000]}
 """
+    response = await client.chat.completions.create(
+        model=settings.model_name,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        response_format={"type": "json_object"},
+    )
+    data = _json.loads(response.choices[0].message.content)
+    skills = data.get("skills", [])
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(",") if s.strip()]
+    return ExtractCvResponse(
+        skills=skills[:15],
+        experience_years=data.get("experience_years"),
+        education=data.get("education"),
+        current_position=data.get("current_position"),
+        location=data.get("location"),
+    )
+
+
+@app.post("/extract-cv", response_model=ExtractCvResponse)
+async def extract_cv(req: ExtractCvRequest):
+    """Extracts structured data from raw CV text using LLM."""
+    if not settings.openai_api_key:
+        return ExtractCvResponse(skills=[], experience_years=None,
+                                 education=None, current_position=None, location=None)
     try:
-        response = await client.chat.completions.create(
-            model=settings.model_name,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            response_format={"type": "json_object"},
-        )
-        data = _json.loads(response.choices[0].message.content)
-        skills = data.get("skills", [])
-        if isinstance(skills, str):
-            skills = [s.strip() for s in skills.split(",") if s.strip()]
-        return ExtractCvResponse(
-            skills=skills[:15],
-            experience_years=data.get("experience_years"),
-            education=data.get("education"),
-            current_position=data.get("current_position"),
-            location=data.get("location"),
-        )
+        return await _run_cv_extraction(req.text)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("CV extraction failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/extract-cv-file", response_model=ExtractCvResponse)
+async def extract_cv_file(file: UploadFile = File(...)):
+    """Extracts structured data from an uploaded CV file (PDF or text)."""
+    if not settings.openai_api_key:
+        return ExtractCvResponse(skills=[], experience_years=None,
+                                 education=None, current_position=None, location=None)
+    try:
+        content = await file.read()
+        text = extract_text_from_bytes(content, file.filename or "file.pdf")
+        if not text.strip():
+            raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du fichier CV")
+        return await _run_cv_extraction(text)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("CV file extraction failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
