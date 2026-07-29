@@ -144,30 +144,55 @@ def _require_openai():
     return _openai_client
 
 
-async def _run_cv_extraction(text: str) -> ExtractCvResponse:
-    """Shared logic for CV extraction from text."""
+async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResponse:
+    """
+    Extract structured CV data using GPT.
+    `source` is 'pdfplumber', 'ocr', 'text', or 'pdfplumber_fallback' — used to
+    tune the prompt so the model is aware of potential OCR noise.
+    """
     client = _require_openai()
-    prompt = f"""Extrait les informations suivantes du CV ci-dessous et retourne UNIQUEMENT un JSON valide :
+
+    # OCR text can contain garbled characters — tell the model explicitly
+    ocr_note = ""
+    if source == "ocr":
+        ocr_note = (
+            "\nATTENTION : ce texte a été extrait par reconnaissance optique de caractères (OCR) "
+            "depuis un CV scanné. Il peut contenir des erreurs de reconnaissance (lettres confondues, "
+            "espaces parasites, lignes fusionnées). Corrige silencieusement les erreurs évidentes "
+            "lors de l'extraction et base-toi sur le contexte pour interpréter les parties ambiguës.\n"
+        )
+
+    # Send more text for OCR (noisier, needs more context to extract same info)
+    char_limit = 10_000 if source == "ocr" else 6_000
+
+    prompt = f"""Tu es un expert RH et en analyse de CVs. Extrait avec précision les informations \
+suivantes du CV ci-dessous et retourne UNIQUEMENT un objet JSON valide.
+{ocr_note}
+Format attendu :
 {{
   "skills": ["compétence1", "compétence2", ...],
-  "experience_years": <entier ou null>,
-  "education": "<diplôme principal ou null>",
-  "current_position": "<poste actuel ou dernier poste ou null>",
-  "location": "<ville ou pays ou null>"
+  "experience_years": <nombre entier ou null>,
+  "education": "<diplôme le plus élevé obtenu ou null>",
+  "current_position": "<intitulé du poste actuel ou du dernier poste occupé ou null>",
+  "location": "<ville et/ou pays de résidence ou null>"
 }}
 
-Règles :
-- skills : liste des compétences techniques ET soft skills (max 15)
-- experience_years : total années d'expérience professionnelle (entier)
-- Ne retourne que le JSON, sans texte autour
+Règles strictes :
+- skills : compétences techniques (langages, frameworks, outils, certifications) ET soft skills — maximum 15, sans doublons
+- experience_years : somme totale des années d'expérience professionnelle (entier, pas de décimale) ; si non précisé dans le CV, déduis-le des dates de début/fin des postes
+- education : diplôme principal (ex. "Master Informatique", "Licence Gestion", "Bac+5 Ingénieur") — le plus haut obtenu
+- current_position : poste exact tel qu'il apparaît dans le CV
+- location : ville et pays si disponibles (ex. "Alger, Algérie")
+- Si une information est absente ou impossible à déduire, retourne null pour ce champ
+- Ne retourne QUE le JSON, sans aucun texte avant ou après
 
 CV :
-{text[:5000]}
+{text[:char_limit]}
 """
     response = await client.chat.completions.create(
         model=settings.model_name,
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.1,
+        temperature=0.0,
         response_format={"type": "json_object"},
     )
     data = _json.loads(response.choices[0].message.content)
