@@ -81,7 +81,7 @@ public class PostingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         postingService.deletePosting(id);
         return ResponseEntity.noContent().build();
