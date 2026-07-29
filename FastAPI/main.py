@@ -210,12 +210,14 @@ CV :
 
 @app.post("/extract-cv", response_model=ExtractCvResponse)
 async def extract_cv(req: ExtractCvRequest):
-    """Extracts structured data from raw CV text using LLM."""
+    """Extracts structured data from raw CV text (already extracted by the caller)."""
     if not settings.openai_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=422, detail="Le texte du CV est vide")
     try:
-        return await _run_cv_extraction(req.text)
+        return await _run_cv_extraction(req.text, source="text")
     except HTTPException:
         raise
     except Exception as e:
@@ -225,16 +227,35 @@ async def extract_cv(req: ExtractCvRequest):
 
 @app.post("/extract-cv-file", response_model=ExtractCvResponse)
 async def extract_cv_file(file: UploadFile = File(...)):
-    """Extracts structured data from an uploaded CV file (PDF or text)."""
+    """
+    Extracts structured data from an uploaded CV file.
+    - Native PDF  → pdfplumber (fast, precise)
+    - Scanned PDF → pytesseract OCR at 300 DPI (automatic fallback)
+    - Plain text  → UTF-8 decode
+    """
     if not settings.openai_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     try:
         content = await file.read()
-        text = extract_text_from_bytes(content, file.filename or "file.pdf")
+        filename = file.filename or "file.pdf"
+        text, method = extract_text_from_bytes(content, filename)
+
+        logger.info(
+            "CV '%s' extracted via %s — %d characters",
+            filename, method, len(text),
+        )
+
         if not text.strip():
-            raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du fichier CV")
-        return await _run_cv_extraction(text)
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Impossible d'extraire le texte du CV. "
+                    "Vérifiez que le fichier n'est pas protégé ou corrompu."
+                ),
+            )
+
+        return await _run_cv_extraction(text, source=method)
     except HTTPException:
         raise
     except Exception as e:
