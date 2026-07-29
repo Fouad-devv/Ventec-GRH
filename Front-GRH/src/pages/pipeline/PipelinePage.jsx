@@ -1,11 +1,26 @@
 import { useEffect, useState } from 'react';
-import { MdSearch, MdCalendarMonth } from 'react-icons/md';
-import { PageHeader } from '../../components/PageHeader';
+import { MdCalendarMonth, MdStar } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
 import { interviewsApi } from '../../api/interviews';
+
+const ScoreBadge = ({ score }) => {
+  if (score == null) return null;
+  const n = Number(score);
+  const cls = n >= 70
+    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+    : n >= 40
+    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+    : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+  return (
+    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      <MdStar className="w-2.5 h-2.5" />{n.toFixed(0)}
+    </span>
+  );
+};
 
 const STATUSES = ['NEW', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
 
@@ -65,6 +80,7 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
 
 export const PipelinePage = () => {
   const axios = useAxiosPrivate();
+  const navigate = useNavigate();
   const pApi = postingsApi(axios);
   const appApi = applicationsApi(axios);
 
@@ -98,7 +114,6 @@ export const PipelinePage = () => {
 
   return (
     <div className="p-6">
-      <PageHeader title="Pipeline de recrutement" subtitle="Suivi des candidatures par statut" />
 
       <div className="mb-6">
         <select
@@ -129,12 +144,15 @@ export const PipelinePage = () => {
               </div>
               {byStatus(status).map((app) => (
                 <div key={app.id} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 text-sm shadow-sm">
-                  <p className="font-medium text-slate-900 dark:text-white text-xs truncate">
-                    {app.candidateFirstName} {app.candidateLastName}
-                  </p>
-                  {app.aiScore != null && (
-                    <p className="text-xs text-slate-400 mt-1">Score: {app.aiScore}/100</p>
-                  )}
+                  <div className="flex items-start justify-between gap-1 mb-1">
+                    <p
+                      className="font-medium text-slate-900 dark:text-white text-xs truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                      onClick={() => navigate(`/app/candidates/${app.candidateId}`)}
+                    >
+                      {app.candidateFirstName} {app.candidateLastName}
+                    </p>
+                    <ScoreBadge score={app.aiScore} />
+                  </div>
                   <div className="mt-2 space-y-1">
                     <select
                       value={app.status}
