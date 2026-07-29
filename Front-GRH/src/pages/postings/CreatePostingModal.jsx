@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MdClose } from 'react-icons/md';
+import { MdClose, MdAutoAwesome } from 'react-icons/md';
 import { postingsApi } from '../../api/postings';
 
 export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
@@ -9,6 +9,7 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
     description: '', requirements: '', minExperience: '', deadline: '',
   });
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -26,6 +27,33 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
       setError(err.response?.data?.message || 'Erreur lors de la création');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!form.title) {
+      setError('Renseignez au moins le titre pour générer une description.');
+      return;
+    }
+    setGenerating(true);
+    setError('');
+    try {
+      const res = await api.generateDescription({
+        title: form.title,
+        department: form.department || null,
+        contractType: form.contractType || null,
+        location: form.location || null,
+        minExperience: form.minExperience ? Number(form.minExperience) : null,
+      });
+      setForm((f) => ({
+        ...f,
+        description: res.data.description || f.description,
+        requirements: res.data.requirements || f.requirements,
+      }));
+    } catch {
+      setError("Impossible de générer la description. Vérifiez la connexion au service IA.");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -82,15 +110,35 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
             </div>
           </div>
 
+          {/* AI generate button */}
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating || !form.title}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-lg text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900 disabled:opacity-50 transition-colors"
+          >
+            {generating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-violet-400 border-t-violet-700 rounded-full animate-spin" />
+                Génération en cours…
+              </>
+            ) : (
+              <>
+                <MdAutoAwesome className="w-4 h-4" />
+                Générer description + exigences avec l'IA
+              </>
+            )}
+          </button>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
-            <textarea rows={3} value={form.description} onChange={set('description')}
+            <textarea rows={4} value={form.description} onChange={set('description')}
               className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none" />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Exigences</label>
-            <textarea rows={3} value={form.requirements} onChange={set('requirements')}
+            <textarea rows={4} value={form.requirements} onChange={set('requirements')}
               className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none" />
           </div>
 
