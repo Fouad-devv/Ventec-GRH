@@ -1,5 +1,7 @@
 package com.ventec.grh_backend.DTO.response;
 
+import java.util.List;
+
 public record DashboardStatsResponse(
         long totalJobPostings,
         long activeJobPostings,
@@ -7,5 +9,6 @@ public record DashboardStatsResponse(
         long totalApplications,
         long pendingApplications,
         long interviewsThisWeek,
-        long hiredThisMonth
+        long hiredThisMonth,
+        List<UpcomingInterviewDto> upcomingInterviews
 ) {}
