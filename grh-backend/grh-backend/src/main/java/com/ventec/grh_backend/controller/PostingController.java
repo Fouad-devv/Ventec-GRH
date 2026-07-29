@@ -5,6 +5,7 @@ import com.ventec.grh_backend.DTO.request.GenerateDescriptionRequest;
 import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
 import com.ventec.grh_backend.DTO.response.GenerateDescriptionResponse;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
+import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
 import com.ventec.grh_backend.service.AiServiceClient;
 import com.ventec.grh_backend.service.ExportService;
 import com.ventec.grh_backend.service.PostingService;
@@ -19,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -30,6 +32,11 @@ public class PostingController {
     private final PostingService postingService;
     private final AiServiceClient aiServiceClient;
     private final ExportService exportService;
+
+    @GetMapping("/history")
+    public ResponseEntity<List<PostingHistoryResponse>> getHistory() {
+        return ResponseEntity.ok(postingService.getHistory());
+    }
 
     @GetMapping
     public ResponseEntity<Page<JobPostingResponse>> getAll(

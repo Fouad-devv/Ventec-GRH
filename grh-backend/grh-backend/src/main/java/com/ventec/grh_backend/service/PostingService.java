@@ -5,7 +5,9 @@ import com.ventec.grh_backend.domain.User;
 import com.ventec.grh_backend.DTO.request.CreateJobPostingRequest;
 import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
+import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
+import com.ventec.grh_backend.repository.ApplicationRepository;
 import com.ventec.grh_backend.repository.JobPostingRepository;
 import com.ventec.grh_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,6 +26,7 @@ public class PostingService {
 
     private final JobPostingRepository jobPostingRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
 
     public JobPostingResponse createPosting(CreateJobPostingRequest req, String keycloakId) {
         User user = userRepository.findByKeycloakId(keycloakId)
@@ -112,6 +116,27 @@ public class PostingService {
                 .createdBy(user)
                 .build();
         return toResponse(jobPostingRepository.save(copy));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostingHistoryResponse> getHistory() {
+        return jobPostingRepository.findByStatusOrderByCreatedAtDesc("CLOSED")
+                .stream()
+                .map(p -> {
+                    long total  = applicationRepository.countByJobPostingId(p.getId());
+                    long hired  = applicationRepository.countByJobPostingIdAndStatus(p.getId(), "HIRED");
+                    Double avg  = applicationRepository.avgAiScoreByJobPostingId(p.getId());
+                    User creator = p.getCreatedBy();
+                    return new PostingHistoryResponse(
+                            p.getId(), p.getTitle(), p.getDepartment(), p.getLocation(),
+                            p.getContractType(), p.getMinExperience(),
+                            creator != null ? creator.getId()   : null,
+                            creator != null ? creator.getFirstName() + " " + creator.getLastName() : null,
+                            p.getDeadline(), p.getCreatedAt(), p.getUpdatedAt(),
+                            total, hired, avg
+                    );
+                })
+                .toList();
     }
 
     public JobPostingResponse toResponse(JobPosting p) {
