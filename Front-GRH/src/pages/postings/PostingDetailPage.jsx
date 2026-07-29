@@ -306,6 +306,15 @@ export const PostingDetailPage = () => {
             <MdDownload className="w-4 h-4" />
             Exporter Word
           </a>
+          <a
+            href={pApi.exportFicheFonctionUrl(id)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <MdAutoAwesome className="w-4 h-4" />
+            Fiche de fonction
+          </a>
           <button onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             <MdRefresh className="w-4 h-4" />
           </button>
