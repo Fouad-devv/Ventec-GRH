@@ -277,7 +277,8 @@ const UsersTab = ({ api }) => {
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
                 <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Utilisateur</th>
@@ -328,6 +329,7 @@ const UsersTab = ({ api }) => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

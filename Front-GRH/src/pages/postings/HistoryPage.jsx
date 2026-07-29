@@ -85,7 +85,8 @@ export const HistoryPage = () => {
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-slate-50 dark:bg-slate-800">
             <tr>
               <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Offre</th>
@@ -132,6 +133,7 @@ export const HistoryPage = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
