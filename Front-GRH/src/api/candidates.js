@@ -16,4 +16,6 @@ export const candidatesApi = (axios) => ({
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  checklistDocxUrl: (candidateId, postingId) =>
+    `${import.meta.env.VITE_API_URL}/checklists/candidate/${candidateId}/posting/${postingId}/export/docx`,
 });
