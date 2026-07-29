@@ -34,6 +34,9 @@ public class JobPosting {
     @Column(name = "min_experience")
     private Integer minExperience;
 
+    @Column(name = "skills_weights", columnDefinition = "jsonb")
+    private String skillsWeights;
+
     @Column(nullable = false)
     private String status = "DRAFT";
 

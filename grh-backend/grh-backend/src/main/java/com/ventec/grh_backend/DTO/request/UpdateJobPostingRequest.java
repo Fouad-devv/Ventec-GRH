@@ -10,6 +10,7 @@ public record UpdateJobPostingRequest(
         String description,
         String requirements,
         Integer minExperience,
+        String skillsWeights,
         String status,
         LocalDate deadline
 ) {}

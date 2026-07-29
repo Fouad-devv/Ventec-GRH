@@ -56,6 +56,7 @@ public class PostingService {
         if (req.description() != null) posting.setDescription(req.description());
         if (req.requirements() != null) posting.setRequirements(req.requirements());
         if (req.minExperience() != null) posting.setMinExperience(req.minExperience());
+        if (req.skillsWeights() != null) posting.setSkillsWeights(req.skillsWeights());
         if (req.status() != null) posting.setStatus(req.status());
         if (req.deadline() != null) posting.setDeadline(req.deadline());
         return toResponse(jobPostingRepository.save(posting));
@@ -144,7 +145,7 @@ public class PostingService {
         return new JobPostingResponse(
                 p.getId(), p.getTitle(), p.getDepartment(), p.getLocation(),
                 p.getContractType(), p.getDescription(), p.getRequirements(),
-                p.getMinExperience(), p.getStatus(),
+                p.getMinExperience(), p.getSkillsWeights(), p.getStatus(),
                 creator != null ? creator.getId() : null,
                 creator != null ? creator.getFirstName() + " " + creator.getLastName() : null,
                 p.getDeadline(), p.getCreatedAt(), p.getUpdatedAt()

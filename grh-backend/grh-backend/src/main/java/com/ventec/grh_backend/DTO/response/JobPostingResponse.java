@@ -13,6 +13,7 @@ public record JobPostingResponse(
         String description,
         String requirements,
         Integer minExperience,
+        String skillsWeights,
         String status,
         UUID createdById,
         String createdByName,
