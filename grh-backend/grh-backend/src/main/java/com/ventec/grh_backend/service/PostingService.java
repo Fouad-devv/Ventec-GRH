@@ -94,6 +94,26 @@ public class PostingService {
         jobPostingRepository.deleteById(id);
     }
 
+    public JobPostingResponse duplicatePosting(UUID id, String keycloakId) {
+        JobPosting source = jobPostingRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + keycloakId));
+        JobPosting copy = JobPosting.builder()
+                .title("Copie de " + source.getTitle())
+                .department(source.getDepartment())
+                .location(source.getLocation())
+                .contractType(source.getContractType())
+                .description(source.getDescription())
+                .requirements(source.getRequirements())
+                .minExperience(source.getMinExperience())
+                .deadline(source.getDeadline())
+                .status("DRAFT")
+                .createdBy(user)
+                .build();
+        return toResponse(jobPostingRepository.save(copy));
+    }
+
     public JobPostingResponse toResponse(JobPosting p) {
         User creator = p.getCreatedBy();
         return new JobPostingResponse(
