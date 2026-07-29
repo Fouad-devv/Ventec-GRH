@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MdArrowBack, MdDownload, MdEmail, MdPhone, MdLocationOn,
-  MdWork, MdSchool, MdStar, MdOpenInNew,
+  MdWork, MdSchool, MdStar, MdOpenInNew, MdDescription,
 } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
@@ -229,6 +229,17 @@ export const CandidateDetailPage = () => {
                           {STATUS_LABELS[app.status] ?? app.status}
                         </span>
                         <ScoreBadge score={app.aiScore} />
+                        {app.status === 'HIRED' && app.jobPostingId && (
+                          <a
+                            href={api.checklistDocxUrl(id, app.jobPostingId)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                          >
+                            <MdDescription className="w-3.5 h-3.5" />
+                            Liste documents
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
