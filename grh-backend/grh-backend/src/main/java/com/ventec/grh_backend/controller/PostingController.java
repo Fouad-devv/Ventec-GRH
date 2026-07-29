@@ -102,6 +102,17 @@ public class PostingController {
         return ResponseEntity.ok(postingService.duplicatePosting(id, auth.getName()));
     }
 
+    @GetMapping("/{id}/export/fiche-fonction")
+    public ResponseEntity<byte[]> exportFicheFonction(@PathVariable UUID id) {
+        byte[] content = exportService.exportFicheFonctionDocx(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"fiche-fonction-" + id + ".docx\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .body(content);
+    }
+
     @PostMapping("/generate-description")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<GenerateDescriptionResponse> generateDescription(
