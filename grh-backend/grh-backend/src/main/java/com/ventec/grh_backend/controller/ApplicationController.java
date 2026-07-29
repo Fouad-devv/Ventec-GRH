@@ -3,8 +3,11 @@ package com.ventec.grh_backend.controller;
 import com.ventec.grh_backend.DTO.request.UpdateApplicationStatusRequest;
 import com.ventec.grh_backend.DTO.response.ApplicationResponse;
 import com.ventec.grh_backend.service.ApplicationService;
+import com.ventec.grh_backend.service.ExportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -20,6 +23,7 @@ import java.util.UUID;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final ExportService exportService;
 
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponse> get(@PathVariable UUID id) {
@@ -42,5 +46,16 @@ public class ApplicationController {
             @Valid @RequestBody UpdateApplicationStatusRequest req,
             Authentication auth) {
         return ResponseEntity.ok(applicationService.updateStatus(id, req, auth.getName()));
+    }
+
+    @GetMapping("/{id}/documents-list")
+    public ResponseEntity<byte[]> exportDocumentsList(@PathVariable UUID id) {
+        byte[] content = exportService.exportDocumentsListDocxByApplication(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"liste-documents-" + id + ".docx\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .body(content);
     }
 }

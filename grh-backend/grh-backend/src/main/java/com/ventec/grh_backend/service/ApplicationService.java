@@ -80,24 +80,34 @@ public class ApplicationService {
 
     private void triggerChecklistGeneration(Application app) {
         try {
-            var posting = app.getJobPosting();
+            var posting   = app.getJobPosting();
+            var candidate = app.getCandidate();
+            String candidateName = candidate.getFirstName() + " " + candidate.getLastName();
+
             Map result = aiServiceClient.generateChecklist(
-                    posting.getTitle(), posting.getContractType(), posting.getDepartment()
+                    posting.getTitle(), posting.getContractType(),
+                    posting.getDepartment(), candidateName
             ).block();
 
             if (result == null || !result.containsKey("documents")) return;
 
+            // FastAPI now returns [{name, copies, observation}] — add tracking fields
             @SuppressWarnings("unchecked")
-            List<String> docs = (List<String>) result.get("documents");
-            List<Map<String, Object>> checklistItems = docs.stream()
-                    .map(name -> Map.<String, Object>of("name", name, "required", true, "received", false))
+            List<Map<String, Object>> rawDocs = (List<Map<String, Object>>) result.get("documents");
+            List<Map<String, Object>> checklistItems = rawDocs.stream()
+                    .map(doc -> {
+                        Map<String, Object> m = new java.util.HashMap<>(doc);
+                        m.putIfAbsent("required", true);
+                        m.putIfAbsent("received", false);
+                        return m;
+                    })
                     .toList();
             String documentsJson = objectMapper.writeValueAsString(checklistItems);
 
             var checklist = checklistRepository
-                    .findByCandidateIdAndJobPostingId(app.getCandidate().getId(), posting.getId())
+                    .findByCandidateIdAndJobPostingId(candidate.getId(), posting.getId())
                     .orElseGet(() -> DocumentChecklist.builder()
-                            .candidate(app.getCandidate())
+                            .candidate(candidate)
                             .jobPosting(posting)
                             .documents("[]")
                             .build());

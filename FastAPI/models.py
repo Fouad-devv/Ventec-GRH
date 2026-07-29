@@ -63,14 +63,21 @@ class GenerateInterviewQuestionsResponse(BaseModel):
 
 
 # ── Generate document checklist ─────────────────────────────
+class ChecklistItem(BaseModel):
+    name: str
+    copies: int = 1
+    observation: str = ""
+
+
 class GenerateChecklistRequest(BaseModel):
     job_title: str
     contract_type: Optional[str] = None
     department: Optional[str] = None
+    candidate_name: Optional[str] = None
 
 
 class GenerateChecklistResponse(BaseModel):
-    documents: List[str]
+    documents: List[ChecklistItem]
 
 
 # ── Generate fiche de fonction (job function sheet) ─────────

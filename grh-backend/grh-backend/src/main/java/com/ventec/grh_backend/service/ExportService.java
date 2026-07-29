@@ -14,10 +14,12 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 
+import com.ventec.grh_backend.domain.Application;
 import com.ventec.grh_backend.domain.DocumentChecklist;
 import com.ventec.grh_backend.domain.Interview;
 import com.ventec.grh_backend.domain.JobPosting;
 import com.ventec.grh_backend.exception.NotFoundException;
+import com.ventec.grh_backend.repository.ApplicationRepository;
 import com.ventec.grh_backend.repository.DocumentChecklistRepository;
 import com.ventec.grh_backend.repository.InterviewRepository;
 import com.ventec.grh_backend.repository.JobPostingRepository;
@@ -64,6 +66,7 @@ import java.util.stream.Collectors;
 public class ExportService {
 
     private final JobPostingRepository jobPostingRepository;
+    private final ApplicationRepository applicationRepository;
     private final InterviewRepository interviewRepository;
     private final DocumentChecklistRepository checklistRepository;
     private final AiServiceClient aiServiceClient;
@@ -387,6 +390,14 @@ public class ExportService {
     }
 
     // ── Documents list Word export ───────────────────────────────────────────
+
+    /** Entry point by application ID — looks up checklist automatically. */
+    public byte[] exportDocumentsListDocxByApplication(UUID applicationId) {
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found: " + applicationId));
+        return exportDocumentsListDocx(app.getCandidate().getId(), app.getJobPosting().getId());
+    }
+
     public byte[] exportDocumentsListDocx(UUID candidateId, UUID jobPostingId) {
         DocumentChecklist checklist = checklistRepository
                 .findByCandidateIdAndJobPostingId(candidateId, jobPostingId)
@@ -397,7 +408,7 @@ public class ExportService {
                 + checklist.getCandidate().getLastName();
         String postingTitle  = checklist.getJobPosting().getTitle();
         String contractType  = checklist.getJobPosting().getContractType();
-        List<String> documents = parseDocumentsList(checklist.getDocuments());
+        List<Map<String, Object>> documents = parseDocumentsListFull(checklist.getDocuments());
 
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -444,10 +455,14 @@ public class ExportService {
                 plainCell(r.getCell(2), "",                         ParagraphAlignment.LEFT,   10, false);
             } else {
                 for (int i = 0; i < documents.size(); i++) {
+                    Map<String, Object> item = documents.get(i);
+                    String name    = toStr(item.get("name"), "");
+                    String copies  = toStr(item.get("copies"), "1");
+                    String obs     = toStr(item.get("observation"), "");
                     XWPFTableRow r = docTbl.getRow(i + 1);
-                    plainCell(r.getCell(0), documents.get(i), ParagraphAlignment.LEFT,   10, false);
-                    plainCell(r.getCell(1), "1",              ParagraphAlignment.CENTER, 10, false);
-                    plainCell(r.getCell(2), "",               ParagraphAlignment.LEFT,   10, false);
+                    plainCell(r.getCell(0), name,   ParagraphAlignment.LEFT,   10, false);
+                    plainCell(r.getCell(1), copies, ParagraphAlignment.CENTER, 10, false);
+                    plainCell(r.getCell(2), obs,    ParagraphAlignment.LEFT,   10, false);
                 }
             }
 
@@ -462,7 +477,8 @@ public class ExportService {
             footerP.setAlignment(ParagraphAlignment.CENTER);
             XWPFRun footerR = footerP.createRun();
             footerR.setFontSize(8); footerR.setColor("808080");
-            footerR.setText("Document généré par Ventec GRH — " + LocalDate.now().format(DATE_SHORT_FMT));
+            footerR.setText("Version du 01/01/2022  —  Document généré par Ventec GRH  —  "
+                    + LocalDate.now().format(DATE_SHORT_FMT));
 
             doc.write(out);
             return out.toByteArray();
@@ -700,18 +716,17 @@ public class ExportService {
         return val != null ? val.toString() : def;
     }
 
-    private List<String> parseDocumentsList(String json) {
+    /** Parses checklist JSON into full item maps preserving name, copies, observation. */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> parseDocumentsListFull(String json) {
         if (json == null || json.isBlank()) return new ArrayList<>();
         try {
             Object parsed = objectMapper.readValue(json, Object.class);
             if (parsed instanceof List<?> list) {
-                return list.stream().map(item -> {
-                    if (item instanceof Map<?, ?> m) {
-                        Object name = m.get("name");
-                        return name != null ? name.toString() : item.toString();
-                    }
-                    return item.toString();
-                }).collect(Collectors.toList());
+                return list.stream()
+                        .filter(item -> item instanceof Map)
+                        .map(item -> (Map<String, Object>) item)
+                        .collect(Collectors.toList());
             }
         } catch (Exception ignored) {}
         return new ArrayList<>();

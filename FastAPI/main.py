@@ -11,6 +11,7 @@ import asyncio
 import json as _json
 import logging
 
+import anthropic
 import httpx
 from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,7 +25,7 @@ from models import (
     FilterRequest, ExtractCvRequest, ExtractCvResponse,
     GenerateDescriptionRequest, GenerateDescriptionResponse,
     GenerateInterviewQuestionsRequest, GenerateInterviewQuestionsResponse,
-    GenerateChecklistRequest, GenerateChecklistResponse,
+    GenerateChecklistRequest, GenerateChecklistResponse, ChecklistItem,
     GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere,
 )
 
@@ -137,12 +138,19 @@ async def _send_callback(url: str, status: str, results: list, error_message: st
 
 
 _openai_client = AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+_claude_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key) if settings.anthropic_api_key else None
 
 
 def _require_openai():
     if not _openai_client:
         raise HTTPException(status_code=503, detail="OpenAI API key not configured")
     return _openai_client
+
+
+def _require_claude():
+    if not _claude_client:
+        raise HTTPException(status_code=503, detail="Anthropic API key not configured")
+    return _claude_client
 
 
 async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResponse:
@@ -463,43 +471,103 @@ Règles strictes :
         raise HTTPException(status_code=500, detail=str(e))
 
 
+_CHECKLIST_DEFAULT = [
+    {"name": "Curriculum Vitae",                                    "copies": 1, "observation": ""},
+    {"name": "Photo d'identité récente",                            "copies": 3, "observation": ""},
+    {"name": "Photocopie CIN légalisée",                            "copies": 2, "observation": ""},
+    {"name": "Photocopie carte CNSS",                               "copies": 1, "observation": "Si déjà inscrit"},
+    {"name": "N° CIMR",                                             "copies": 1, "observation": "Si déjà inscrit"},
+    {"name": "Relevé d'Identité Bancaire",                          "copies": 1, "observation": ""},
+    {"name": "Fiche anthropométrique",                              "copies": 1, "observation": ""},
+    {"name": "Photocopie des diplômes",                             "copies": 1, "observation": ""},
+    {"name": "Certificat de travail / Attestation de stage",        "copies": 1, "observation": "Expérimenté ou débutant"},
+    {"name": "Radio pulmonaire (petit format)",                     "copies": 1, "observation": ""},
+    {"name": "Bulletin d'adhésion Assurance + Fiche Administrative","copies": 1, "observation": "Jour de l'intégration"},
+    {"name": "Contrat de travail",                                  "copies": 2, "observation": ""},
+]
+
+
 @app.post("/generate-checklist", response_model=GenerateChecklistResponse)
 async def generate_checklist(req: GenerateChecklistRequest):
-    """Generates required documents checklist for a hired candidate."""
-    client = _require_openai()
-    context_parts = [f"Poste : {req.job_title}"]
-    if req.contract_type:
-        context_parts.append(f"Type de contrat : {req.contract_type}")
-    if req.department:
-        context_parts.append(f"Département : {req.department}")
-    context = "\n".join(context_parts)
+    """
+    Generates a personalised administrative document checklist for a hired candidate.
+    Uses Claude (Anthropic) for context-aware personalisation.
+    Falls back to the standard Ventec list if Claude is not configured or fails.
+    """
+    if not _claude_client:
+        logger.warning("Anthropic API key not set — returning default checklist")
+        return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
 
-    prompt = f"""Tu es un expert RH en droit du travail algérien/français. Génère la liste des documents requis pour l'embauche d'un candidat pour :
+    is_chantier = any(kw in (req.job_title + " " + (req.department or "")).lower()
+                      for kw in ("chantier", "terrain", "site", "travaux", "btp",
+                                 "génie civil", "construction", "ouvrier"))
 
-{context}
+    prompt = f"""Tu es un assistant RH chez Ventec (entreprise marocaine).
+Génère la liste personnalisée des documents administratifs à fournir pour un candidat recruté.
 
-Retourne UNIQUEMENT un JSON valide :
-{{
-  "documents": [
-    "Document 1",
-    "Document 2",
-    ...
-  ]
-}}
+Informations:
+- Candidat : {req.candidate_name or ""}
+- Poste : {req.job_title}
+- Type de contrat : {req.contract_type or "CDI"}
+- Département : {req.department or ""}
+- Personnel chantier/terrain : {"oui" if is_chantier else "non"}
 
-Inclure : pièces d'identité, diplômes, documents administratifs, documents spécifiques au contrat.
-Liste entre 8 et 15 documents pertinents et précis.
-"""
+Documents standards Ventec CDI/CDD (à adapter) :
+1. Curriculum Vitae — 1 exemplaire
+2. Photo d'identité récente — 3 exemplaires
+3. Photocopie CIN légalisée — 2 exemplaires
+4. Photocopie carte CNSS — 1 exemplaire — si déjà inscrit
+5. N° CIMR — 1 exemplaire — si déjà inscrit
+6. Relevé d'Identité Bancaire — 1 exemplaire
+7. Fiche anthropométrique — 1 exemplaire
+8. Photocopie des diplômes — 1 exemplaire
+9. Certificat de travail du dernier employeur — 1 exemplaire — pour expérimenté
+10. Attestations de stage — 1 exemplaire — pour débutant
+11. Radio pulmonaire (petit format) — 1 exemplaire
+12. Analyse de sang NFS (numérotation formule sanguine) — 1 exemplaire — CHANTIER UNIQUEMENT
+13. Analyse de sang IGE (immunoglobuline non spécifique) — 1 exemplaire — CHANTIER UNIQUEMENT
+14. Bulletin d'adhésion Assurance + Fiche Administrative — 1 exemplaire — à remplir le jour de l'intégration
+15. Contrat de travail — 2 exemplaires
+
+Règles strictes :
+- Inclure "Analyse de sang NFS" et "Analyse de sang IGE" UNIQUEMENT si personnel chantier = oui
+- Inclure "Certificat de travail" OU "Attestations de stage", pas les deux (selon le profil du poste)
+- Adapter les observations selon le contexte du poste (courtes, max 8 mots, ou vide)
+- Adapter le nombre d'exemplaires si nécessaire
+
+Retourne UNIQUEMENT un tableau JSON valide sans texte avant ni après :
+[
+  {{"name": "Curriculum Vitae", "copies": 1, "observation": ""}},
+  {{"name": "Photo d'identité récente", "copies": 3, "observation": ""}},
+  ...
+]"""
+
     try:
-        response = await client.chat.completions.create(
-            model=settings.model_name,
+        client = _require_claude()
+        message = await client.messages.create(
+            model=settings.claude_model,
+            max_tokens=1024,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.4,
-            response_format={"type": "json_object"},
         )
-        data = _json.loads(response.choices[0].message.content)
-        documents = data.get("documents", [])
-        return GenerateChecklistResponse(documents=documents[:15])
+        text = message.content[0].text
+        start, end = text.find("["), text.rfind("]") + 1
+        if start < 0 or end <= start:
+            raise ValueError("No JSON array found in Claude response")
+
+        raw_items = _json.loads(text[start:end])
+        documents = [
+            ChecklistItem(
+                name=str(item.get("name", "")),
+                copies=int(item.get("copies", 1)),
+                observation=str(item.get("observation", "")),
+            )
+            for item in raw_items
+            if item.get("name")
+        ]
+        return GenerateChecklistResponse(documents=documents)
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Checklist generation failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Claude checklist generation failed: %s — returning default", e)
+        return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])

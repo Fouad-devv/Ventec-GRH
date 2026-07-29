@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer } from 'react-icons/md';
+import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
@@ -271,6 +271,20 @@ export const PipelinePage = () => {
     setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
   };
 
+  const downloadDocuments = async (app) => {
+    try {
+      const res = await appApi.downloadDocumentsList(app.id);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `liste-documents-${app.candidateFirstName}-${app.candidateLastName}.docx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Téléchargement liste documents échoué', e);
+    }
+  };
+
   const byStatus = (status) => applications.filter((a) => a.status === status);
 
   return (
@@ -338,6 +352,15 @@ export const PipelinePage = () => {
                           <MdAutoAwesome className="w-3 h-3" /> Questions
                         </button>
                       </div>
+                    )}
+                    {app.status === 'HIRED' && (
+                      <button
+                        onClick={() => downloadDocuments(app)}
+                        className="w-full flex items-center justify-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline mt-1"
+                        title="Télécharger la liste des documents à fournir"
+                      >
+                        <MdDescription className="w-3 h-3" /> Liste documents
+                      </button>
                     )}
                   </div>
                 </div>
