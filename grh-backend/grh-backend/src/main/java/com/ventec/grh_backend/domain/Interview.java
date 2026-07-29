@@ -2,6 +2,8 @@ package com.ventec.grh_backend.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -30,6 +32,7 @@ public class Interview {
     @Column(name = "location_or_link")
     private String locationOrLink;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "interviewer_ids", columnDefinition = "jsonb")
     private String interviewerIds;
 
@@ -39,6 +42,7 @@ public class Interview {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String questions;
 

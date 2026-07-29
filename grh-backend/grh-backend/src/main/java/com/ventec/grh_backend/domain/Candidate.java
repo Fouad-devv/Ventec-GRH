@@ -2,6 +2,8 @@ package com.ventec.grh_backend.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -33,6 +35,7 @@ public class Candidate {
     @Column(name = "cv_extracted_text", columnDefinition = "TEXT")
     private String cvExtractedText;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String skills;
 
