@@ -1,8 +1,11 @@
 package com.ventec.grh_backend.controller;
 
 import com.ventec.grh_backend.DTO.request.SyncUserRequest;
+import com.ventec.grh_backend.DTO.request.TemplateRequest;
+import com.ventec.grh_backend.DTO.response.TemplateResponse;
 import com.ventec.grh_backend.DTO.response.UserResponse;
 import com.ventec.grh_backend.service.AdminService;
+import com.ventec.grh_backend.service.TemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final TemplateService templateService;
 
     @PostMapping("/users/sync")
     public ResponseEntity<UserResponse> syncUser(@Valid @RequestBody SyncUserRequest req) {
@@ -38,5 +42,34 @@ public class AdminController {
     @PutMapping("/users/{id}/deactivate")
     public ResponseEntity<UserResponse> deactivate(@PathVariable UUID id) {
         return ResponseEntity.ok(adminService.deactivateUser(id));
+    }
+
+    /* ── Templates ── */
+
+    @GetMapping("/templates")
+    public ResponseEntity<List<TemplateResponse>> getTemplates() {
+        return ResponseEntity.ok(templateService.getAll());
+    }
+
+    @GetMapping("/templates/{id}")
+    public ResponseEntity<TemplateResponse> getTemplate(@PathVariable UUID id) {
+        return ResponseEntity.ok(templateService.get(id));
+    }
+
+    @PostMapping("/templates")
+    public ResponseEntity<TemplateResponse> createTemplate(@Valid @RequestBody TemplateRequest req) {
+        return ResponseEntity.ok(templateService.create(req));
+    }
+
+    @PutMapping("/templates/{id}")
+    public ResponseEntity<TemplateResponse> updateTemplate(
+            @PathVariable UUID id, @RequestBody TemplateRequest req) {
+        return ResponseEntity.ok(templateService.update(id, req));
+    }
+
+    @DeleteMapping("/templates/{id}")
+    public ResponseEntity<Void> deleteTemplate(@PathVariable UUID id) {
+        templateService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
