@@ -153,6 +153,16 @@ def _require_claude():
     return _claude_client
 
 
+def _extract_json(text: str, *, array: bool = False) -> str:
+    """Extract first JSON object or array from Claude response text."""
+    open_c, close_c = ("[", "]") if array else ("{", "}")
+    start = text.find(open_c)
+    end = text.rfind(close_c) + 1
+    if start >= 0 and end > start:
+        return text[start:end]
+    return text
+
+
 async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResponse:
     """
     Extract structured CV data using GPT.
@@ -274,8 +284,8 @@ async def extract_cv_file(file: UploadFile = File(...)):
 
 @app.post("/generate-description", response_model=GenerateDescriptionResponse)
 async def generate_description(req: GenerateDescriptionRequest):
-    """Generates a job posting description and requirements using LLM."""
-    client = _require_openai()
+    """Generates a job posting description and requirements using Claude Sonnet."""
+    client = _require_claude()
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:
         context_parts.append(f"Département : {req.department}")
@@ -291,7 +301,7 @@ async def generate_description(req: GenerateDescriptionRequest):
 
 {context}
 
-Retourne UNIQUEMENT un JSON valide :
+Retourne UNIQUEMENT un objet JSON valide sans texte avant ni après :
 {{
   "description": "<description du poste en 3-4 paragraphes : contexte, missions principales, environnement de travail>",
   "requirements": "<liste des exigences et compétences requises, une par ligne avec tiret '-'>"
@@ -300,13 +310,13 @@ Retourne UNIQUEMENT un JSON valide :
 La description doit être motivante, claire et professionnelle. Les exigences doivent être précises et réalistes.
 """
     try:
-        response = await client.chat.completions.create(
-            model=settings.model_name,
-            messages=[{"role": "user", "content": prompt}],
+        message = await client.messages.create(
+            model=settings.claude_sonnet_model,
+            max_tokens=1024,
             temperature=0.7,
-            response_format={"type": "json_object"},
+            messages=[{"role": "user", "content": prompt}],
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(_extract_json(message.content[0].text))
         return GenerateDescriptionResponse(
             description=data.get("description", ""),
             requirements=data.get("requirements", ""),
@@ -318,8 +328,8 @@ La description doit être motivante, claire et professionnelle. Les exigences do
 
 @app.post("/generate-interview-questions", response_model=GenerateInterviewQuestionsResponse)
 async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
-    """Generates tailored interview questions based on job and candidate profile."""
-    client = _require_openai()
+    """Generates tailored interview questions using Claude Haiku."""
+    client = _require_claude()
     context_parts = [f"Poste : {req.job_title}"]
     if req.job_description:
         context_parts.append(f"Description : {req.job_description[:500]}")
@@ -337,25 +347,25 @@ async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
 
 {context}
 
-Retourne UNIQUEMENT un JSON valide :
+Retourne UNIQUEMENT un objet JSON valide sans texte avant ni après :
 {{
   "questions": [
     "Question 1 ?",
     "Question 2 ?",
-    ...
+    "Question 3 ?"
   ]
 }}
 
 Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de motivation, 1 question de mise en situation.
 """
     try:
-        response = await client.chat.completions.create(
-            model=settings.model_name,
-            messages=[{"role": "user", "content": prompt}],
+        message = await client.messages.create(
+            model=settings.claude_haiku_model,
+            max_tokens=1024,
             temperature=0.7,
-            response_format={"type": "json_object"},
+            messages=[{"role": "user", "content": prompt}],
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(_extract_json(message.content[0].text))
         questions = data.get("questions", [])
         return GenerateInterviewQuestionsResponse(questions=questions[:10])
     except Exception as e:
@@ -370,7 +380,7 @@ async def generate_fiche_fonction(req: GenerateFicheFonctionRequest):
     The behavioral competencies are standard and hardcoded in the Java export layer.
     This endpoint only generates the variable content specific to the position.
     """
-    client = _require_openai()
+    client = _require_claude()
 
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:    context_parts.append(f"Département : {req.department}")
@@ -439,13 +449,13 @@ Règles strictes :
 """
 
     try:
-        response = await client.chat.completions.create(
-            model=settings.model_name,
-            messages=[{"role": "user", "content": prompt}],
+        message = await client.messages.create(
+            model=settings.claude_sonnet_model,
+            max_tokens=4096,
             temperature=0.3,
-            response_format={"type": "json_object"},
+            messages=[{"role": "user", "content": prompt}],
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(_extract_json(message.content[0].text))
 
         competences_raw = data.get("competences_techniques", [])
         competences = []
@@ -545,7 +555,7 @@ Retourne UNIQUEMENT un tableau JSON valide sans texte avant ni après :
     try:
         client = _require_claude()
         message = await client.messages.create(
-            model=settings.claude_model,
+            model=settings.claude_haiku_model,
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt}],
         )
