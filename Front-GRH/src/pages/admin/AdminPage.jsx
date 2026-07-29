@@ -73,16 +73,21 @@ const EditUserModal = ({ user, onSave, onClose }) => {
 
 /* ── Add user modal ─────────────────────────────────────── */
 const AddUserModal = ({ onSave, onClose }) => {
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', role: 'RH', department: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', role: 'RH', department: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (form.password !== form.confirmPassword) {
+      setError('Les mots de passe ne correspondent pas.');
+      return;
+    }
     setSaving(true);
     try {
-      await onSave(form);
+      const { confirmPassword, ...payload } = form;
+      await onSave(payload);
       onClose();
     } catch (err) {
       setError("Erreur lors de l'ajout. Vérifiez que l'email n'est pas déjà utilisé.");
@@ -123,6 +128,10 @@ const AddUserModal = ({ onSave, onClose }) => {
             {field('lastName',  'Nom',    'Dupont',  true)}
           </div>
           {field('email', 'Email', 'utilisateur@ventec.dz', true, 'email')}
+          <div className="grid grid-cols-2 gap-3">
+            {field('password',        'Mot de passe',    '6 caractères min.', true, 'password')}
+            {field('confirmPassword', 'Confirmer',       '••••••',            true, 'password')}
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rôle *</label>
             <select
@@ -176,14 +185,7 @@ const UsersTab = ({ api }) => {
   };
 
   const handleAdd = async (form) => {
-    await api.syncUser({
-      keycloakId: form.email,
-      email: form.email,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      role: form.role,
-      department: form.department,
-    });
+    await api.createUser(form);
     load();
   };
 

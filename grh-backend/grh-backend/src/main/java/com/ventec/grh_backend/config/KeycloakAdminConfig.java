@@ -1,0 +1,32 @@
+package com.ventec.grh_backend.config;
+
+import org.keycloak.OAuth2Constants;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class KeycloakAdminConfig {
+
+    @Value("${KEYCLOAK_URL}")
+    private String serverUrl;
+
+    @Value("${keycloak.admin.client-id:admin-cli}")
+    private String clientId;
+
+    @Value("${keycloak.admin.client-secret:}")
+    private String clientSecret;
+
+    @Bean
+    public Keycloak keycloakAdmin() {
+        return KeycloakBuilder.builder()
+                .serverUrl(serverUrl)
+                .realm("master")
+                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .build();
+    }
+}

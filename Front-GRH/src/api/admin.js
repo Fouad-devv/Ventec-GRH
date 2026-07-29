@@ -1,6 +1,7 @@
 const BASE = '/admin';
 
 export const adminApi = (axios) => ({
+  createUser: (data) => axios.post(`${BASE}/users`, data),
   syncUser: (data) => axios.post(`${BASE}/users/sync`, data),
   getUsers: () => axios.get(`${BASE}/users`),
   getUser: (id) => axios.get(`${BASE}/users/${id}`),

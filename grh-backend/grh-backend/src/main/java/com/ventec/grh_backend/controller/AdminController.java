@@ -1,5 +1,6 @@
 package com.ventec.grh_backend.controller;
 
+import com.ventec.grh_backend.DTO.request.CreateUserRequest;
 import com.ventec.grh_backend.DTO.request.SyncUserRequest;
 import com.ventec.grh_backend.DTO.request.TemplateRequest;
 import com.ventec.grh_backend.DTO.response.TemplateResponse;
@@ -8,6 +9,7 @@ import com.ventec.grh_backend.service.AdminService;
 import com.ventec.grh_backend.service.TemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,11 @@ public class AdminController {
 
     private final AdminService adminService;
     private final TemplateService templateService;
+
+    @PostMapping("/users")
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createUser(req));
+    }
 
     @PostMapping("/users/sync")
     public ResponseEntity<UserResponse> syncUser(@Valid @RequestBody SyncUserRequest req) {
