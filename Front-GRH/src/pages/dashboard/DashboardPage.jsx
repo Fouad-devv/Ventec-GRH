@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   MdWork, MdPeople, MdAccountTree, MdCheckCircle,
-  MdWarning, MdInfo, MdTrendingUp, MdEvent,
+  MdWarning, MdInfo, MdTrendingUp, MdEvent, MdCalendarMonth,
 } from 'react-icons/md';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -222,17 +222,62 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ── Alerts ── */}
-      {alerts.length > 0 && (
+      {/* ── Bottom row: upcoming interviews + alerts ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Upcoming interviews */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">
-            Alertes &amp; notifications
-          </h3>
-          <div className="space-y-3">
-            {alerts.map((a, i) => <Alert key={i} {...a} />)}
+          <div className="flex items-center gap-2 mb-4">
+            <MdCalendarMonth className="w-5 h-5 text-blue-500" />
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+              Entretiens à venir <span className="text-sm font-normal text-slate-400">(7 jours)</span>
+            </h3>
           </div>
+          {(!stats?.upcomingInterviews || stats.upcomingInterviews.length === 0) ? (
+            <p className="text-sm text-slate-400 py-4 text-center">Aucun entretien planifié cette semaine</p>
+          ) : (
+            <div className="space-y-3">
+              {stats.upcomingInterviews.map((iv) => {
+                const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
+                const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
+                return (
+                  <div key={iv.interviewId} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-lg shrink-0">
+                      {TYPE_ICONS[iv.type] ?? '📅'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                        {iv.candidateFirstName} {iv.candidateLastName}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{iv.jobPostingTitle}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {date ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Alerts */}
+        {alerts.length > 0 && (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">
+              Alertes &amp; notifications
+            </h3>
+            <div className="space-y-3">
+              {alerts.map((a, i) => <Alert key={i} {...a} />)}
+            </div>
+          </div>
+        )}
+      </div>
 
     </div>
   );
