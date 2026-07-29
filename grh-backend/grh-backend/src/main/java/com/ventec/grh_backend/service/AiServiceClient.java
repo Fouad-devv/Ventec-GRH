@@ -99,6 +99,23 @@ public class AiServiceClient {
                 .bodyToMono(Map.class);
     }
 
+    public Mono<Map> generateFicheFonction(String title, String department,
+                                            String contractType, String filiale,
+                                            String description, String requirements) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("title", title != null ? title : "");
+        if (department != null)    payload.put("department", department);
+        if (contractType != null)  payload.put("contract_type", contractType);
+        if (filiale != null)       payload.put("filiale", filiale);
+        if (description != null)   payload.put("description", description);
+        if (requirements != null)  payload.put("requirements", requirements);
+        return aiWebClient.post()
+                .uri("/generate-fiche-fonction")
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class);
+    }
+
     public Mono<Map> generateDescription(String title, String department,
                                           String contractType, String location,
                                           Integer minExperience) {
