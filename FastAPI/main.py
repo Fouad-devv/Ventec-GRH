@@ -11,7 +11,6 @@ import asyncio
 import json as _json
 import logging
 
-import anthropic
 import httpx
 from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -137,39 +136,25 @@ async def _send_callback(url: str, status: str, results: list, error_message: st
     logger.error("All callback attempts failed for %s", url)
 
 
-_openai_client = AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
-_claude_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key) if settings.anthropic_api_key else None
+_groq_client = AsyncOpenAI(
+    api_key=settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+) if settings.groq_api_key else None
 
 
-def _require_openai():
-    if not _openai_client:
-        raise HTTPException(status_code=503, detail="OpenAI API key not configured")
-    return _openai_client
-
-
-def _require_claude():
-    if not _claude_client:
-        raise HTTPException(status_code=503, detail="Anthropic API key not configured")
-    return _claude_client
-
-
-def _extract_json(text: str, *, array: bool = False) -> str:
-    """Extract first JSON object or array from Claude response text."""
-    open_c, close_c = ("[", "]") if array else ("{", "}")
-    start = text.find(open_c)
-    end = text.rfind(close_c) + 1
-    if start >= 0 and end > start:
-        return text[start:end]
-    return text
+def _require_groq():
+    if not _groq_client:
+        raise HTTPException(status_code=503, detail="Groq API key not configured")
+    return _groq_client
 
 
 async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResponse:
     """
-    Extract structured CV data using GPT.
+    Extract structured CV data using Groq (Llama).
     `source` is 'pdfplumber', 'ocr', 'text', or 'pdfplumber_fallback' — used to
     tune the prompt so the model is aware of potential OCR noise.
     """
-    client = _require_openai()
+    client = _require_groq()
 
     # OCR text can contain garbled characters — tell the model explicitly
     ocr_note = ""
@@ -209,7 +194,7 @@ CV :
 {text[:char_limit]}
 """
     response = await client.chat.completions.create(
-        model=settings.model_name,
+        model=settings.groq_model_fast,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.0,
         response_format={"type": "json_object"},
@@ -230,7 +215,7 @@ CV :
 @app.post("/extract-cv", response_model=ExtractCvResponse)
 async def extract_cv(req: ExtractCvRequest):
     """Extracts structured data from raw CV text (already extracted by the caller)."""
-    if not settings.openai_api_key:
+    if not settings.groq_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     if not req.text or not req.text.strip():
@@ -252,7 +237,7 @@ async def extract_cv_file(file: UploadFile = File(...)):
     - Scanned PDF → pytesseract OCR at 300 DPI (automatic fallback)
     - Plain text  → UTF-8 decode
     """
-    if not settings.openai_api_key:
+    if not settings.groq_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     try:
@@ -284,8 +269,8 @@ async def extract_cv_file(file: UploadFile = File(...)):
 
 @app.post("/generate-description", response_model=GenerateDescriptionResponse)
 async def generate_description(req: GenerateDescriptionRequest):
-    """Generates a job posting description and requirements using Claude Sonnet."""
-    client = _require_claude()
+    """Generates a job posting description and requirements using Groq Llama."""
+    client = _require_groq()
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:
         context_parts.append(f"Département : {req.department}")
@@ -301,7 +286,7 @@ async def generate_description(req: GenerateDescriptionRequest):
 
 {context}
 
-Retourne UNIQUEMENT un objet JSON valide sans texte avant ni après :
+Retourne UNIQUEMENT un objet JSON valide :
 {{
   "description": "<description du poste en 3-4 paragraphes : contexte, missions principales, environnement de travail>",
   "requirements": "<liste des exigences et compétences requises, une par ligne avec tiret '-'>"
@@ -310,13 +295,13 @@ Retourne UNIQUEMENT un objet JSON valide sans texte avant ni après :
 La description doit être motivante, claire et professionnelle. Les exigences doivent être précises et réalistes.
 """
     try:
-        message = await client.messages.create(
-            model=settings.claude_sonnet_model,
-            max_tokens=1024,
-            temperature=0.7,
+        response = await client.chat.completions.create(
+            model=settings.groq_model_smart,
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            response_format={"type": "json_object"},
         )
-        data = _json.loads(_extract_json(message.content[0].text))
+        data = _json.loads(response.choices[0].message.content)
         return GenerateDescriptionResponse(
             description=data.get("description", ""),
             requirements=data.get("requirements", ""),
@@ -328,8 +313,8 @@ La description doit être motivante, claire et professionnelle. Les exigences do
 
 @app.post("/generate-interview-questions", response_model=GenerateInterviewQuestionsResponse)
 async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
-    """Generates tailored interview questions using Claude Haiku."""
-    client = _require_claude()
+    """Generates tailored interview questions using Groq Llama fast."""
+    client = _require_groq()
     context_parts = [f"Poste : {req.job_title}"]
     if req.job_description:
         context_parts.append(f"Description : {req.job_description[:500]}")
@@ -347,7 +332,7 @@ async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
 
 {context}
 
-Retourne UNIQUEMENT un objet JSON valide sans texte avant ni après :
+Retourne UNIQUEMENT un objet JSON valide :
 {{
   "questions": [
     "Question 1 ?",
@@ -359,13 +344,13 @@ Retourne UNIQUEMENT un objet JSON valide sans texte avant ni après :
 Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de motivation, 1 question de mise en situation.
 """
     try:
-        message = await client.messages.create(
-            model=settings.claude_haiku_model,
-            max_tokens=1024,
-            temperature=0.7,
+        response = await client.chat.completions.create(
+            model=settings.groq_model_fast,
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            response_format={"type": "json_object"},
         )
-        data = _json.loads(_extract_json(message.content[0].text))
+        data = _json.loads(response.choices[0].message.content)
         questions = data.get("questions", [])
         return GenerateInterviewQuestionsResponse(questions=questions[:10])
     except Exception as e:
@@ -380,7 +365,7 @@ async def generate_fiche_fonction(req: GenerateFicheFonctionRequest):
     The behavioral competencies are standard and hardcoded in the Java export layer.
     This endpoint only generates the variable content specific to the position.
     """
-    client = _require_claude()
+    client = _require_groq()
 
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:    context_parts.append(f"Département : {req.department}")
@@ -449,13 +434,13 @@ Règles strictes :
 """
 
     try:
-        message = await client.messages.create(
-            model=settings.claude_sonnet_model,
-            max_tokens=4096,
-            temperature=0.3,
+        response = await client.chat.completions.create(
+            model=settings.groq_model_smart,
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"},
         )
-        data = _json.loads(_extract_json(message.content[0].text))
+        data = _json.loads(response.choices[0].message.content)
 
         competences_raw = data.get("competences_techniques", [])
         competences = []
@@ -501,11 +486,11 @@ _CHECKLIST_DEFAULT = [
 async def generate_checklist(req: GenerateChecklistRequest):
     """
     Generates a personalised administrative document checklist for a hired candidate.
-    Uses Claude (Anthropic) for context-aware personalisation.
-    Falls back to the standard Ventec list if Claude is not configured or fails.
+    Uses Groq (Llama) for context-aware personalisation.
+    Falls back to the standard Ventec list if Groq is not configured or fails.
     """
-    if not _claude_client:
-        logger.warning("Anthropic API key not set — returning default checklist")
+    if not _groq_client:
+        logger.warning("Groq API key not set — returning default checklist")
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
 
     is_chantier = any(kw in (req.job_title + " " + (req.department or "")).lower()
@@ -545,26 +530,23 @@ Règles strictes :
 - Adapter les observations selon le contexte du poste (courtes, max 8 mots, ou vide)
 - Adapter le nombre d'exemplaires si nécessaire
 
-Retourne UNIQUEMENT un tableau JSON valide sans texte avant ni après :
-[
-  {{"name": "Curriculum Vitae", "copies": 1, "observation": ""}},
-  {{"name": "Photo d'identité récente", "copies": 3, "observation": ""}},
-  ...
-]"""
+Retourne UNIQUEMENT un objet JSON valide :
+{{
+  "documents": [
+    {{"name": "Curriculum Vitae", "copies": 1, "observation": ""}},
+    {{"name": "Photo d'identité récente", "copies": 3, "observation": ""}}
+  ]
+}}"""
 
     try:
-        client = _require_claude()
-        message = await client.messages.create(
-            model=settings.claude_haiku_model,
-            max_tokens=1024,
+        client = _require_groq()
+        response = await client.chat.completions.create(
+            model=settings.groq_model_fast,
             messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
         )
-        text = message.content[0].text
-        start, end = text.find("["), text.rfind("]") + 1
-        if start < 0 or end <= start:
-            raise ValueError("No JSON array found in Claude response")
-
-        raw_items = _json.loads(text[start:end])
+        data = _json.loads(response.choices[0].message.content)
+        raw_items = data.get("documents", [])
         documents = [
             ChecklistItem(
                 name=str(item.get("name", "")),
@@ -579,5 +561,5 @@ Retourne UNIQUEMENT un tableau JSON valide sans texte avant ni après :
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Claude checklist generation failed: %s — returning default", e)
+        logger.error("Groq checklist generation failed: %s — returning default", e)
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])

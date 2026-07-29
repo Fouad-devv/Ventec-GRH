@@ -2,12 +2,10 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
+    groq_api_key: str = ""
     backend_url: str
-    model_name: str = "gpt-4o-mini"
-    claude_haiku_model: str = "claude-haiku-4-5-20251001"
-    claude_sonnet_model: str = "claude-sonnet-4-6"
+    groq_model_fast: str = "llama-3.1-8b-instant"
+    groq_model_smart: str = "llama-3.3-70b-versatile"
 
     class Config:
         env_file = "../.env"

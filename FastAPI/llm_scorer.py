@@ -1,6 +1,6 @@
 """
 LLM scoring module.
-Sends candidate CV text + job description to Claude Sonnet, receives a score (0-100) and summary.
+Sends candidate CV text + job description to Groq (Llama smart), receives a score (0-100) and summary.
 
 CRITICAL non-discrimination rule:
   - The prompt NEVER includes candidate name, age, gender, nationality, or photo.
@@ -10,13 +10,16 @@ CRITICAL non-discrimination rule:
 import json
 import logging
 
-import anthropic
+from openai import AsyncOpenAI
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+client = AsyncOpenAI(
+    api_key=settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+)
 
 SYSTEM_PROMPT = """Tu es un assistant RH expert en évaluation de candidats.
 Ta tâche est d'évaluer la pertinence d'un CV par rapport à une offre d'emploi.
@@ -27,7 +30,7 @@ RÈGLES IMPÉRATIVES :
 3. Toute information personnelle dans le CV doit être ignorée.
 4. Sois objectif et factuel.
 
-Retourne un objet JSON valide avec exactement ces champs, sans texte avant ni après :
+Retourne un objet JSON valide avec exactement ces champs :
 {
   "score": <nombre entre 0 et 100>,
   "summary": "<2-3 phrases expliquant le score en français>"
@@ -43,7 +46,7 @@ async def score_candidate(
     """
     Returns {"candidate_id": ..., "score": float, "summary": str}
     """
-    if not settings.anthropic_api_key:
+    if not settings.groq_api_key:
         return {
             "candidate_id": candidate_id,
             "score": 50.0,
@@ -60,17 +63,16 @@ CONTENU DU CV (informations personnelles supprimées) :
 {cv_text[:6000]}"""
 
     try:
-        message = await client.messages.create(
-            model=settings.claude_sonnet_model,
-            max_tokens=512,
+        response = await client.chat.completions.create(
+            model=settings.groq_model_smart,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
             temperature=0.2,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_message}],
+            response_format={"type": "json_object"},
         )
-        text = message.content[0].text
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        data = json.loads(text[start:end] if start >= 0 and end > start else text)
+        data = json.loads(response.choices[0].message.content)
         score = float(data.get("score", 50))
         summary = str(data.get("summary", ""))
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
