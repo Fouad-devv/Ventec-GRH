@@ -3,6 +3,7 @@ package com.ventec.grh_backend.service;
 import com.ventec.grh_backend.domain.User;
 import com.ventec.grh_backend.DTO.request.CreateUserRequest;
 import com.ventec.grh_backend.DTO.request.SyncUserRequest;
+import com.ventec.grh_backend.DTO.request.UpdateUserRequest;
 import com.ventec.grh_backend.DTO.response.UserResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.UserRepository;
@@ -83,6 +84,40 @@ public class AdminService {
         return userRepository.findById(id)
                 .map(this::toResponse)
                 .orElseThrow(() -> new NotFoundException("User not found: " + id));
+    }
+
+    public UserResponse updateUser(UUID id, UpdateUserRequest req) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found: " + id));
+
+        if (user.getKeycloakId() != null && !user.getKeycloakId().isBlank()) {
+            try {
+                var resource = keycloakAdmin.realm(keycloakRealm).users().get(user.getKeycloakId());
+                UserRepresentation userRep = resource.toRepresentation();
+                if (req.firstName() != null) userRep.setFirstName(req.firstName());
+                if (req.lastName()  != null) userRep.setLastName(req.lastName());
+                resource.update(userRep);
+            } catch (Exception ignored) {}
+        }
+
+        if (req.firstName() != null) user.setFirstName(req.firstName());
+        if (req.lastName()  != null) user.setLastName(req.lastName());
+        user.setRole(req.role());
+        user.setDepartment(req.department());
+        return toResponse(userRepository.save(user));
+    }
+
+    public void deleteUser(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found: " + id));
+
+        if (user.getKeycloakId() != null && !user.getKeycloakId().isBlank()) {
+            try {
+                keycloakAdmin.realm(keycloakRealm).users().delete(user.getKeycloakId());
+            } catch (Exception ignored) {}
+        }
+
+        userRepository.delete(user);
     }
 
     public UserResponse deactivateUser(UUID id) {

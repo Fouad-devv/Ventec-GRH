@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdPowerSettingsNew, MdPersonAdd, MdAdd, MdEdit, MdDelete, MdClose, MdCheck, MdPerson } from 'react-icons/md';
+import { MdPowerSettingsNew, MdPersonAdd, MdAdd, MdEdit, MdDelete, MdClose, MdCheck, MdPerson, MdWarning } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { adminApi } from '../../api/admin';
 
@@ -13,32 +13,54 @@ const ROLE_COLORS = {
 
 /* ── Edit user modal ────────────────────────────────────── */
 const EditUserModal = ({ user, onSave, onClose }) => {
-  const [form, setForm] = useState({ role: user.role ?? 'RH', department: user.department ?? '' });
+  const [form, setForm] = useState({
+    firstName:  user.firstName  ?? '',
+    lastName:   user.lastName   ?? '',
+    role:       user.role       ?? 'RH',
+    department: user.department ?? '',
+  });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError('');
     try { await onSave(form); onClose(); }
-    catch (err) { console.error(err); }
+    catch (err) { setError('Erreur lors de la modification.'); }
     finally { setSaving(false); }
   };
+
+  const inp = (key, label, placeholder) => (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
+      <input
+        value={form[key]}
+        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-            Modifier {user.firstName} {user.lastName}
-          </h2>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Modifier l'utilisateur</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
             <MdClose className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {inp('firstName', 'Prénom', 'Mohamed')}
+            {inp('lastName',  'Nom',    'Dupont')}
+          </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rôle</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rôle *</label>
             <select
+              required
               value={form.role}
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
               className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
@@ -46,15 +68,8 @@ const EditUserModal = ({ user, onSave, onClose }) => {
               {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Département</label>
-            <input
-              value={form.department}
-              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-              placeholder="ex : RH, Finance, IT…"
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-            />
-          </div>
+          {inp('department', 'Département', 'ex : RH, Finance, IT…')}
+          {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">
@@ -66,6 +81,47 @@ const EditUserModal = ({ user, onSave, onClose }) => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+/* ── Delete confirm modal ───────────────────────────────── */
+const DeleteConfirmModal = ({ user, onConfirm, onClose }) => {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    try { await onConfirm(); onClose(); }
+    catch (err) { console.error(err); }
+    finally { setDeleting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+            <MdWarning className="w-5 h-5 text-red-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">Supprimer l'utilisateur</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Supprimer <span className="font-medium text-slate-700 dark:text-slate-200">{user.firstName} {user.lastName}</span> ?
+              Cette action est irréversible et supprime aussi le compte Keycloak.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">
+            Annuler
+          </button>
+          <button onClick={handleConfirm} disabled={deleting}
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50">
+            <MdDelete className="w-4 h-4" />{deleting ? 'Suppression…' : 'Supprimer'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -167,6 +223,7 @@ const UsersTab = ({ api }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(null);
+  const [deleteUser, setDeleteUser] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
 
   const load = () => {
@@ -178,26 +235,18 @@ const UsersTab = ({ api }) => {
 
   useEffect(() => { load(); }, []);
 
-  const deactivate = async (id) => {
-    if (!window.confirm('Désactiver cet utilisateur ?')) return;
-    await api.deactivate(id);
-    load();
-  };
-
   const handleAdd = async (form) => {
     await api.createUser(form);
     load();
   };
 
   const handleEditSave = async (form) => {
-    await api.syncUser({
-      keycloakId: editUser.keycloakId,
-      email: editUser.email,
-      firstName: editUser.firstName,
-      lastName: editUser.lastName,
-      role: form.role,
-      department: form.department,
-    });
+    await api.updateUser(editUser.id, form);
+    load();
+  };
+
+  const handleDelete = async () => {
+    await api.deleteUser(deleteUser.id);
     load();
   };
 
@@ -266,15 +315,13 @@ const UsersTab = ({ api }) => {
                       >
                         <MdEdit className="w-4 h-4" />
                       </button>
-                      {u.active && (
-                        <button
-                          onClick={() => deactivate(u.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
-                          title="Désactiver"
-                        >
-                          <MdPowerSettingsNew className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setDeleteUser(u)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+                        title="Supprimer"
+                      >
+                        <MdDelete className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -293,6 +340,14 @@ const UsersTab = ({ api }) => {
           user={editUser}
           onSave={handleEditSave}
           onClose={() => setEditUser(null)}
+        />
+      )}
+
+      {deleteUser && (
+        <DeleteConfirmModal
+          user={deleteUser}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteUser(null)}
         />
       )}
     </>
