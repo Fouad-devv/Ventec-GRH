@@ -50,7 +50,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.Color;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -59,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.poi.util.Units;
 
 @Service
 @RequiredArgsConstructor
@@ -195,47 +199,46 @@ public class ExportService {
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            // ── Header ──────────────────────────────────────────────────────
+            // ── Header (logos | title | signatures) ─────────────────────────
             XWPFTable headerTbl = doc.createTable(1, 3);
             setTableWidth(headerTbl, 9360);
-            removeBorders(headerTbl);
             XWPFTableRow hRow = headerTbl.getRow(0);
-            navyCell(hRow.getCell(0), "Ventec / Ecowell", ParagraphAlignment.LEFT, 11, true);
+
+            // Left: Ventec + Ecowell logos on white background
+            setLogosInCell(doc, hRow.getCell(0));
+
+            // Center: MPM3 title + FICHE DE FONCTION + job title (navy)
             XWPFTableCell midC = hRow.getCell(1);
             navyCell(midC, "MPM3 – MACROPROCESSUS DIRECTION", ParagraphAlignment.CENTER, 9, false);
             XWPFParagraph midP2 = midC.addParagraph();
             midP2.setAlignment(ParagraphAlignment.CENTER);
             XWPFRun midR2 = midP2.createRun();
-            midR2.setBold(true); midR2.setFontSize(12); midR2.setColor(WHITE);
+            midR2.setBold(true); midR2.setFontSize(14); midR2.setColor(WHITE);
+            midR2.setUnderline(UnderlinePatterns.SINGLE);
             midR2.setText("FICHE DE FONCTION");
-            navyCell(hRow.getCell(2), "Management des Ressources Humaines", ParagraphAlignment.RIGHT, 9, false);
+            XWPFParagraph midP3 = midC.addParagraph();
+            midP3.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun midR3 = midP3.createRun();
+            midR3.setBold(true); midR3.setFontSize(11); midR3.setColor(WHITE);
+            midR3.setText(p.getTitle());
+
+            // Right: Intéressé(e) / Dpt ou Service / Direction signature boxes
+            setSignatureCell(hRow.getCell(2));
 
             doc.createParagraph();
 
-            // ── Signatures ──────────────────────────────────────────────────
-            XWPFTable sigTbl = doc.createTable(2, 3);
-            setTableWidth(sigTbl, 9360);
-            XWPFTableRow sigH = sigTbl.getRow(0);
-            grayCell(sigH.getCell(0), "Rédigé par :",    ParagraphAlignment.LEFT, 10, true);
-            grayCell(sigH.getCell(1), "Validé par :",    ParagraphAlignment.LEFT, 10, true);
-            grayCell(sigH.getCell(2), "Approuvé par :",  ParagraphAlignment.LEFT, 10, true);
-            XWPFTableRow sigB = sigTbl.getRow(1);
-            plainCell(sigB.getCell(0), "\n\n", ParagraphAlignment.LEFT, 10, false);
-            plainCell(sigB.getCell(1), "\n\n", ParagraphAlignment.LEFT, 10, false);
-            plainCell(sigB.getCell(2), "\n\n", ParagraphAlignment.LEFT, 10, false);
-
-            doc.createParagraph();
-
-            // ── Identification du poste ──────────────────────────────────────
-            XWPFTable infoTbl = doc.createTable(5, 2);
-            setTableWidth(infoTbl, 9360);
-            XWPFTableRow infoHdr = infoTbl.getRow(0);
-            navyCell(infoHdr.getCell(0), "IDENTIFICATION DU POSTE", ParagraphAlignment.CENTER, 11, true);
-            navyCell(infoHdr.getCell(1), "",                        ParagraphAlignment.CENTER, 11, false);
-            addInfoRow(infoTbl, 1, "Intitulé du poste",     p.getTitle());
-            addInfoRow(infoTbl, 2, "Département / Service", toStr(p.getDepartment(),   ""));
-            addInfoRow(infoTbl, 3, "Type de contrat",       toStr(p.getContractType(), ""));
-            addInfoRow(infoTbl, 4, "Filiale",               "Ventec");
+            // ── Famille professionnelle / Postes concernés ───────────────────
+            XWPFTable famTbl = doc.createTable(4, 2);
+            setTableWidth(famTbl, 9360);
+            navyCell(famTbl.getRow(0).getCell(0), "Famille professionnelle", ParagraphAlignment.CENTER, 10, true);
+            navyCell(famTbl.getRow(0).getCell(1), "Postes concernés",        ParagraphAlignment.CENTER, 10, true);
+            plainCell(famTbl.getRow(1).getCell(0), "Support",                ParagraphAlignment.CENTER, 10, false);
+            plainCell(famTbl.getRow(1).getCell(1), p.getTitle(),             ParagraphAlignment.CENTER, 10, false);
+            navyCell(famTbl.getRow(2).getCell(0), "Métier",                  ParagraphAlignment.CENTER, 10, true);
+            navyCell(famTbl.getRow(2).getCell(1), "Filiale",                 ParagraphAlignment.CENTER, 10, true);
+            plainCell(famTbl.getRow(3).getCell(0), toStr(p.getDepartment(), "Gestion des Ressources Humaines"),
+                      ParagraphAlignment.CENTER, 10, false);
+            plainCell(famTbl.getRow(3).getCell(1), "Ventec Maroc",           ParagraphAlignment.CENTER, 10, false);
 
             doc.createParagraph();
 
@@ -375,12 +378,14 @@ public class ExportService {
 
             doc.createParagraph();
 
-            // ── Footer ──────────────────────────────────────────────────────
-            XWPFParagraph footerP = doc.createParagraph();
-            footerP.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun footerR = footerP.createRun();
-            footerR.setFontSize(8); footerR.setColor("808080");
-            footerR.setText("Version 1.0 — Généré par Ventec GRH — " + LocalDate.now().format(DATE_SHORT_FMT));
+            // ── Footer: matches PDF "Version du : xx/xx/xxxx" ───────────────
+            XWPFTable footerTbl = doc.createTable(1, 2);
+            setTableWidth(footerTbl, 9360);
+            removeBorders(footerTbl);
+            plainCell(footerTbl.getRow(0).getCell(0),
+                      "Version du : " + LocalDate.now().format(DATE_SHORT_FMT), ParagraphAlignment.LEFT, 8, true);
+            plainCell(footerTbl.getRow(0).getCell(1),
+                      "Document généré par Ventec GRH", ParagraphAlignment.RIGHT, 8, false);
 
             doc.write(out);
             return out.toByteArray();
@@ -413,20 +418,35 @@ public class ExportService {
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            // ── Header ──────────────────────────────────────────────────────
+            // ── Header (logos | title | Management RH) ──────────────────────
             XWPFTable headerTbl = doc.createTable(1, 3);
             setTableWidth(headerTbl, 9360);
-            removeBorders(headerTbl);
             XWPFTableRow hRow = headerTbl.getRow(0);
-            navyCell(hRow.getCell(0), "Ventec / Ecowell", ParagraphAlignment.LEFT, 11, true);
+
+            // Left: logos
+            setLogosInCell(doc, hRow.getCell(0));
+
+            // Center: title (navy) — matches PDF exactly
             XWPFTableCell midC = hRow.getCell(1);
             navyCell(midC, "LISTE DES DOCUMENTS", ParagraphAlignment.CENTER, 11, true);
             XWPFParagraph midP2 = midC.addParagraph();
             midP2.setAlignment(ParagraphAlignment.CENTER);
             XWPFRun midR2 = midP2.createRun();
             midR2.setBold(true); midR2.setFontSize(11); midR2.setColor(WHITE);
-            midR2.setText("A FOURNIR");
-            navyCell(hRow.getCell(2), "Management des Ressources Humaines", ParagraphAlignment.RIGHT, 9, false);
+            midR2.setText("ADMINISTRATIFS A FOURNIR");
+            XWPFParagraph midP3 = midC.addParagraph();
+            midP3.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun midR3 = midP3.createRun();
+            midR3.setBold(true); midR3.setFontSize(11); midR3.setColor(WHITE);
+            midR3.setText("CDI-CDD");
+
+            // Right: Management RH (navy)
+            XWPFTableCell rightC = hRow.getCell(2);
+            navyCell(rightC, "Management", ParagraphAlignment.RIGHT, 9, false);
+            XWPFParagraph rp2 = rightC.addParagraph(); rp2.setAlignment(ParagraphAlignment.RIGHT);
+            XWPFRun rr2 = rp2.createRun(); rr2.setFontSize(9); rr2.setColor(WHITE); rr2.setText("Ressources");
+            XWPFParagraph rp3 = rightC.addParagraph(); rp3.setAlignment(ParagraphAlignment.RIGHT);
+            XWPFRun rr3 = rp3.createRun(); rr3.setFontSize(9); rr3.setColor(WHITE); rr3.setText("Humaines");
 
             doc.createParagraph();
 
@@ -473,12 +493,14 @@ public class ExportService {
             noteR.setText("Poste : " + postingTitle);
 
             doc.createParagraph();
-            XWPFParagraph footerP = doc.createParagraph();
-            footerP.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun footerR = footerP.createRun();
-            footerR.setFontSize(8); footerR.setColor("808080");
-            footerR.setText("Version du 01/01/2022  —  Document généré par Ventec GRH  —  "
-                    + LocalDate.now().format(DATE_SHORT_FMT));
+            // Footer matches PDF: "Version du 01/01/2022  Annule et remplace celle du 04/01/2021"
+            XWPFTable footerTbl = doc.createTable(1, 2);
+            setTableWidth(footerTbl, 9360);
+            removeBorders(footerTbl);
+            plainCell(footerTbl.getRow(0).getCell(0),
+                      "Version du 01/01/2022", ParagraphAlignment.LEFT, 8, false);
+            plainCell(footerTbl.getRow(0).getCell(1),
+                      "Annule et remplace celle du 04/01/2021", ParagraphAlignment.RIGHT, 8, false);
 
             doc.write(out);
             return out.toByteArray();
@@ -575,6 +597,67 @@ public class ExportService {
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la génération du PDF", e);
         }
+    }
+
+    // ── Logo / signature helpers ─────────────────────────────────────────────
+
+    private byte[] loadLogoBytes(String resourcePath) {
+        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+            return is != null ? is.readAllBytes() : null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /** Puts Ventec logo above Ecowell logo in a white cell. */
+    private void setLogosInCell(XWPFDocument doc, XWPFTableCell cell) {
+        byte[] ventec  = loadLogoBytes("/logos/ventec-logo.jpeg");
+        byte[] ecowell = loadLogoBytes("/logos/ecowell-logo.jpg");
+        setCellBg(cell, WHITE);
+
+        XWPFParagraph p1 = cell.getParagraphs().isEmpty() ? cell.addParagraph() : cell.getParagraphs().get(0);
+        p1.setAlignment(ParagraphAlignment.CENTER);
+        if (ventec != null) {
+            try {
+                // Ventec: very wide logo (aspect ~3.75:1) → 105pt × 28pt
+                p1.createRun().addPicture(new ByteArrayInputStream(ventec), 5,
+                        "ventec.jpg", (int) Units.toEMU(105), (int) Units.toEMU(28));
+            } catch (Exception e) {
+                XWPFRun r = p1.createRun(); r.setBold(true); r.setFontSize(11); r.setText("Ventec");
+            }
+        } else {
+            XWPFRun r = p1.createRun(); r.setBold(true); r.setFontSize(11); r.setText("Ventec");
+        }
+
+        if (ecowell != null) {
+            XWPFParagraph p2 = cell.addParagraph();
+            p2.setAlignment(ParagraphAlignment.CENTER);
+            try {
+                // Ecowell: 300×48px → aspect 6.25:1 → 94pt × 15pt
+                p2.createRun().addPicture(new ByteArrayInputStream(ecowell), 5,
+                        "ecowell.jpg", (int) Units.toEMU(94), (int) Units.toEMU(15));
+            } catch (Exception e) {
+                XWPFRun r = p2.createRun(); r.setFontSize(9); r.setText("Ecowell");
+            }
+        }
+    }
+
+    /** Right cell of Fiche de Fonction header: Intéressé(e) / Dpt / Direction. */
+    private void setSignatureCell(XWPFTableCell cell) {
+        setCellBg(cell, WHITE);
+        XWPFParagraph ph = cell.getParagraphs().isEmpty() ? cell.addParagraph() : cell.getParagraphs().get(0);
+        ph.setAlignment(ParagraphAlignment.LEFT);
+        for (String lbl : new String[]{"Intéressé(e) :", "Dpt ou Service :", "Direction"}) {
+            XWPFRun r = ph.createRun();
+            r.setBold(true); r.setFontSize(7); r.setUnderline(UnderlinePatterns.SINGLE);
+            r.setText(lbl + "   ");
+        }
+        XWPFParagraph pd = cell.addParagraph();
+        XWPFRun rd = pd.createRun(); rd.setFontSize(7);
+        rd.setText("Date : …………   Date : …………   Date : …………");
+        XWPFParagraph pv = cell.addParagraph();
+        XWPFRun rv = pv.createRun(); rv.setFontSize(7);
+        rv.setText("Visa : …………   Visa : …………    Visa : …………");
     }
 
     // ── Apache POI cell/table helpers ────────────────────────────────────────
