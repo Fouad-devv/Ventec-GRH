@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { PostingsPage } from './pages/postings/PostingsPage';
 import { PostingDetailPage } from './pages/postings/PostingDetailPage';
 import { CandidatesPage } from './pages/candidates/CandidatesPage';
+import { CandidateDetailPage } from './pages/candidates/CandidateDetailPage';
 import { PipelinePage } from './pages/pipeline/PipelinePage';
 import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { NotificationsPage } from './pages/notifications/NotificationsPage';
@@ -28,6 +29,7 @@ function App() {
         <Route path="postings" element={<PostingsPage />} />
         <Route path="postings/:id" element={<PostingDetailPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
+        <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="pipeline" element={<PipelinePage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
