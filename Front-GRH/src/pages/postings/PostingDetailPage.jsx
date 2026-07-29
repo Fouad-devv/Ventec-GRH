@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MdArrowBack, MdPlayArrow, MdClose, MdAutoAwesome,
-  MdStar, MdRefresh,
+  MdStar, MdRefresh, MdContentCopy, MdDownload,
 } from 'react-icons/md';
 import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
@@ -38,6 +38,7 @@ export const PostingDetailPage = () => {
   const [filterJobs, setFilterJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtering, setFiltering] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([
@@ -58,6 +59,18 @@ export const PostingDetailPage = () => {
 
   const handlePublish = () => pApi.publish(id).then(load);
   const handleClose = () => pApi.close(id).then(load);
+
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    try {
+      const res = await pApi.duplicate(id);
+      navigate(`/app/postings/${res.data.id}`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDuplicating(false);
+    }
+  };
 
   const handleFilter = async () => {
     setFiltering(true);
@@ -142,6 +155,27 @@ export const PostingDetailPage = () => {
               </button>
             </>
           )}
+          <button
+            onClick={handleDuplicate}
+            disabled={duplicating}
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {duplicating ? (
+              <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : (
+              <MdContentCopy className="w-4 h-4" />
+            )}
+            Dupliquer
+          </button>
+          <a
+            href={pApi.exportDocxUrl(id)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <MdDownload className="w-4 h-4" />
+            Exporter Word
+          </a>
           <button onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             <MdRefresh className="w-4 h-4" />
           </button>
