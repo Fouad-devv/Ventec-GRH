@@ -25,14 +25,19 @@ public class AiServiceClient {
     // Fire-and-forget: FastAPI calls back /api/callback/filter/{filterJobId} with results
     public void requestFilter(UUID filterJobId, UUID jobPostingId,
                               String jobDescription, String requirements,
+                              Integer minAge, Integer maxAge,
+                              String freeFilterPrompt, String extractedJobData,
                               List<UUID> candidateIds) {
-        Map<String, Object> payload = Map.of(
-                "filter_job_id", filterJobId.toString(),
-                "job_posting_id", jobPostingId.toString(),
-                "job_description", jobDescription != null ? jobDescription : "",
-                "requirements", requirements != null ? requirements : "",
-                "candidate_ids", candidateIds.stream().map(UUID::toString).toList()
-        );
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("filter_job_id", filterJobId.toString());
+        payload.put("job_posting_id", jobPostingId.toString());
+        payload.put("job_description", jobDescription != null ? jobDescription : "");
+        payload.put("requirements", requirements != null ? requirements : "");
+        payload.put("candidate_ids", candidateIds.stream().map(UUID::toString).toList());
+        if (minAge != null) payload.put("min_age", minAge);
+        if (maxAge != null) payload.put("max_age", maxAge);
+        if (freeFilterPrompt != null) payload.put("free_filter_prompt", freeFilterPrompt);
+        if (extractedJobData != null) payload.put("extracted_job_data", extractedJobData);
         aiWebClient.post()
                 .uri("/filter")
                 .bodyValue(payload)
@@ -46,6 +51,26 @@ public class AiServiceClient {
         return aiWebClient.post()
                 .uri("/extract-cv")
                 .bodyValue(Map.of("text", cvText))
+                .retrieve()
+                .bodyToMono(Map.class);
+    }
+
+    public Mono<Map> extractCvFull(MultipartFile file) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        try {
+            builder.part("file", new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return file.getOriginalFilename() != null ? file.getOriginalFilename() : "cv.pdf";
+                }
+            }).contentType(MediaType.APPLICATION_OCTET_STREAM);
+        } catch (Exception e) {
+            return Mono.error(new RuntimeException("Failed to read CV file", e));
+        }
+        return aiWebClient.post()
+                .uri("/extract-cv-full")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
                 .bodyToMono(Map.class);
     }
@@ -114,6 +139,26 @@ public class AiServiceClient {
         return aiWebClient.post()
                 .uri("/generate-fiche-fonction")
                 .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class);
+    }
+
+    public Mono<Map> extractJobPosting(MultipartFile file) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        try {
+            builder.part("file", new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return file.getOriginalFilename() != null ? file.getOriginalFilename() : "fiche.pdf";
+                }
+            }).contentType(MediaType.APPLICATION_OCTET_STREAM);
+        } catch (Exception e) {
+            return Mono.error(new RuntimeException("Failed to read file", e));
+        }
+        return aiWebClient.post()
+                .uri("/extract-job-posting")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
                 .bodyToMono(Map.class);
     }

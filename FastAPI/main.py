@@ -26,6 +26,7 @@ from models import (
     GenerateInterviewQuestionsRequest, GenerateInterviewQuestionsResponse,
     GenerateChecklistRequest, GenerateChecklistResponse, ChecklistItem,
     GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere,
+    ExtractJobPostingResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -62,20 +63,28 @@ async def _run_filter(req: FilterRequest):
         # 1. Fetch candidate CV data from backend
         candidates_data = await _fetch_candidates(req.candidate_ids)
 
-        # 2. Deterministic filter (experience only — no age/sex)
-        filtered = apply_deterministic_filter(candidates_data)
+        # 2. Deterministic filter (experience + age if provided)
+        filtered = apply_deterministic_filter(
+            candidates_data,
+            min_age=req.min_age,
+            max_age=req.max_age,
+        )
 
         if not filtered:
             await _send_callback(callback_url, "DONE", [])
             return
 
-        # 3. LLM scoring (only skills, experience, education — no demographics)
+        # 3. LLM scoring with full job context
         scoring_input = [
             {"candidate_id": c["candidate_id"], "cv_text": c.get("cv_text", "")}
             for c in filtered
         ]
         results = await score_multiple_candidates(
-            scoring_input, req.job_description, req.requirements
+            scoring_input,
+            req.job_description,
+            req.requirements,
+            extracted_job_data=req.extracted_job_data,
+            free_filter_prompt=req.free_filter_prompt,
         )
 
         await _send_callback(callback_url, "DONE", results)
@@ -87,15 +96,15 @@ async def _run_filter(req: FilterRequest):
 
 async def _fetch_candidates(candidate_ids: list[str]) -> list[dict]:
     """
-    Fetches candidate CV text from backend.
+    Fetches anonymized candidate CV data from the public /ai/candidates endpoint.
     Returns list of {candidate_id, cv_text, experience_years}.
-    Note: backend sends NO age, NO sex — non-discrimination by design.
+    Note: endpoint returns NO name, NO age, NO sex — non-discrimination by design.
     """
     results = []
     async with httpx.AsyncClient(timeout=30.0) as client:
         for cid in candidate_ids:
             try:
-                resp = await client.get(f"{settings.backend_url}/candidates/{cid}")
+                resp = await client.get(f"{settings.backend_url}/ai/candidates/{cid}")
                 if resp.status_code == 200:
                     data = resp.json()
                     results.append({
@@ -264,6 +273,147 @@ async def extract_cv_file(file: UploadFile = File(...)):
         raise
     except Exception as e:
         logger.error("CV file extraction failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def _run_cv_extraction_full(text: str, source: str = "native") -> dict:
+    """Extended CV extraction: returns name, email, phone + standard fields."""
+    client = _require_groq()
+    ocr_note = ""
+    if source == "ocr":
+        ocr_note = "\nATTENTION : texte extrait par OCR, peut contenir des erreurs.\n"
+    prompt = f"""Tu es un expert RH en analyse de CVs. Extrait les informations suivantes.
+{ocr_note}
+Retourne UNIQUEMENT un objet JSON valide :
+{{
+  "first_name": "<prénom ou null>",
+  "last_name": "<nom de famille ou null>",
+  "email": "<email ou null>",
+  "phone": "<téléphone ou null>",
+  "skills": ["compétence1", "compétence2"],
+  "experience_years": <entier ou null>,
+  "education": "<diplôme le plus élevé ou null>",
+  "current_position": "<dernier poste occupé ou null>",
+  "location": "<ville/pays ou null>"
+}}
+Règles : skills max 15, sans doublons. Retourne QUE le JSON.
+
+CV :
+{text[:8000]}
+"""
+    response = await client.chat.completions.create(
+        model=settings.groq_model_fast,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.0,
+        response_format={"type": "json_object"},
+    )
+    data = _json.loads(response.choices[0].message.content)
+    skills = data.get("skills", [])
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(",") if s.strip()]
+    return {
+        "first_name": data.get("first_name"),
+        "last_name": data.get("last_name"),
+        "email": data.get("email"),
+        "phone": data.get("phone"),
+        "skills": skills[:15],
+        "experience_years": data.get("experience_years"),
+        "education": data.get("education"),
+        "current_position": data.get("current_position"),
+        "location": data.get("location"),
+    }
+
+
+@app.post("/extract-cv-full")
+async def extract_cv_full(file: UploadFile = File(...)):
+    """
+    Full CV extraction used for bulk import from job postings.
+    Returns raw text + all structured fields including name and contact info.
+    """
+    if not settings.groq_api_key:
+        return {"cv_text": "", "first_name": None, "last_name": None, "email": None,
+                "phone": None, "skills": [], "experience_years": None,
+                "education": None, "current_position": None, "location": None}
+    try:
+        content = await file.read()
+        filename = file.filename or "file.pdf"
+        text, method = extract_text_from_bytes(content, filename)
+        logger.info("Full CV extraction '%s' via %s — %d chars", filename, method, len(text))
+        if not text.strip():
+            raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du CV.")
+        structured = await _run_cv_extraction_full(text, source=method)
+        return {"cv_text": text[:50_000], **structured}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Full CV extraction failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/extract-job-posting", response_model=ExtractJobPostingResponse)
+async def extract_job_posting(file: UploadFile = File(...)):
+    """
+    Extracts structured requirements from an uploaded job posting / fiche de poste document.
+    Returns skills, tools, education, experience, missions, and formatted description/requirements.
+    """
+    if not settings.groq_api_key:
+        return ExtractJobPostingResponse()
+    try:
+        content = await file.read()
+        filename = file.filename or "fiche.pdf"
+        text, method = extract_text_from_bytes(content, filename)
+        logger.info("Job posting extraction '%s' via %s — %d chars", filename, method, len(text))
+        if not text.strip():
+            raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du document.")
+        client = _require_groq()
+        prompt = f"""Tu es un expert RH. Analyse cette fiche de poste et extrait les informations structurées.
+
+Retourne UNIQUEMENT un objet JSON valide :
+{{
+  "required_skills": ["compétence1", "compétence2"],
+  "tools": ["outil1", "outil2"],
+  "required_education": "<niveau de formation requis ou null>",
+  "required_experience": "<description de l'expérience requise ou null>",
+  "missions": ["mission1", "mission2"],
+  "nice_to_have": ["compétence optionnelle1"],
+  "description": "<description du poste reformatée en 2-3 paragraphes>",
+  "requirements": "<liste des exigences, une par ligne avec tiret '-'>"
+}}
+
+Règles :
+- required_skills : compétences techniques indispensables (max 15)
+- tools : logiciels, frameworks, équipements mentionnés (max 10)
+- required_education : ex "Bac+5 Informatique" ou null
+- required_experience : ex "3 à 5 ans en développement Java"
+- missions : 3 à 6 missions principales extraites du document
+- nice_to_have : compétences souhaitées mais non obligatoires (max 8)
+- description et requirements : reformater le contenu du document de manière claire et professionnelle
+- Retourne QUE le JSON, sans texte avant ou après
+
+Fiche de poste :
+{text[:10000]}
+"""
+        response = await client.chat.completions.create(
+            model=settings.groq_model_smart,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+        data = _json.loads(response.choices[0].message.content)
+        return ExtractJobPostingResponse(
+            required_skills=data.get("required_skills", []),
+            tools=data.get("tools", []),
+            required_education=data.get("required_education"),
+            required_experience=data.get("required_experience"),
+            missions=data.get("missions", []),
+            nice_to_have=data.get("nice_to_have", []),
+            description=data.get("description"),
+            requirements=data.get("requirements"),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Job posting extraction failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

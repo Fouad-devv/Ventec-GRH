@@ -43,6 +43,19 @@ public class JobPosting {
     @Column(name = "skills_weights", columnDefinition = "jsonb")
     private String skillsWeights;
 
+    @Column(name = "min_age")
+    private Integer minAge;
+
+    @Column(name = "max_age")
+    private Integer maxAge;
+
+    @Column(name = "free_filter_prompt", columnDefinition = "TEXT")
+    private String freeFilterPrompt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "extracted_job_data", columnDefinition = "jsonb")
+    private String extractedJobData;
+
     @Column(nullable = false)
     private String status = "DRAFT";
 

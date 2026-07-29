@@ -19,4 +19,9 @@ export const postingsApi = (axios) => ({
   exportDocxUrl: (id) => `${import.meta.env.VITE_API_URL}/postings/${id}/export/docx`,
   exportFicheFonctionUrl: (id) => `${import.meta.env.VITE_API_URL}/postings/${id}/export/fiche-fonction`,
   getHistory: () => axios.get(`${BASE}/history`),
+  importCvs: (id, files) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    return axios.post(`${BASE}/${id}/import-cvs`, fd);
+  },
 });

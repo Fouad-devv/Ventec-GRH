@@ -12,5 +12,8 @@ public record CreateJobPostingRequest(
         String description,
         String requirements,
         Integer minExperience,
+        Integer minAge,
+        Integer maxAge,
+        String freeFilterPrompt,
         LocalDate deadline
 ) {}

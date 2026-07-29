@@ -3,6 +3,7 @@ package com.ventec.grh_backend.controller;
 import com.ventec.grh_backend.DTO.request.CreateJobPostingRequest;
 import com.ventec.grh_backend.DTO.request.GenerateDescriptionRequest;
 import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
+import com.ventec.grh_backend.DTO.response.ApplicationResponse;
 import com.ventec.grh_backend.DTO.response.GenerateDescriptionResponse;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
 import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
@@ -126,6 +127,14 @@ public class PostingController {
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<JobPostingResponse> generateFicheFonction(@PathVariable UUID id) {
         return ResponseEntity.ok(postingService.generateAndStoreFicheFonction(id));
+    }
+
+    @PostMapping("/{id}/import-cvs")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<List<ApplicationResponse>> importCvs(
+            @PathVariable UUID id,
+            @RequestParam("files") List<MultipartFile> files) {
+        return ResponseEntity.ok(postingService.importCvs(id, files));
     }
 
     @PostMapping("/generate-description")

@@ -9,7 +9,8 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
   const fileRef = useRef(null);
 
   const [form, setForm] = useState({
-    title: '', department: '', location: '', contractType: 'CDI', minExperience: '',
+    title: '', department: '', location: '', contractType: 'CDI',
+    minExperience: '', minAge: '', maxAge: '', freeFilterPrompt: '',
   });
   const [ficheFonction, setFicheFonction] = useState(null); // uploaded File
   const [generateAI, setGenerateAI] = useState(false);
@@ -50,6 +51,9 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
         location: form.location || null,
         contractType: form.contractType || null,
         minExperience: form.minExperience ? Number(form.minExperience) : null,
+        minAge: form.minAge ? Number(form.minAge) : null,
+        maxAge: form.maxAge ? Number(form.maxAge) : null,
+        freeFilterPrompt: form.freeFilterPrompt || null,
       });
       const postingId = res.data.id;
 
@@ -123,6 +127,29 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
               </select>
             </div>
             {inp('minExperience', 'Expérience min (ans)', '0', false, 'number')}
+          </div>
+
+          {/* Age range */}
+          <div className="grid grid-cols-2 gap-3">
+            {inp('minAge', 'Âge min (optionnel)', 'ex : 25', false, 'number')}
+            {inp('maxAge', 'Âge max (optionnel)', 'ex : 45', false, 'number')}
+          </div>
+
+          {/* Free-form filter prompt */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Critères supplémentaires pour l'IA
+            </label>
+            <textarea
+              value={form.freeFilterPrompt}
+              onChange={set('freeFilterPrompt')}
+              placeholder="ex : Privilégier les candidats ayant une expérience dans le secteur bancaire et maîtrisant l'arabe…"
+              rows={3}
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+            <p className="text-xs text-slate-400 mt-0.5">
+              L'IA utilisera ces instructions lors du filtrage des CVs.
+            </p>
           </div>
 
           {/* Fiche de poste section */}

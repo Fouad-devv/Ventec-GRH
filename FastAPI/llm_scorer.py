@@ -9,6 +9,7 @@ CRITICAL non-discrimination rule:
 """
 import json
 import logging
+from typing import Optional
 
 from openai import AsyncOpenAI
 
@@ -42,6 +43,8 @@ async def score_candidate(
     job_description: str,
     requirements: str,
     candidate_id: str,
+    extracted_job_data: Optional[str] = None,
+    free_filter_prompt: Optional[str] = None,
 ) -> dict:
     """
     Returns {"candidate_id": ..., "score": float, "summary": str}
@@ -53,11 +56,47 @@ async def score_candidate(
             "summary": "Évaluation IA non disponible (clé API manquante).",
         }
 
-    user_message = f"""OFFRE D'EMPLOI :
-{job_description or "Aucune description fournie."}
+    # Build the job context block
+    job_context_parts = []
+    if job_description:
+        job_context_parts.append(f"DESCRIPTION DU POSTE :\n{job_description}")
+    if requirements:
+        job_context_parts.append(f"EXIGENCES :\n{requirements}")
 
-EXIGENCES :
-{requirements or "Aucune exigence spécifiée."}
+    # Add structured job data extracted from fiche de poste if available
+    if extracted_job_data:
+        try:
+            parsed = json.loads(extracted_job_data)
+            structured_parts = []
+            if parsed.get("required_skills"):
+                structured_parts.append("Compétences requises : " + ", ".join(parsed["required_skills"]))
+            if parsed.get("tools"):
+                structured_parts.append("Outils/Technologies : " + ", ".join(parsed["tools"]))
+            if parsed.get("required_education"):
+                structured_parts.append(f"Formation requise : {parsed['required_education']}")
+            if parsed.get("required_experience"):
+                structured_parts.append(f"Expérience requise : {parsed['required_experience']}")
+            if parsed.get("missions"):
+                structured_parts.append("Missions : " + " | ".join(parsed["missions"]))
+            if parsed.get("nice_to_have"):
+                structured_parts.append("Atouts supplémentaires : " + ", ".join(parsed["nice_to_have"]))
+            if structured_parts:
+                job_context_parts.append("CRITÈRES STRUCTURÉS DU POSTE :\n" + "\n".join(structured_parts))
+        except Exception:
+            pass
+
+    # HR's free-form filter instructions (evaluated after skills/experience)
+    if free_filter_prompt and free_filter_prompt.strip():
+        job_context_parts.append(
+            f"CRITÈRES SUPPLÉMENTAIRES DU RESPONSABLE RH :\n{free_filter_prompt.strip()}\n"
+            "(Ces critères sont à considérer dans l'évaluation globale, "
+            "sans jamais prendre en compte des informations personnelles ou discriminatoires.)"
+        )
+
+    if not job_context_parts:
+        job_context_parts.append("Aucune description du poste fournie.")
+
+    user_message = "\n\n".join(job_context_parts) + f"""
 
 CONTENU DU CV (informations personnelles supprimées) :
 {cv_text[:6000]}"""
@@ -85,6 +124,8 @@ async def score_multiple_candidates(
     candidates: list[dict],
     job_description: str,
     requirements: str,
+    extracted_job_data: Optional[str] = None,
+    free_filter_prompt: Optional[str] = None,
 ) -> list[dict]:
     """
     candidates: [{"candidate_id": str, "cv_text": str}, ...]
@@ -97,6 +138,8 @@ async def score_multiple_candidates(
             job_description=job_description,
             requirements=requirements,
             candidate_id=c["candidate_id"],
+            extracted_job_data=extracted_job_data,
+            free_filter_prompt=free_filter_prompt,
         )
         for c in candidates
     ]

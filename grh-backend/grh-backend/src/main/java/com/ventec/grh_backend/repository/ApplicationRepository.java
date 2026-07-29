@@ -27,4 +27,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     @Query("SELECT AVG(a.aiScore) FROM Application a WHERE a.jobPosting.id = :postingId AND a.aiScore IS NOT NULL")
     Double avgAiScoreByJobPostingId(@Param("postingId") UUID postingId);
+
+    @Query("SELECT a.candidate.id FROM Application a WHERE a.jobPosting.id = :postingId")
+    List<UUID> findCandidateIdsByJobPostingId(@Param("postingId") UUID postingId);
 }

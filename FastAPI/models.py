@@ -8,6 +8,22 @@ class FilterRequest(BaseModel):
     job_description: str
     requirements: str
     candidate_ids: List[str]
+    min_age: Optional[int] = None
+    max_age: Optional[int] = None
+    free_filter_prompt: Optional[str] = None
+    extracted_job_data: Optional[str] = None  # JSON string with structured job requirements
+
+
+# ── Extract job posting from document ──────────────────────
+class ExtractJobPostingResponse(BaseModel):
+    required_skills: List[str] = []
+    tools: List[str] = []
+    required_education: Optional[str] = None
+    required_experience: Optional[str] = None
+    missions: List[str] = []
+    nice_to_have: List[str] = []
+    description: Optional[str] = None
+    requirements: Optional[str] = None
 
 
 class FilterResultEntry(BaseModel):

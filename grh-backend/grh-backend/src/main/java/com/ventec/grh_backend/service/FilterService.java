@@ -3,12 +3,14 @@ package com.ventec.grh_backend.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ventec.grh_backend.domain.Application;
-import com.ventec.grh_backend.domain.Candidate;
 import com.ventec.grh_backend.domain.FilterJob;
 import com.ventec.grh_backend.domain.JobPosting;
 import com.ventec.grh_backend.DTO.response.FilterJobResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
-import com.ventec.grh_backend.repository.*;
+import com.ventec.grh_backend.repository.ApplicationRepository;
+import com.ventec.grh_backend.repository.FilterJobRepository;
+import com.ventec.grh_backend.repository.JobPostingRepository;
+import com.ventec.grh_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,7 +30,6 @@ public class FilterService {
 
     private final FilterJobRepository filterJobRepository;
     private final JobPostingRepository jobPostingRepository;
-    private final CandidateRepository candidateRepository;
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final AiServiceClient aiServiceClient;
@@ -40,8 +41,7 @@ public class FilterService {
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + jobPostingId));
 
         var requestedBy = userRepository.findByKeycloakId(keycloakId).orElse(null);
-        List<UUID> candidateIds = candidateRepository.findAll()
-                .stream().map(Candidate::getId).toList();
+        List<UUID> candidateIds = applicationRepository.findCandidateIdsByJobPostingId(jobPostingId);
 
         FilterJob filterJob = FilterJob.builder()
                 .jobPosting(posting)
@@ -56,6 +56,8 @@ public class FilterService {
         aiServiceClient.requestFilter(
                 filterJob.getId(), jobPostingId,
                 posting.getDescription(), posting.getRequirements(),
+                posting.getMinAge(), posting.getMaxAge(),
+                posting.getFreeFilterPrompt(), posting.getExtractedJobData(),
                 candidateIds);
 
         return toResponse(filterJob);
@@ -98,17 +100,7 @@ public class FilterService {
 
                     Application app = applicationRepository
                             .findByCandidateIdAndJobPostingId(candidateId, jobPostingId)
-                            .orElseGet(() -> {
-                                Candidate candidate = candidateRepository.findById(candidateId).orElse(null);
-                                JobPosting posting = filterJob.getJobPosting();
-                                if (candidate == null) return null;
-                                Application newApp = Application.builder()
-                                        .candidate(candidate)
-                                        .jobPosting(posting)
-                                        .status("SCREENING")
-                                        .build();
-                                return applicationRepository.save(newApp);
-                            });
+                            .orElse(null);
 
                     if (app != null) {
                         if (scoreNum != null) {

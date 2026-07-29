@@ -1,0 +1,4 @@
+ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS min_age INTEGER;
+ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS max_age INTEGER;
+ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS free_filter_prompt TEXT;
+ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS extracted_job_data JSONB;

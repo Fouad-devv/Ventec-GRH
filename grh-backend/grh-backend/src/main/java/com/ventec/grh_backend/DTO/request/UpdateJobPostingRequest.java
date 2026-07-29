@@ -10,6 +10,9 @@ public record UpdateJobPostingRequest(
         String description,
         String requirements,
         Integer minExperience,
+        Integer minAge,
+        Integer maxAge,
+        String freeFilterPrompt,
         String skillsWeights,
         String status,
         LocalDate deadline

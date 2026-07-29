@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MdArrowBack, MdPlayArrow, MdClose, MdAutoAwesome,
   MdStar, MdRefresh, MdContentCopy, MdDownload, MdAdd, MdEdit, MdCheck,
+  MdUploadFile, MdCheckCircle, MdError,
 } from 'react-icons/md';
 import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
@@ -150,6 +151,300 @@ const SkillsWeightGrid = ({ posting, onSave }) => {
   );
 };
 
+const FilterCriteriaPanel = ({ posting, onSave }) => {
+  const [editing, setEditing] = useState(false);
+  const [fields, setFields] = useState({ minAge: '', maxAge: '', freeFilterPrompt: '' });
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setFields({
+      minAge: posting.minAge ?? '',
+      maxAge: posting.maxAge ?? '',
+      freeFilterPrompt: posting.freeFilterPrompt ?? '',
+    });
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        minAge: fields.minAge !== '' ? Number(fields.minAge) : null,
+        maxAge: fields.maxAge !== '' ? Number(fields.maxAge) : null,
+        freeFilterPrompt: fields.freeFilterPrompt || null,
+      });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasData = posting.minAge || posting.maxAge || posting.freeFilterPrompt || posting.extractedJobData;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+          <MdAutoAwesome className="w-4 h-4 text-violet-500" />
+          Critères de filtrage IA
+        </h3>
+        {!editing ? (
+          <button onClick={startEdit}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <MdEdit className="w-3.5 h-3.5" /> Modifier
+          </button>
+        ) : (
+          <div className="flex gap-1.5">
+            <button onClick={() => setEditing(false)}
+              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+              Annuler
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+              <MdCheck className="w-3.5 h-3.5" />{saving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Extracted job data badge */}
+      {posting.extractedJobData && (() => {
+        try {
+          const d = JSON.parse(posting.extractedJobData);
+          return (
+            <div className="mb-3 p-3 bg-violet-50 dark:bg-violet-950/30 rounded-xl border border-violet-100 dark:border-violet-900">
+              <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
+                Données extraites de la fiche de poste
+              </p>
+              {d.required_skills?.length > 0 && (
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <span className="font-medium">Compétences :</span> {d.required_skills.slice(0, 8).join(', ')}
+                  {d.required_skills.length > 8 && ` +${d.required_skills.length - 8}`}
+                </p>
+              )}
+              {d.tools?.length > 0 && (
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <span className="font-medium">Outils :</span> {d.tools.join(', ')}
+                </p>
+              )}
+              {d.required_education && (
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <span className="font-medium">Formation :</span> {d.required_education}
+                </p>
+              )}
+              {d.required_experience && (
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  <span className="font-medium">Expérience :</span> {d.required_experience}
+                </p>
+              )}
+            </div>
+          );
+        } catch { return null; }
+      })()}
+
+      {!editing ? (
+        !hasData ? (
+          <p className="text-xs text-slate-400 italic">
+            Aucun critère défini. Importez une fiche de poste ou cliquez sur Modifier.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {(posting.minAge || posting.maxAge) && (
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                <span className="font-medium">Tranche d'âge :</span>{' '}
+                {posting.minAge && `${posting.minAge} ans min`}
+                {posting.minAge && posting.maxAge && ' — '}
+                {posting.maxAge && `${posting.maxAge} ans max`}
+              </p>
+            )}
+            {posting.freeFilterPrompt && (
+              <p className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                <span className="font-medium">Instructions libres :</span> {posting.freeFilterPrompt}
+              </p>
+            )}
+          </div>
+        )
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Âge min</label>
+              <input type="number" min={18} max={99}
+                value={fields.minAge}
+                onChange={(e) => setFields((p) => ({ ...p, minAge: e.target.value }))}
+                placeholder="ex : 25"
+                className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Âge max</label>
+              <input type="number" min={18} max={99}
+                value={fields.maxAge}
+                onChange={(e) => setFields((p) => ({ ...p, maxAge: e.target.value }))}
+                placeholder="ex : 45"
+                className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              Instructions supplémentaires pour l'IA
+            </label>
+            <textarea
+              value={fields.freeFilterPrompt}
+              onChange={(e) => setFields((p) => ({ ...p, freeFilterPrompt: e.target.value }))}
+              rows={3}
+              placeholder="ex : Privilégier les candidats avec expérience en secteur bancaire…"
+              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ImportCvsModal = ({ postingId, pApi, onClose, onSuccess }) => {
+  const inputRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const addFiles = (incoming) => {
+    const pdfs = [...incoming].filter((f) => f.type === 'application/pdf');
+    setFiles((prev) => {
+      const existing = new Set(prev.map((f) => f.name));
+      return [...prev, ...pdfs.filter((f) => !existing.has(f.name))];
+    });
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  const handleUpload = async () => {
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const res = await pApi.importCvs(postingId, files);
+      setResults(res.data);
+      onSuccess();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <MdUploadFile className="w-5 h-5 text-blue-500" />
+            Importer des CVs candidats
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+            <MdClose className="w-5 h-5" />
+          </button>
+        </div>
+
+        {!results ? (
+          <div className="p-5 space-y-4">
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onClick={() => inputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                dragOver
+                  ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/30'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              <MdUploadFile className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                Glisser-déposer des PDFs ici
+              </p>
+              <p className="text-xs text-slate-400 mt-1">ou cliquez pour sélectionner</p>
+              <input
+                ref={inputRef}
+                type="file"
+                multiple
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+            </div>
+
+            {files.length > 0 && (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                    <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{f.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setFiles((p) => p.filter((_, idx) => idx !== i)); }}
+                      className="ml-2 text-slate-400 hover:text-red-500 shrink-0"
+                    >
+                      <MdClose className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-1">
+              <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                Annuler
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!files.length || uploading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {uploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Import en cours…
+                  </>
+                ) : (
+                  <>
+                    <MdUploadFile className="w-4 h-4" />
+                    Importer {files.length > 0 && `(${files.length})`}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-5 space-y-3">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {results.length} CV{results.length !== 1 ? 's' : ''} importé{results.length !== 1 ? 's' : ''}
+            </p>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {results.map((r) => (
+                <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                  <MdCheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    {r.candidateFirstName} {r.candidateLastName}
+                  </span>
+                  <StatusBadge status={r.status} />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-1">
+              <button onClick={onClose} className="px-4 py-2 bg-slate-700 text-white rounded-xl text-sm font-semibold hover:bg-slate-800">
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const PostingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -164,6 +459,7 @@ export const PostingDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [filtering, setFiltering] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([
@@ -263,6 +559,13 @@ export const PostingDetailPage = () => {
           {posting.status === 'PUBLISHED' && (
             <>
               <button
+                onClick={() => setImportOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors shadow-sm"
+              >
+                <MdUploadFile className="w-4 h-4" />
+                Importer des CVs
+              </button>
+              <button
                 onClick={handleFilter}
                 disabled={filtering}
                 className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors shadow-sm"
@@ -339,6 +642,8 @@ export const PostingDetailPage = () => {
 
           <SkillsWeightGrid posting={posting} onSave={handleSaveSkills} />
 
+          <FilterCriteriaPanel posting={posting} onSave={async (patch) => { await pApi.update(id, patch); load(); }} />
+
           {/* Filter job status */}
           {latestFilter && (
             <div className={`rounded-2xl border p-4 shadow-sm ${
@@ -405,6 +710,15 @@ export const PostingDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {importOpen && (
+        <ImportCvsModal
+          postingId={id}
+          pApi={pApi}
+          onClose={() => setImportOpen(false)}
+          onSuccess={() => { load(); }}
+        />
+      )}
     </div>
   );
 };
