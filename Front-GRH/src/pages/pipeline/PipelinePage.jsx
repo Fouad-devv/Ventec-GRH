@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdCalendarMonth, MdStar } from 'react-icons/md';
+import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
@@ -78,6 +78,166 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
   );
 };
 
+const InterviewDetailModal = ({ application, onClose, axios }) => {
+  const iApi = interviewsApi(axios);
+  const [interview, setInterview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [questions, setQuestions] = useState([]);
+
+  useEffect(() => {
+    iApi.getByApplication(application.id)
+      .then((r) => {
+        const iv = Array.isArray(r.data) ? r.data[0] : r.data;
+        setInterview(iv ?? null);
+        if (iv?.questions) {
+          try { setQuestions(JSON.parse(iv.questions)); } catch { setQuestions([]); }
+        }
+      })
+      .catch(() => setInterview(null))
+      .finally(() => setLoading(false));
+  }, [application.id]);
+
+  const handleGenerate = async () => {
+    if (!interview) return;
+    setGenerating(true);
+    try {
+      const res = await iApi.generateQuestions(interview.id);
+      const iv = res.data;
+      setInterview(iv);
+      if (iv?.questions) {
+        try { setQuestions(JSON.parse(iv.questions)); } catch { setQuestions([]); }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const TYPE_LABELS = { VIDEO: 'Visioconférence', PHONE: 'Téléphone', ON_SITE: 'Présentiel' };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg mx-4 shadow-xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">Détails de l'entretien</h2>
+            <p className="text-xs text-slate-400 mt-0.5">{application.candidateFirstName} {application.candidateLastName}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+            <MdClose className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-5 space-y-5">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-8 h-8 rounded-full border-4 border-blue-100 dark:border-blue-900 border-t-blue-600 animate-spin" />
+            </div>
+          ) : !interview ? (
+            <p className="text-sm text-slate-400 text-center py-6">Aucun entretien planifié pour cette candidature.</p>
+          ) : (
+            <>
+              {/* Interview info */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Type</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{TYPE_LABELS[interview.type] ?? interview.type}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Durée</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{interview.durationMinutes} min</p>
+                </div>
+                {interview.scheduledAt && (
+                  <div className="col-span-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                    <p className="text-xs text-slate-400 mb-0.5">Date &amp; heure</p>
+                    <p className="font-medium text-slate-900 dark:text-white">
+                      {new Date(interview.scheduledAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  </div>
+                )}
+                {interview.locationOrLink && (
+                  <div className="col-span-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                    <p className="text-xs text-slate-400 mb-0.5">Lien / Lieu</p>
+                    <p className="font-medium text-slate-900 dark:text-white break-all">{interview.locationOrLink}</p>
+                  </div>
+                )}
+                {interview.notes && (
+                  <div className="col-span-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                    <p className="text-xs text-slate-400 mb-0.5">Notes</p>
+                    <p className="text-slate-700 dark:text-slate-300 text-xs whitespace-pre-wrap">{interview.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* AI questions */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <MdQuestionAnswer className="w-4 h-4 text-violet-500" />
+                    Questions IA
+                  </h3>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                  >
+                    {generating ? (
+                      <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <MdAutoAwesome className="w-3 h-3" />
+                    )}
+                    {generating ? 'Génération…' : questions.length ? 'Regénérer' : 'Générer'}
+                  </button>
+                </div>
+                {questions.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">Aucune question générée. Cliquez sur "Générer" pour créer des questions personnalisées avec l'IA.</p>
+                ) : (
+                  <ol className="space-y-2">
+                    {questions.map((q, i) => (
+                      <li key={i} className="flex gap-2.5 text-sm">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 text-xs flex items-center justify-center font-bold">{i + 1}</span>
+                        <span className="text-slate-700 dark:text-slate-300">{q}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        {interview && (
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <a
+              href={iApi.exportPdfUrl(interview.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+            >
+              <MdDownload className="w-4 h-4" />
+              Exporter PDF
+            </a>
+            <button onClick={onClose} className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+              Fermer
+            </button>
+          </div>
+        )}
+        {!interview && !loading && (
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+            <button onClick={onClose} className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400">
+              Fermer
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const PipelinePage = () => {
   const axios = useAxiosPrivate();
   const navigate = useNavigate();
@@ -89,6 +249,7 @@ export const PipelinePage = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [scheduleApp, setScheduleApp] = useState(null);
+  const [detailApp, setDetailApp] = useState(null);
 
   useEffect(() => {
     pApi.getAll({ status: 'PUBLISHED', size: 100 })
@@ -163,12 +324,20 @@ export const PipelinePage = () => {
                       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     {app.status === 'INTERVIEW' && (
-                      <button
-                        onClick={() => setScheduleApp(app)}
-                        className="w-full flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        <MdCalendarMonth className="w-3 h-3" /> Entretien
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setScheduleApp(app)}
+                          className="flex-1 flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          <MdCalendarMonth className="w-3 h-3" /> Planifier
+                        </button>
+                        <button
+                          onClick={() => setDetailApp(app)}
+                          className="flex-1 flex items-center justify-center gap-1 text-xs text-violet-600 dark:text-violet-400 hover:underline"
+                        >
+                          <MdAutoAwesome className="w-3 h-3" /> Questions
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -184,6 +353,14 @@ export const PipelinePage = () => {
           axios={axios}
           onClose={() => setScheduleApp(null)}
           onScheduled={() => setScheduleApp(null)}
+        />
+      )}
+
+      {detailApp && (
+        <InterviewDetailModal
+          application={detailApp}
+          axios={axios}
+          onClose={() => setDetailApp(null)}
         />
       )}
     </div>
