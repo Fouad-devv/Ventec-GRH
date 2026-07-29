@@ -1,11 +1,19 @@
 package com.ventec.grh_backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lowagie.text.*;
+
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
 import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+
 import com.ventec.grh_backend.domain.DocumentChecklist;
 import com.ventec.grh_backend.domain.Interview;
 import com.ventec.grh_backend.domain.JobPosting;
@@ -13,9 +21,29 @@ import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.DocumentChecklistRepository;
 import com.ventec.grh_backend.repository.InterviewRepository;
 import com.ventec.grh_backend.repository.JobPostingRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.xwpf.usermodel.*;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBorder;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTShd;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblBorders;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STShd;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +52,10 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,7 +69,7 @@ public class ExportService {
     private final AiServiceClient aiServiceClient;
     private final ObjectMapper objectMapper;
 
-    private static final DateTimeFormatter DATE_FMT      = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATE_FMT       = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter DATE_SHORT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private static final String NAVY  = "1F3864";
@@ -80,9 +111,9 @@ public class ExportService {
             metaRun.setColor("6B7280");
             metaRun.setFontSize(11);
             String metaText = String.join("  ·  ",
-                    p.getDepartment() != null ? p.getDepartment() : "",
-                    p.getLocation() != null ? p.getLocation() : "",
-                    p.getContractType() != null ? p.getContractType() : ""
+                    p.getDepartment()  != null ? p.getDepartment()  : "",
+                    p.getLocation()    != null ? p.getLocation()    : "",
+                    p.getContractType()!= null ? p.getContractType(): ""
             ).replaceAll("(  ·  )+", "  ·  ").trim().replaceAll("^  ·  |  ·  $", "");
             metaRun.setText(metaText);
             metaRun.addBreak();
@@ -95,8 +126,8 @@ public class ExportService {
                 if (p.getMinExperience() != null)
                     infoRun.setText("Expérience minimum : " + p.getMinExperience() + " an(s)   ");
                 if (p.getDeadline() != null)
-                    infoRun.setText((infoRun.text() != null ? infoRun.text() : "") +
-                            "Date limite : " + p.getDeadline().toString());
+                    infoRun.setText((infoRun.text() != null ? infoRun.text() : "")
+                            + "Date limite : " + p.getDeadline());
             }
 
             doc.createParagraph();
@@ -154,7 +185,7 @@ public class ExportService {
         List<String> indicateurs = toStringList(ai.get("indicateurs_performance"));
         String niveauFormation   = toStr(ai.get("niveau_formation"), "");
         String experienceRequise = toStr(ai.get("experience_requise"), "");
-        List<Map<String, Object>> compTech  = toMapList(ai.get("competences_techniques"));
+        List<Map<String, Object>> compTech = toMapList(ai.get("competences_techniques"));
         List<String> internesL   = toStringList(ai.get("interlocuteurs_internes"));
         List<String> externesL   = toStringList(ai.get("interlocuteurs_externes"));
 
@@ -182,9 +213,9 @@ public class ExportService {
             XWPFTable sigTbl = doc.createTable(2, 3);
             setTableWidth(sigTbl, 9360);
             XWPFTableRow sigH = sigTbl.getRow(0);
-            grayCell(sigH.getCell(0), "Rédigé par :", ParagraphAlignment.LEFT, 10, true);
-            grayCell(sigH.getCell(1), "Validé par :", ParagraphAlignment.LEFT, 10, true);
-            grayCell(sigH.getCell(2), "Approuvé par :", ParagraphAlignment.LEFT, 10, true);
+            grayCell(sigH.getCell(0), "Rédigé par :",    ParagraphAlignment.LEFT, 10, true);
+            grayCell(sigH.getCell(1), "Validé par :",    ParagraphAlignment.LEFT, 10, true);
+            grayCell(sigH.getCell(2), "Approuvé par :",  ParagraphAlignment.LEFT, 10, true);
             XWPFTableRow sigB = sigTbl.getRow(1);
             plainCell(sigB.getCell(0), "\n\n", ParagraphAlignment.LEFT, 10, false);
             plainCell(sigB.getCell(1), "\n\n", ParagraphAlignment.LEFT, 10, false);
@@ -195,14 +226,13 @@ public class ExportService {
             // ── Identification du poste ──────────────────────────────────────
             XWPFTable infoTbl = doc.createTable(5, 2);
             setTableWidth(infoTbl, 9360);
-            // Merge header row visually: both cells navy
             XWPFTableRow infoHdr = infoTbl.getRow(0);
             navyCell(infoHdr.getCell(0), "IDENTIFICATION DU POSTE", ParagraphAlignment.CENTER, 11, true);
-            navyCell(infoHdr.getCell(1), "", ParagraphAlignment.CENTER, 11, false);
-            addInfoRow(infoTbl, 1, "Intitulé du poste", p.getTitle());
-            addInfoRow(infoTbl, 2, "Département / Service", toStr(p.getDepartment(), ""));
-            addInfoRow(infoTbl, 3, "Type de contrat", toStr(p.getContractType(), ""));
-            addInfoRow(infoTbl, 4, "Filiale", "Ventec");
+            navyCell(infoHdr.getCell(1), "",                        ParagraphAlignment.CENTER, 11, false);
+            addInfoRow(infoTbl, 1, "Intitulé du poste",     p.getTitle());
+            addInfoRow(infoTbl, 2, "Département / Service", toStr(p.getDepartment(),   ""));
+            addInfoRow(infoTbl, 3, "Type de contrat",       toStr(p.getContractType(), ""));
+            addInfoRow(infoTbl, 4, "Filiale",               "Ventec");
 
             doc.createParagraph();
 
@@ -213,8 +243,8 @@ public class ExportService {
 
             // ── II. Place dans l'organisation ───────────────────────────────
             sectionHeading(doc, "II.", "PLACE DANS L'ORGANISATION");
-            XWPFParagraph orgP = doc.createParagraph();
-            orgP.createRun().setText("Rattachement hiérarchique : ......................................................................");
+            doc.createParagraph().createRun()
+               .setText("Rattachement hiérarchique : ......................................................................");
             doc.createParagraph();
 
             // ── III. Activités principales ───────────────────────────────────
@@ -249,9 +279,8 @@ public class ExportService {
 
             // ── V. Intérim ──────────────────────────────────────────────────
             sectionHeading(doc, "V.", "INTERIMAIRE");
-            XWPFParagraph interimP = doc.createParagraph();
-            interimP.createRun().setText(
-                    "En cas d'absence, le titulaire est remplacé par : ......................................................................");
+            doc.createParagraph().createRun()
+               .setText("En cas d'absence, le titulaire est remplacé par : ......................................................................");
             doc.createParagraph();
 
             // ── VI. Critères de compétences ─────────────────────────────────
@@ -290,9 +319,9 @@ public class ExportService {
             navyCell(techHdr.getCell(4), "Maîtrise",               ParagraphAlignment.CENTER, 9, true);
             for (int i = 0; i < techRows; i++) {
                 XWPFTableRow r = techTbl.getRow(i + 1);
-                String label = i < compTech.size() ? toStr(compTech.get(i).get("label"), "") : "";
+                String label   = i < compTech.size() ? toStr(compTech.get(i).get("label"), "") : "";
                 Object poidsObj = i < compTech.size() ? compTech.get(i).get("poids") : 5;
-                int poids = poidsObj instanceof Number n ? n.intValue() : 5;
+                int poids = poidsObj instanceof Number num ? num.intValue() : 5;
                 plainCell(r.getCell(0), String.valueOf(i + 1), ParagraphAlignment.CENTER, 9, false);
                 plainCell(r.getCell(1), label,                  ParagraphAlignment.LEFT,   9, false);
                 plainCell(r.getCell(2), String.valueOf(poids),  ParagraphAlignment.CENTER, 9, false);
@@ -300,11 +329,11 @@ public class ExportService {
                 plainCell(r.getCell(4), "",                     ParagraphAlignment.CENTER, 9, false);
             }
             XWPFTableRow techTotal = techTbl.getRow(techRows + 1);
-            navyCell(techTotal.getCell(0), "",       ParagraphAlignment.CENTER, 9, true);
-            navyCell(techTotal.getCell(1), "TOTAL",  ParagraphAlignment.LEFT,   9, true);
-            navyCell(techTotal.getCell(2), "35",     ParagraphAlignment.CENTER, 9, true);
-            navyCell(techTotal.getCell(3), "",       ParagraphAlignment.CENTER, 9, true);
-            navyCell(techTotal.getCell(4), "",       ParagraphAlignment.CENTER, 9, true);
+            navyCell(techTotal.getCell(0), "",      ParagraphAlignment.CENTER, 9, true);
+            navyCell(techTotal.getCell(1), "TOTAL", ParagraphAlignment.LEFT,   9, true);
+            navyCell(techTotal.getCell(2), "35",    ParagraphAlignment.CENTER, 9, true);
+            navyCell(techTotal.getCell(3), "",      ParagraphAlignment.CENTER, 9, true);
+            navyCell(techTotal.getCell(4), "",      ParagraphAlignment.CENTER, 9, true);
 
             doc.createParagraph();
 
@@ -322,7 +351,7 @@ public class ExportService {
             navyCell(behHdr.getCell(2), "Poids",                        ParagraphAlignment.CENTER, 9, true);
             for (int i = 0; i < COMPETENCES_COMPORTEMENTALES.length; i++) {
                 XWPFTableRow r = behTbl.getRow(i + 1);
-                plainCell(r.getCell(0), String.valueOf(i + 1),          ParagraphAlignment.CENTER, 9, false);
+                plainCell(r.getCell(0), String.valueOf(i + 1),           ParagraphAlignment.CENTER, 9, false);
                 plainCell(r.getCell(1), COMPETENCES_COMPORTEMENTALES[i], ParagraphAlignment.LEFT,   9, false);
                 plainCell(r.getCell(2), "5",                             ParagraphAlignment.CENTER, 9, false);
             }
@@ -338,8 +367,8 @@ public class ExportService {
             XWPFParagraph qseP = doc.createParagraph();
             XWPFRun qseR = qseP.createRun();
             qseR.setFontSize(10);
-            qseR.setText("Le titulaire du poste est responsable de l'application des procédures QSE en vigueur dans "
-                    + "l'entreprise et contribue à l'amélioration continue du système de management QSE.");
+            qseR.setText("Le titulaire du poste est responsable de l'application des procédures QSE en vigueur "
+                    + "dans l'entreprise et contribue à l'amélioration continue du système de management QSE.");
 
             doc.createParagraph();
 
@@ -348,8 +377,7 @@ public class ExportService {
             footerP.setAlignment(ParagraphAlignment.CENTER);
             XWPFRun footerR = footerP.createRun();
             footerR.setFontSize(8); footerR.setColor("808080");
-            footerR.setText("Version 1.0 — Généré par Ventec GRH — " +
-                    LocalDate.now().format(DATE_SHORT_FMT));
+            footerR.setText("Version 1.0 — Généré par Ventec GRH — " + LocalDate.now().format(DATE_SHORT_FMT));
 
             doc.write(out);
             return out.toByteArray();
@@ -405,9 +433,9 @@ public class ExportService {
             XWPFTable docTbl = doc.createTable(rows + 1, 3);
             setTableWidth(docTbl, 9360);
             XWPFTableRow docHdr = docTbl.getRow(0);
-            navyCell(docHdr.getCell(0), "Documents",             ParagraphAlignment.LEFT,   10, true);
-            navyCell(docHdr.getCell(1), "Nombre d'exemplaires",  ParagraphAlignment.CENTER, 10, true);
-            navyCell(docHdr.getCell(2), "Observation",           ParagraphAlignment.LEFT,   10, true);
+            navyCell(docHdr.getCell(0), "Documents",            ParagraphAlignment.LEFT,   10, true);
+            navyCell(docHdr.getCell(1), "Nombre d'exemplaires", ParagraphAlignment.CENTER, 10, true);
+            navyCell(docHdr.getCell(2), "Observation",          ParagraphAlignment.LEFT,   10, true);
 
             if (documents.isEmpty()) {
                 XWPFTableRow r = docTbl.getRow(1);
@@ -423,21 +451,18 @@ public class ExportService {
                 }
             }
 
-            // ── Note ────────────────────────────────────────────────────────
             doc.createParagraph();
             XWPFParagraph noteP = doc.createParagraph();
             XWPFRun noteR = noteP.createRun();
             noteR.setFontSize(9); noteR.setItalic(true); noteR.setColor("555555");
             noteR.setText("Poste : " + postingTitle);
 
-            // ── Footer ──────────────────────────────────────────────────────
             doc.createParagraph();
             XWPFParagraph footerP = doc.createParagraph();
             footerP.setAlignment(ParagraphAlignment.CENTER);
             XWPFRun footerR = footerP.createRun();
             footerR.setFontSize(8); footerR.setColor("808080");
-            footerR.setText("Document généré par Ventec GRH — " +
-                    LocalDate.now().format(DATE_SHORT_FMT));
+            footerR.setText("Document généré par Ventec GRH — " + LocalDate.now().format(DATE_SHORT_FMT));
 
             doc.write(out);
             return out.toByteArray();
@@ -463,10 +488,10 @@ public class ExportService {
             Font noteFont    = new Font(Font.HELVETICA, 10, Font.ITALIC, new Color(75, 85, 99));
             Font footerFont  = new Font(Font.HELVETICA,  8, Font.NORMAL, new Color(156, 163, 175));
 
-            Paragraph title = new Paragraph("Compte-rendu d'entretien", titleFont);
-            title.setAlignment(Element.ALIGN_CENTER);
-            title.setSpacingAfter(6);
-            pdf.add(title);
+            Paragraph titlePara = new Paragraph("Compte-rendu d'entretien", titleFont);
+            titlePara.setAlignment(Element.ALIGN_CENTER);
+            titlePara.setSpacingAfter(6);
+            pdf.add(titlePara);
 
             PdfPTable divider = new PdfPTable(1);
             divider.setWidthPercentage(100);
@@ -481,10 +506,10 @@ public class ExportService {
             var app = interview.getApplication();
             if (app != null) {
                 pdf.add(new Paragraph("Poste", headingFont));
-                pdf.add(field("Intitulé",
+                pdf.add(pdfField("Intitulé",
                         app.getJobPosting() != null ? app.getJobPosting().getTitle() : "—",
                         labelFont, valueFont));
-                pdf.add(field("Candidat",
+                pdf.add(pdfField("Candidat",
                         app.getCandidate() != null
                                 ? app.getCandidate().getFirstName() + " " + app.getCandidate().getLastName()
                                 : "—",
@@ -498,17 +523,15 @@ public class ExportService {
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{1f, 2f});
-            addRow(table, "Date & heure",
-                    interview.getScheduledAt() != null
-                            ? interview.getScheduledAt().format(DATE_FMT) : "—",
+            addPdfRow(table, "Date & heure",
+                    interview.getScheduledAt() != null ? interview.getScheduledAt().format(DATE_FMT) : "—",
                     labelFont, valueFont);
-            addRow(table, "Durée",
-                    interview.getDurationMinutes() != null
-                            ? interview.getDurationMinutes() + " minutes" : "—",
+            addPdfRow(table, "Durée",
+                    interview.getDurationMinutes() != null ? interview.getDurationMinutes() + " minutes" : "—",
                     labelFont, valueFont);
-            addRow(table, "Type",      interview.getType()             != null ? interview.getType()             : "—", labelFont, valueFont);
-            addRow(table, "Lieu/Lien", interview.getLocationOrLink()   != null ? interview.getLocationOrLink()   : "—", labelFont, valueFont);
-            addRow(table, "Statut",    interview.getStatus()           != null ? interview.getStatus()           : "—", labelFont, valueFont);
+            addPdfRow(table, "Type",      toStr(interview.getType(),            "—"), labelFont, valueFont);
+            addPdfRow(table, "Lieu/Lien", toStr(interview.getLocationOrLink(),  "—"), labelFont, valueFont);
+            addPdfRow(table, "Statut",    toStr(interview.getStatus(),          "—"), labelFont, valueFont);
             table.setSpacingAfter(16);
             pdf.add(table);
 
@@ -527,9 +550,9 @@ public class ExportService {
             pdf.add(sigTable);
 
             pdf.add(new Paragraph(" "));
-            Paragraph footer = new Paragraph("Document généré par Ventec GRH", footerFont);
-            footer.setAlignment(Element.ALIGN_CENTER);
-            pdf.add(footer);
+            Paragraph footerPara = new Paragraph("Document généré par Ventec GRH", footerFont);
+            footerPara.setAlignment(Element.ALIGN_CENTER);
+            pdf.add(footerPara);
 
             pdf.close();
             return out.toByteArray();
@@ -538,7 +561,7 @@ public class ExportService {
         }
     }
 
-    // ── Apache POI helpers ───────────────────────────────────────────────────
+    // ── Apache POI cell/table helpers ────────────────────────────────────────
 
     private void navyCell(XWPFTableCell cell, String text, ParagraphAlignment align, int fontSize, boolean bold) {
         setCellBg(cell, NAVY);
@@ -586,11 +609,16 @@ public class ExportService {
         CTTblPr tblPr = table.getCTTbl().getTblPr();
         if (tblPr == null) tblPr = table.getCTTbl().addNewTblPr();
         CTTblBorders b = tblPr.isSetTblBorders() ? tblPr.getTblBorders() : tblPr.addNewTblBorders();
-        org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBorder none =
-                org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBorder.Factory.newInstance();
-        none.setVal(org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
-        b.setTop(none); b.setBottom(none); b.setLeft(none); b.setRight(none);
-        b.setInsideH(none); b.setInsideV(none);
+        setBorderNone(b.isSetTop()     ? b.getTop()     : b.addNewTop());
+        setBorderNone(b.isSetBottom()  ? b.getBottom()  : b.addNewBottom());
+        setBorderNone(b.isSetLeft()    ? b.getLeft()    : b.addNewLeft());
+        setBorderNone(b.isSetRight()   ? b.getRight()   : b.addNewRight());
+        setBorderNone(b.isSetInsideH() ? b.getInsideH() : b.addNewInsideH());
+        setBorderNone(b.isSetInsideV() ? b.getInsideV() : b.addNewInsideV());
+    }
+
+    private void setBorderNone(CTBorder border) {
+        border.setVal(STBorder.NONE);
     }
 
     private void addInfoRow(XWPFTable table, int rowIdx, String label, String value) {
@@ -599,12 +627,12 @@ public class ExportService {
         plainCell(row.getCell(1), value, ParagraphAlignment.LEFT, 10, false);
     }
 
-    private void sectionHeading(XWPFDocument doc, String roman, String title) {
+    private void sectionHeading(XWPFDocument doc, String roman, String heading) {
         XWPFParagraph p = doc.createParagraph();
         XWPFRun run = p.createRun();
         run.setBold(true); run.setFontSize(11);
         run.setUnderline(UnderlinePatterns.SINGLE);
-        run.setText(roman + " " + title);
+        run.setText(roman + " " + heading);
     }
 
     private void numberedItem(XWPFDocument doc, int n, String text) {
@@ -617,7 +645,7 @@ public class ExportService {
 
     // ── OpenPDF helpers ──────────────────────────────────────────────────────
 
-    private Paragraph field(String label, String value, Font labelFont, Font valueFont) {
+    private Paragraph pdfField(String label, String value, Font labelFont, Font valueFont) {
         Paragraph p = new Paragraph();
         p.add(new Chunk(label + " : ", labelFont));
         p.add(new Chunk(value, valueFont));
@@ -625,7 +653,7 @@ public class ExportService {
         return p;
     }
 
-    private void addRow(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
+    private void addPdfRow(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
         PdfPCell lCell = new PdfPCell(new Phrase(label, labelFont));
         lCell.setBorder(Rectangle.BOTTOM);
         lCell.setBorderColor(new Color(229, 231, 235));
@@ -650,7 +678,6 @@ public class ExportService {
 
     // ── JSON / type helpers ──────────────────────────────────────────────────
 
-    @SuppressWarnings("unchecked")
     private List<String> toStringList(Object val) {
         if (val instanceof List<?> list) {
             return list.stream().map(Object::toString).collect(Collectors.toList());
@@ -673,7 +700,6 @@ public class ExportService {
         return val != null ? val.toString() : def;
     }
 
-    @SuppressWarnings("unchecked")
     private List<String> parseDocumentsList(String json) {
         if (json == null || json.isBlank()) return new ArrayList<>();
         try {
