@@ -55,6 +55,11 @@ public class InterviewController {
         return ResponseEntity.ok(interviewService.cancelInterview(id));
     }
 
+    @PostMapping("/{id}/questions/generate")
+    public ResponseEntity<InterviewResponse> generateQuestions(@PathVariable UUID id) {
+        return ResponseEntity.ok(interviewService.generateAndStoreQuestions(id));
+    }
+
     @GetMapping("/{id}/export/pdf")
     public ResponseEntity<byte[]> exportPdf(@PathVariable UUID id) {
         byte[] content = exportService.exportInterviewToPdf(id);

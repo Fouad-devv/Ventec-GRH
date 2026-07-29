@@ -39,6 +39,9 @@ public class Interview {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(columnDefinition = "jsonb")
+    private String questions;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;

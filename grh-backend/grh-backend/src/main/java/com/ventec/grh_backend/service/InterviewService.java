@@ -2,6 +2,7 @@ package com.ventec.grh_backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ventec.grh_backend.domain.Application;
+import com.ventec.grh_backend.domain.Candidate;
 import com.ventec.grh_backend.domain.Interview;
 import com.ventec.grh_backend.domain.User;
 import com.ventec.grh_backend.DTO.request.ScheduleInterviewRequest;
@@ -11,12 +12,14 @@ import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.ApplicationRepository;
 import com.ventec.grh_backend.repository.InterviewRepository;
 import com.ventec.grh_backend.repository.UserRepository;
+import com.ventec.grh_backend.service.AiServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -29,6 +32,7 @@ public class InterviewService {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final MailService mailService;
+    private final AiServiceClient aiServiceClient;
     private final ObjectMapper objectMapper;
 
     public InterviewResponse scheduleInterview(ScheduleInterviewRequest req, String keycloakId) {
@@ -108,6 +112,34 @@ public class InterviewService {
                 .stream().map(this::toResponse).toList();
     }
 
+    public InterviewResponse generateAndStoreQuestions(UUID id) {
+        Interview interview = interviewRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
+        Application app = interview.getApplication();
+        Candidate candidate = app != null ? app.getCandidate() : null;
+
+        String jobTitle = app != null && app.getJobPosting() != null ? app.getJobPosting().getTitle() : "";
+        String jobDesc  = app != null && app.getJobPosting() != null ? app.getJobPosting().getDescription() : null;
+        String reqs     = app != null && app.getJobPosting() != null ? app.getJobPosting().getRequirements() : null;
+        String skills   = candidate != null ? candidate.getSkills() : null;
+        String position = candidate != null ? candidate.getCurrentPosition() : null;
+        Integer expYears = candidate != null ? candidate.getExperienceYears() : null;
+
+        Map result = aiServiceClient.generateInterviewQuestions(
+                jobTitle, jobDesc, reqs, skills, position, expYears).block();
+
+        if (result != null && result.containsKey("questions")) {
+            try {
+                String questionsJson = objectMapper.writeValueAsString(result.get("questions"));
+                interview.setQuestions(questionsJson);
+                interviewRepository.save(interview);
+            } catch (Exception e) {
+                log.warn("Failed to store questions JSON: {}", e.getMessage());
+            }
+        }
+        return toResponse(interview);
+    }
+
     public InterviewResponse cancelInterview(UUID id) {
         Interview interview = interviewRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
@@ -126,6 +158,7 @@ public class InterviewService {
                 i.getInterviewerIds(),
                 i.getStatus(),
                 i.getNotes(),
+                i.getQuestions(),
                 i.getCreatedAt()
         );
     }

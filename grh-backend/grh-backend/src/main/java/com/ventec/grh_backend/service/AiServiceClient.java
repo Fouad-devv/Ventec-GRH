@@ -70,6 +70,23 @@ public class AiServiceClient {
                 .bodyToMono(Map.class);
     }
 
+    public Mono<Map> generateInterviewQuestions(String jobTitle, String jobDescription,
+                                                 String requirements, String candidateSkills,
+                                                 String candidatePosition, Integer candidateExperienceYears) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("job_title", jobTitle != null ? jobTitle : "");
+        if (jobDescription != null) payload.put("job_description", jobDescription);
+        if (requirements != null) payload.put("requirements", requirements);
+        if (candidateSkills != null) payload.put("candidate_skills", candidateSkills);
+        if (candidatePosition != null) payload.put("candidate_position", candidatePosition);
+        if (candidateExperienceYears != null) payload.put("candidate_experience_years", candidateExperienceYears);
+        return aiWebClient.post()
+                .uri("/generate-interview-questions")
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class);
+    }
+
     public Mono<Map> generateDescription(String title, String department,
                                           String contractType, String location,
                                           Integer minExperience) {

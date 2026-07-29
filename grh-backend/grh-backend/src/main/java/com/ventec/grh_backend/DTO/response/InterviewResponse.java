@@ -13,5 +13,6 @@ public record InterviewResponse(
         String interviewerIds,
         String status,
         String notes,
+        String questions,
         OffsetDateTime createdAt
 ) {}
