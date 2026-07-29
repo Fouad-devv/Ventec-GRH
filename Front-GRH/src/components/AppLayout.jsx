@@ -26,7 +26,7 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
   const btnLeft = expanded ? 'left-64' : 'left-16';
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="relative flex min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Backdrop — mobile only, when sidebar is open */}
       {!isLarge && expanded && (
         <div
@@ -48,8 +48,8 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
         </button>
       )}
 
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="grid grid-cols-3 items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0 shrink-0">
+      <div className="flex flex-col flex-1">
+        <header className="grid grid-cols-3 items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0">
           {/* Left — hamburger on small screens */}
           <div>
             {!isLarge && (
@@ -76,7 +76,7 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>
