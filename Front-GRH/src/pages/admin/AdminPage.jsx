@@ -1,49 +1,130 @@
 import { useEffect, useState } from 'react';
-import { MdPowerSettingsNew, MdPersonAdd, MdAdd, MdEdit, MdDelete, MdClose, MdCheck } from 'react-icons/md';
+import { MdPowerSettingsNew, MdPersonAdd, MdAdd, MdEdit, MdDelete, MdClose, MdCheck, MdPerson } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { adminApi } from '../../api/admin';
+
+const ROLES = ['RH', 'MANAGER', 'ADMIN'];
+
+const ROLE_COLORS = {
+  RH:      'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  MANAGER: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  ADMIN:   'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+};
+
+/* ── Edit user modal ────────────────────────────────────── */
+const EditUserModal = ({ user, onSave, onClose }) => {
+  const [form, setForm] = useState({ role: user.role ?? 'RH', department: user.department ?? '' });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try { await onSave(form); onClose(); }
+    catch (err) { console.error(err); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+            Modifier {user.firstName} {user.lastName}
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+            <MdClose className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rôle</label>
+            <select
+              value={form.role}
+              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            >
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Département</label>
+            <input
+              value={form.department}
+              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+              placeholder="ex : RH, Finance, IT…"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">
+              Annuler
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50">
+              <MdCheck className="w-4 h-4" />{saving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 /* ── Users tab ─────────────────────────────────────────── */
 const UsersTab = ({ api }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showSync, setShowSync] = useState(false);
-  const [syncForm, setSyncForm] = useState({ keycloakId: '', email: '', firstName: '', lastName: '', role: 'RH', department: '' });
-  const [syncing, setSyncing] = useState(false);
+  const [editUser, setEditUser] = useState(null);
 
   const load = () => {
     api.getUsers()
-      .then((r) => setUsers(r.data))
+      .then((r) => setUsers(r.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
 
-  const deactivate = async (id) => { await api.deactivate(id); load(); };
-
-  const handleSync = async (e) => {
-    e.preventDefault();
-    setSyncing(true);
-    try { await api.syncUser(syncForm); setShowSync(false); load(); }
-    catch (err) { console.error(err); }
-    finally { setSyncing(false); }
+  const deactivate = async (id) => {
+    if (!window.confirm('Désactiver cet utilisateur ?')) return;
+    await api.deactivate(id);
+    load();
   };
+
+  const handleEditSave = async (form) => {
+    await api.syncUser({
+      keycloakId: editUser.keycloakId,
+      email: editUser.email,
+      firstName: editUser.firstName,
+      lastName: editUser.lastName,
+      role: form.role,
+      department: form.department,
+    });
+    load();
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+    </div>
+  );
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setShowSync(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
-        >
-          <MdPersonAdd className="w-5 h-5" /> Synchroniser utilisateur
-        </button>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {users.length} utilisateur{users.length !== 1 ? 's' : ''} enregistré{users.length !== 1 ? 's' : ''}
+        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          Les utilisateurs sont créés automatiquement à la première connexion via Keycloak.
+        </p>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      {users.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+          <MdPerson className="w-10 h-10" />
+          <p className="text-sm">Aucun utilisateur. Ils apparaîtront ici après leur première connexion.</p>
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -60,24 +141,41 @@ const UsersTab = ({ api }) => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{u.firstName} {u.lastName}</td>
+                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                    {u.firstName || u.lastName ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() : '—'}
+                  </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{u.email}</td>
                   <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-xs font-medium">{u.role}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[u.role] ?? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                      {u.role ?? '—'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{u.department || '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.active ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                       {u.active ? 'Actif' : 'Inactif'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {u.active && (
-                      <button onClick={() => deactivate(u.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded">
-                        <MdPowerSettingsNew className="w-4 h-4" />
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setEditUser(u)}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg transition-colors"
+                        title="Modifier le rôle / département"
+                      >
+                        <MdEdit className="w-4 h-4" />
                       </button>
-                    )}
+                      {u.active && (
+                        <button
+                          onClick={() => deactivate(u.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+                          title="Désactiver"
+                        >
+                          <MdPowerSettingsNew className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -86,36 +184,12 @@ const UsersTab = ({ api }) => {
         </div>
       )}
 
-      {showSync && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md mx-4 shadow-xl p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Synchroniser un utilisateur</h2>
-            <form onSubmit={handleSync} className="space-y-3">
-              {[['keycloakId', 'ID Keycloak *', true], ['email', 'Email *', true], ['firstName', 'Prénom'], ['lastName', 'Nom'], ['department', 'Département']].map(([field, label, req]) => (
-                <div key={field}>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
-                  <input required={req} value={syncForm[field]} onChange={(e) => setSyncForm((f) => ({ ...f, [field]: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
-                </div>
-              ))}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rôle *</label>
-                <select value={syncForm.role} onChange={(e) => setSyncForm((f) => ({ ...f, role: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
-                  <option value="RH">RH</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowSync(false)} className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">Annuler</button>
-                <button type="submit" disabled={syncing} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50">
-                  {syncing ? 'Sync...' : 'Synchroniser'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {editUser && (
+        <EditUserModal
+          user={editUser}
+          onSave={handleEditSave}
+          onClose={() => setEditUser(null)}
+        />
       )}
     </>
   );
