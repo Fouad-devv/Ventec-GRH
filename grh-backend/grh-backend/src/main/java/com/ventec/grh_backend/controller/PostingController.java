@@ -74,6 +74,14 @@ public class PostingController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<JobPostingResponse> duplicate(
+            @PathVariable UUID id,
+            Authentication auth) {
+        return ResponseEntity.ok(postingService.duplicatePosting(id, auth.getName()));
+    }
+
     @PostMapping("/generate-description")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<GenerateDescriptionResponse> generateDescription(
