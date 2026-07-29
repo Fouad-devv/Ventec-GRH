@@ -13,6 +13,7 @@ import com.ventec.grh_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,10 +31,10 @@ public class PostingService {
     private final ApplicationRepository applicationRepository;
     private final ExportService exportService;
     private final StorageService storageService;
+    private final UserContextService userContextService;
 
-    public JobPostingResponse createPosting(CreateJobPostingRequest req, String keycloakId) {
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + keycloakId));
+    public JobPostingResponse createPosting(CreateJobPostingRequest req, Authentication auth) {
+        User user = userContextService.resolveUser(auth);
         JobPosting posting = JobPosting.builder()
                 .title(req.title())
                 .department(req.department())
@@ -102,11 +103,10 @@ public class PostingService {
         jobPostingRepository.deleteById(id);
     }
 
-    public JobPostingResponse duplicatePosting(UUID id, String keycloakId) {
+    public JobPostingResponse duplicatePosting(UUID id, Authentication auth) {
         JobPosting source = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + keycloakId));
+        User user = userContextService.resolveUser(auth);
         JobPosting copy = JobPosting.builder()
                 .title("Copie de " + source.getTitle())
                 .department(source.getDepartment())

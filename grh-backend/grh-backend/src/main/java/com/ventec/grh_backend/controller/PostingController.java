@@ -51,7 +51,7 @@ public class PostingController {
     public ResponseEntity<JobPostingResponse> create(
             @Valid @RequestBody CreateJobPostingRequest req,
             Authentication auth) {
-        return ResponseEntity.ok(postingService.createPosting(req, auth.getName()));
+        return ResponseEntity.ok(postingService.createPosting(req, auth));
     }
 
     @GetMapping("/{id}")
@@ -100,7 +100,7 @@ public class PostingController {
     public ResponseEntity<JobPostingResponse> duplicate(
             @PathVariable UUID id,
             Authentication auth) {
-        return ResponseEntity.ok(postingService.duplicatePosting(id, auth.getName()));
+        return ResponseEntity.ok(postingService.duplicatePosting(id, auth));
     }
 
     @GetMapping("/{id}/export/fiche-fonction")
