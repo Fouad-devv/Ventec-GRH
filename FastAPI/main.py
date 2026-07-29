@@ -25,6 +25,7 @@ from models import (
     GenerateDescriptionRequest, GenerateDescriptionResponse,
     GenerateInterviewQuestionsRequest, GenerateInterviewQuestionsResponse,
     GenerateChecklistRequest, GenerateChecklistResponse,
+    GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -351,6 +352,114 @@ Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de m
         return GenerateInterviewQuestionsResponse(questions=questions[:10])
     except Exception as e:
         logger.error("Interview questions generation failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-fiche-fonction", response_model=GenerateFicheFonctionResponse)
+async def generate_fiche_fonction(req: GenerateFicheFonctionRequest):
+    """
+    Generates all textual content for a Ventec-style fiche de fonction (job function sheet).
+    The behavioral competencies are standard and hardcoded in the Java export layer.
+    This endpoint only generates the variable content specific to the position.
+    """
+    client = _require_openai()
+
+    context_parts = [f"Titre du poste : {req.title}"]
+    if req.department:    context_parts.append(f"Département : {req.department}")
+    if req.contract_type: context_parts.append(f"Type de contrat : {req.contract_type}")
+    if req.filiale:       context_parts.append(f"Filiale / Entité : {req.filiale}")
+    if req.description:   context_parts.append(f"Description existante :\n{req.description[:800]}")
+    if req.requirements:  context_parts.append(f"Exigences existantes :\n{req.requirements[:600]}")
+    context = "\n".join(context_parts)
+
+    prompt = f"""Tu es un expert RH chez Ventec. Génère le contenu d'une fiche de fonction \
+professionnelle en français pour le poste suivant :
+
+{context}
+
+Retourne UNIQUEMENT un objet JSON valide avec exactement cette structure :
+{{
+  "missions": [
+    "Mission principale 1",
+    "Mission principale 2",
+    "Mission principale 3"
+  ],
+  "activites_principales": [
+    "Activité détaillée 1",
+    "Activité détaillée 2",
+    "Activité détaillée 3",
+    "Activité détaillée 4",
+    "Activité détaillée 5"
+  ],
+  "indicateurs_performance": [
+    "Indicateur mesurable 1",
+    "Indicateur mesurable 2",
+    "Indicateur mesurable 3"
+  ],
+  "niveau_formation": "BAC+X en Domaine ou équivalent",
+  "experience_requise": "Description précise de l'expérience requise",
+  "competences_techniques": [
+    {{"label": "Compétence technique ou fonctionnelle 1", "poids": 5}},
+    {{"label": "Compétence technique ou fonctionnelle 2", "poids": 5}},
+    {{"label": "Compétence technique ou fonctionnelle 3", "poids": 5}},
+    {{"label": "Compétence technique ou fonctionnelle 4", "poids": 5}},
+    {{"label": "Compétence technique ou fonctionnelle 5", "poids": 5}},
+    {{"label": "Compétence technique ou fonctionnelle 6", "poids": 5}},
+    {{"label": "Compétence technique ou fonctionnelle 7", "poids": 5}}
+  ],
+  "interlocuteurs_internes": [
+    "Service ou département interne 1",
+    "Service ou département interne 2"
+  ],
+  "interlocuteurs_externes": [
+    "Partenaire ou organisme externe 1",
+    "Partenaire ou organisme externe 2"
+  ]
+}}
+
+Règles strictes :
+- missions : 3 à 5 missions principales, formulation concise et orientée résultat
+- activites_principales : 6 à 10 activités opérationnelles précises
+- indicateurs_performance : 4 à 6 KPIs mesurables et pertinents pour le poste
+- niveau_formation : diplôme requis (ex: "BAC+5 en Informatique ou en Systèmes d'Information")
+- experience_requise : durée et type d'expérience (ex: "Débutant(e) accepté(e) ou 1 à 2 ans d'expérience en développement logiciel")
+- competences_techniques : exactement 7 compétences techniques/fonctionnelles clés du poste, toutes avec poids = 5
+- interlocuteurs_internes : 2 à 4 services internes avec lesquels le poste interagit
+- interlocuteurs_externes : 2 à 4 organismes/partenaires externes
+- Toutes les valeurs en français professionnel
+- Ne retourne QUE le JSON, sans aucun texte avant ou après
+"""
+
+    try:
+        response = await client.chat.completions.create(
+            model=settings.model_name,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+        data = _json.loads(response.choices[0].message.content)
+
+        competences_raw = data.get("competences_techniques", [])
+        competences = []
+        for c in competences_raw:
+            if isinstance(c, dict):
+                competences.append(CompetenceCritere(
+                    label=str(c.get("label", "")),
+                    poids=int(c.get("poids", 5)),
+                ))
+
+        return GenerateFicheFonctionResponse(
+            missions=data.get("missions", []),
+            activites_principales=data.get("activites_principales", []),
+            indicateurs_performance=data.get("indicateurs_performance", []),
+            niveau_formation=data.get("niveau_formation", ""),
+            experience_requise=data.get("experience_requise", ""),
+            competences_techniques=competences,
+            interlocuteurs_internes=data.get("interlocuteurs_internes", []),
+            interlocuteurs_externes=data.get("interlocuteurs_externes", []),
+        )
+    except Exception as e:
+        logger.error("Fiche de fonction generation failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
