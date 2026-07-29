@@ -24,13 +24,27 @@ public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticati
     public AbstractAuthenticationToken convert(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>(defaultConverter.convert(jwt));
 
-        // Extract realm-level roles from the realm_access.roles claim
+        // Realm-level roles: realm_access.roles
         Object realmAccess = jwt.getClaim("realm_access");
         if (realmAccess instanceof Map<?, ?> map && map.get("roles") instanceof List<?> roles) {
             roles.stream()
                 .filter(String.class::isInstance)
                 .map(r -> new SimpleGrantedAuthority("ROLE_" + ((String) r).toUpperCase()))
                 .forEach(authorities::add);
+        }
+
+        // Client-level roles: resource_access.<client>.roles (all clients)
+        Object resourceAccess = jwt.getClaim("resource_access");
+        if (resourceAccess instanceof Map<?, ?> clients) {
+            clients.values().forEach(clientEntry -> {
+                if (clientEntry instanceof Map<?, ?> clientMap
+                        && clientMap.get("roles") instanceof List<?> clientRoles) {
+                    clientRoles.stream()
+                        .filter(String.class::isInstance)
+                        .map(r -> new SimpleGrantedAuthority("ROLE_" + ((String) r).toUpperCase()))
+                        .forEach(authorities::add);
+                }
+            });
         }
 
         String username = jwt.getClaimAsString("preferred_username");

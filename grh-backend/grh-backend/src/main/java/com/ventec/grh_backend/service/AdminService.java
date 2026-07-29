@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,6 +56,7 @@ public class AdminService {
                 throw new RuntimeException("Keycloak user creation failed (" + response.getStatus() + "): " + body);
             }
             String keycloakId = CreatedResponseUtil.getCreatedId(response);
+            assignRealmRole(keycloakId, req.role());
             return syncUser(new SyncUserRequest(keycloakId, req.email(), req.firstName(), req.lastName(), req.role(), req.department()));
         }
     }
@@ -98,6 +100,11 @@ public class AdminService {
                 if (req.lastName()  != null) userRep.setLastName(req.lastName());
                 resource.update(userRep);
             } catch (Exception ignored) {}
+
+            if (req.role() != null && !req.role().equals(user.getRole())) {
+                if (user.getRole() != null) removeRealmRole(user.getKeycloakId(), user.getRole());
+                assignRealmRole(user.getKeycloakId(), req.role());
+            }
         }
 
         if (req.firstName() != null) user.setFirstName(req.firstName());
@@ -125,6 +132,28 @@ public class AdminService {
                 .orElseThrow(() -> new NotFoundException("User not found: " + id));
         user.setActive(false);
         return toResponse(userRepository.save(user));
+    }
+
+    private void assignRealmRole(String keycloakUserId, String roleName) {
+        var realmResource = keycloakAdmin.realm(keycloakRealm);
+        RoleRepresentation role;
+        try {
+            role = realmResource.roles().get(roleName).toRepresentation();
+        } catch (Exception e) {
+            RoleRepresentation newRole = new RoleRepresentation();
+            newRole.setName(roleName);
+            realmResource.roles().create(newRole);
+            role = realmResource.roles().get(roleName).toRepresentation();
+        }
+        realmResource.users().get(keycloakUserId).roles().realmLevel().add(List.of(role));
+    }
+
+    private void removeRealmRole(String keycloakUserId, String roleName) {
+        try {
+            var realmResource = keycloakAdmin.realm(keycloakRealm);
+            RoleRepresentation role = realmResource.roles().get(roleName).toRepresentation();
+            realmResource.users().get(keycloakUserId).roles().realmLevel().remove(List.of(role));
+        } catch (Exception ignored) {}
     }
 
     public UserResponse toResponse(User u) {
