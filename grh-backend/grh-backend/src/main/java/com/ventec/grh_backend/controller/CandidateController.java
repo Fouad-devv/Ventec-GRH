@@ -1,6 +1,8 @@
 package com.ventec.grh_backend.controller;
 
 import com.ventec.grh_backend.DTO.response.CandidateResponse;
+import com.ventec.grh_backend.DTO.response.ExtractCvResponse;
+import com.ventec.grh_backend.service.AiServiceClient;
 import com.ventec.grh_backend.service.CandidateService;
 import com.ventec.grh_backend.service.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -24,6 +28,7 @@ public class CandidateController {
 
     private final CandidateService candidateService;
     private final StorageService storageService;
+    private final AiServiceClient aiServiceClient;
 
     @GetMapping
     public ResponseEntity<Page<CandidateResponse>> getAll(Pageable pageable) {
@@ -66,6 +71,26 @@ public class CandidateController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         candidateService.deleteCandidate(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/extract-cv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ExtractCvResponse> extractCv(@RequestPart MultipartFile file) {
+        Map<?, ?> result = aiServiceClient.extractCvFile(file).block();
+        if (result == null) {
+            return ResponseEntity.ok(new ExtractCvResponse(List.of(), null, null, null, null));
+        }
+        @SuppressWarnings("unchecked")
+        List<String> skills = result.get("skills") instanceof List<?> l
+                ? (List<String>) l : List.of();
+        Integer expYears = result.get("experience_years") instanceof Number n
+                ? n.intValue() : null;
+        return ResponseEntity.ok(new ExtractCvResponse(
+                skills,
+                expYears,
+                (String) result.get("education"),
+                (String) result.get("current_position"),
+                (String) result.get("location")
+        ));
     }
 
     @GetMapping("/{id}/cv")
