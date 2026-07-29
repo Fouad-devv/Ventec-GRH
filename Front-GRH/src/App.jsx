@@ -11,6 +11,7 @@ import { PipelinePage } from './pages/pipeline/PipelinePage';
 import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { NotificationsPage } from './pages/notifications/NotificationsPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { HistoryPage } from './pages/postings/HistoryPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="pipeline" element={<PipelinePage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
       {/* Legacy /home redirect */}
