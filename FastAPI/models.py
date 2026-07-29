@@ -71,3 +71,29 @@ class GenerateChecklistRequest(BaseModel):
 
 class GenerateChecklistResponse(BaseModel):
     documents: List[str]
+
+
+# ── Generate fiche de fonction (job function sheet) ─────────
+class CompetenceCritere(BaseModel):
+    label: str
+    poids: int = 5
+
+
+class GenerateFicheFonctionRequest(BaseModel):
+    title: str
+    department: Optional[str] = None
+    contract_type: Optional[str] = None
+    filiale: Optional[str] = None
+    description: Optional[str] = None
+    requirements: Optional[str] = None
+
+
+class GenerateFicheFonctionResponse(BaseModel):
+    missions: List[str]
+    activites_principales: List[str]
+    indicateurs_performance: List[str]
+    niveau_formation: str
+    experience_requise: str
+    competences_techniques: List[CompetenceCritere]
+    interlocuteurs_internes: List[str]
+    interlocuteurs_externes: List[str]
