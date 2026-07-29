@@ -1,8 +1,11 @@
 package com.ventec.grh_backend.controller;
 
 import com.ventec.grh_backend.DTO.request.CreateJobPostingRequest;
+import com.ventec.grh_backend.DTO.request.GenerateDescriptionRequest;
 import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
+import com.ventec.grh_backend.DTO.response.GenerateDescriptionResponse;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
+import com.ventec.grh_backend.service.AiServiceClient;
 import com.ventec.grh_backend.service.PostingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -21,6 +25,7 @@ import java.util.UUID;
 public class PostingController {
 
     private final PostingService postingService;
+    private final AiServiceClient aiServiceClient;
 
     @GetMapping
     public ResponseEntity<Page<JobPostingResponse>> getAll(
@@ -67,5 +72,22 @@ public class PostingController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         postingService.deletePosting(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/generate-description")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<GenerateDescriptionResponse> generateDescription(
+            @RequestBody GenerateDescriptionRequest req) {
+        Map<?, ?> result = aiServiceClient.generateDescription(
+                req.title(), req.department(), req.contractType(),
+                req.location(), req.minExperience()
+        ).block();
+        if (result == null) {
+            return ResponseEntity.ok(new GenerateDescriptionResponse("", ""));
+        }
+        return ResponseEntity.ok(new GenerateDescriptionResponse(
+                (String) result.get("description"),
+                (String) result.get("requirements")
+        ));
     }
 }
