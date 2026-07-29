@@ -8,4 +8,5 @@ export const postingsApi = (axios) => ({
   publish: (id) => axios.put(`${BASE}/${id}/publish`),
   close: (id) => axios.put(`${BASE}/${id}/close`),
   delete: (id) => axios.delete(`${BASE}/${id}`),
+  generateDescription: (data) => axios.post(`${BASE}/generate-description`, data),
 });
