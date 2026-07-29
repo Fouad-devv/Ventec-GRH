@@ -3,9 +3,12 @@ package com.ventec.grh_backend.controller;
 import com.ventec.grh_backend.DTO.request.ScheduleInterviewRequest;
 import com.ventec.grh_backend.DTO.request.UpdateInterviewRequest;
 import com.ventec.grh_backend.DTO.response.InterviewResponse;
+import com.ventec.grh_backend.service.ExportService;
 import com.ventec.grh_backend.service.InterviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,6 +24,7 @@ import java.util.UUID;
 public class InterviewController {
 
     private final InterviewService interviewService;
+    private final ExportService exportService;
 
     @PostMapping
     public ResponseEntity<InterviewResponse> schedule(
@@ -49,5 +53,14 @@ public class InterviewController {
     @PutMapping("/{id}/cancel")
     public ResponseEntity<InterviewResponse> cancel(@PathVariable UUID id) {
         return ResponseEntity.ok(interviewService.cancelInterview(id));
+    }
+
+    @GetMapping("/{id}/export/pdf")
+    public ResponseEntity<byte[]> exportPdf(@PathVariable UUID id) {
+        byte[] content = exportService.exportInterviewToPdf(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"entretien-" + id + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(content);
     }
 }

@@ -6,7 +6,10 @@ import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
 import com.ventec.grh_backend.DTO.response.GenerateDescriptionResponse;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
 import com.ventec.grh_backend.service.AiServiceClient;
+import com.ventec.grh_backend.service.ExportService;
 import com.ventec.grh_backend.service.PostingService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,7 @@ public class PostingController {
 
     private final PostingService postingService;
     private final AiServiceClient aiServiceClient;
+    private final ExportService exportService;
 
     @GetMapping
     public ResponseEntity<Page<JobPostingResponse>> getAll(
@@ -72,6 +76,15 @@ public class PostingController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         postingService.deletePosting(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/export/docx")
+    public ResponseEntity<byte[]> exportDocx(@PathVariable UUID id) {
+        byte[] content = exportService.exportPostingToDocx(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"offre-" + id + ".docx\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .body(content);
     }
 
     @PostMapping("/{id}/duplicate")
