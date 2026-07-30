@@ -55,6 +55,13 @@ public class ApplicationService {
                 .stream().map(this::toResponse).toList();
     }
 
+    public void deleteApplication(UUID id) {
+        if (!applicationRepository.existsById(id)) {
+            throw new NotFoundException("Application not found: " + id);
+        }
+        applicationRepository.deleteById(id);
+    }
+
     public ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest req, String keycloakId) {
         Application app = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found: " + id));

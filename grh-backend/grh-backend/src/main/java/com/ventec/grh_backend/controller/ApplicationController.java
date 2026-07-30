@@ -48,6 +48,13 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.updateStatus(id, req, auth.getName()));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        applicationService.deleteApplication(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/documents-list")
     public ResponseEntity<byte[]> exportDocumentsList(@PathVariable UUID id) {
         byte[] content = exportService.exportDocumentsListDocxByApplication(id);

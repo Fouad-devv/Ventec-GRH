@@ -462,6 +462,8 @@ export const PostingDetailPage = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteApp, setConfirmDeleteApp] = useState(null); // { id, name }
+  const [deletingApp, setDeletingApp] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([
@@ -521,6 +523,20 @@ export const PostingDetailPage = () => {
       console.error(e);
       setDeleting(false);
       setConfirmDelete(false);
+    }
+  };
+
+  const handleDeleteApp = async () => {
+    if (!confirmDeleteApp) return;
+    setDeletingApp(true);
+    try {
+      await appApi.delete(confirmDeleteApp.id);
+      setConfirmDeleteApp(null);
+      load();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeletingApp(false);
     }
   };
 
@@ -706,9 +722,9 @@ export const PostingDetailPage = () => {
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[500px] overflow-y-auto">
                 {scoredApps.map((app) => (
-                  <div key={app.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <div key={app.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p
                           className="text-sm font-medium text-slate-900 dark:text-white truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                           onClick={() => navigate(`/app/candidates/${app.candidateId}`)}
@@ -722,6 +738,13 @@ export const PostingDetailPage = () => {
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <StatusBadge status={app.status} />
                         <ScoreBadge score={app.aiScore} />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteApp({ id: app.id, name: `${app.candidateFirstName} ${app.candidateLastName}` }); }}
+                          className="opacity-0 group-hover:opacity-100 mt-1 p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                          title="Retirer de l'offre"
+                        >
+                          <MdDelete className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -766,6 +789,46 @@ export const PostingDetailPage = () => {
                   <MdDelete className="w-4 h-4" />
                 )}
                 Supprimer définitivement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-950 rounded-xl">
+                <MdWarning className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900 dark:text-white">Retirer le candidat</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+              Voulez-vous retirer <span className="font-semibold text-slate-900 dark:text-white">"{confirmDeleteApp.name}"</span> de cette offre ?
+            </p>
+            <p className="text-xs text-slate-400 mb-5">
+              Le candidat restera dans le système mais sa candidature pour ce poste sera supprimée.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDeleteApp(null)}
+                disabled={deletingApp}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteApp}
+                disabled={deletingApp}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deletingApp ? (
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <MdDelete className="w-4 h-4" />
+                )}
+                Retirer
               </button>
             </div>
           </div>
