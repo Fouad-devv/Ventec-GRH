@@ -143,18 +143,13 @@ public class AiServiceClient {
                 .bodyToMono(Map.class);
     }
 
-    public Mono<Map> extractJobPosting(MultipartFile file) {
+    public Mono<Map> extractJobPosting(byte[] fileBytes, String filename) {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        try {
-            builder.part("file", new ByteArrayResource(file.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return file.getOriginalFilename() != null ? file.getOriginalFilename() : "fiche.pdf";
-                }
-            }).contentType(MediaType.APPLICATION_OCTET_STREAM);
-        } catch (Exception e) {
-            return Mono.error(new RuntimeException("Failed to read file", e));
-        }
+        final String name = filename != null ? filename : "fiche.pdf";
+        builder.part("file", new ByteArrayResource(fileBytes) {
+            @Override
+            public String getFilename() { return name; }
+        }).contentType(MediaType.APPLICATION_OCTET_STREAM);
         return aiWebClient.post()
                 .uri("/extract-job-posting")
                 .contentType(MediaType.MULTIPART_FORM_DATA)

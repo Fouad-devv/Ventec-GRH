@@ -164,14 +164,25 @@ public class PostingService {
     public JobPostingResponse uploadFicheFonction(UUID id, MultipartFile file) {
         JobPosting posting = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
-        storageService.delete(posting.getFicheFonctionPath());
-        posting.setFicheFonctionPath(storageService.store(file, "fiches-fonction"));
-        // Extract structured job data from the uploaded document via AI
+
+        // Read bytes BEFORE store() — Files.copy() drains getInputStream(), making getBytes() return empty afterwards
+        byte[] fileBytes;
         try {
-            Map<?, ?> extracted = aiServiceClient.extractJobPosting(file).block();
+            fileBytes = file.getBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read uploaded file", e);
+        }
+
+        storageService.delete(posting.getFicheFonctionPath());
+        posting.setFicheFonctionPath(
+                storageService.storeBytes(fileBytes, file.getOriginalFilename() != null ? file.getOriginalFilename() : "fiche.pdf", "fiches-fonction")
+        );
+
+        // Extract structured job data using the already-read bytes
+        try {
+            Map<?, ?> extracted = aiServiceClient.extractJobPosting(fileBytes, file.getOriginalFilename()).block();
             if (extracted != null) {
                 posting.setExtractedJobData(objectMapper.writeValueAsString(extracted));
-                // Populate description/requirements from extracted data if not yet set
                 if ((posting.getDescription() == null || posting.getDescription().isBlank())
                         && extracted.get("description") instanceof String desc) {
                     posting.setDescription(desc);
