@@ -183,6 +183,8 @@ public class PostingService {
             Map<?, ?> extracted = aiServiceClient.extractJobPosting(fileBytes, file.getOriginalFilename()).block();
             if (extracted != null) {
                 posting.setExtractedJobData(objectMapper.writeValueAsString(extracted));
+
+                // Auto-fill description/requirements if blank
                 if ((posting.getDescription() == null || posting.getDescription().isBlank())
                         && extracted.get("description") instanceof String desc) {
                     posting.setDescription(desc);
@@ -190,6 +192,24 @@ public class PostingService {
                 if ((posting.getRequirements() == null || posting.getRequirements().isBlank())
                         && extracted.get("requirements") instanceof String req) {
                     posting.setRequirements(req);
+                }
+
+                // Auto-populate skillsWeights from required_skills if the grid is empty
+                if ((posting.getSkillsWeights() == null || posting.getSkillsWeights().isBlank())
+                        && extracted.get("required_skills") instanceof List<?> skillsList
+                        && !skillsList.isEmpty()) {
+                    List<Map<String, Object>> weights = skillsList.stream()
+                            .filter(s -> s instanceof String && !((String) s).isBlank())
+                            .map(s -> {
+                                Map<String, Object> w = new java.util.LinkedHashMap<>();
+                                w.put("name", (String) s);
+                                w.put("weight", 1);
+                                return w;
+                            })
+                            .toList();
+                    if (!weights.isEmpty()) {
+                        posting.setSkillsWeights(objectMapper.writeValueAsString(weights));
+                    }
                 }
             }
         } catch (Exception e) {

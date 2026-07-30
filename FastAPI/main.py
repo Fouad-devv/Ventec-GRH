@@ -405,15 +405,19 @@ Fiche de poste :
             if val is None:
                 return None
             if isinstance(val, list):
-                return "\n".join(f"- {item}" for item in val if item)
+                # Strip any leading "- " the LLM may have already added before re-adding one
+                cleaned = [str(item).lstrip("- ").strip() for item in val if item]
+                return "\n".join(f"- {item}" for item in cleaned if item)
             return str(val)
 
         def _to_list(val) -> list:
             if not val:
                 return []
             if isinstance(val, str):
-                return [v.strip() for v in val.replace("\n", ",").split(",") if v.strip()]
-            return list(val)
+                # If it's a bullet-list string, split on newlines
+                lines = [v.lstrip("- •").strip() for v in val.splitlines() if v.strip()]
+                return lines if lines else [val.strip()]
+            return [str(v) for v in val if v]
 
         return ExtractJobPostingResponse(
             required_skills=_to_list(data.get("required_skills")),
