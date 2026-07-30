@@ -107,7 +107,14 @@ public class FilterService {
                             app.setAiScore(new BigDecimal(scoreNum.toString()));
                         }
                         app.setAiSummary(summary);
-                        app.setStatus("SCREENING");
+                        double score = scoreNum != null ? scoreNum.doubleValue() : 0;
+                        if (score >= 70) {
+                            app.setStatus("SHORTLISTED");
+                        } else if (score >= 40) {
+                            app.setStatus("SCREENING");
+                        } else {
+                            app.setStatus("REJECTED");
+                        }
                         applicationRepository.save(app);
                     }
                 }
