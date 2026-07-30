@@ -122,14 +122,19 @@ export const CandidatesPage = () => {
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     {c.cvPath ? (
-                      <a
-                        href={api.cvUrl(c.id)}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await api.downloadCv(c.id);
+                            const url = URL.createObjectURL(res.data);
+                            Object.assign(document.createElement('a'), { href: url, download: `CV-${c.firstName}-${c.lastName}.pdf` }).click();
+                            URL.revokeObjectURL(url);
+                          } catch (e) { console.error(e); }
+                        }}
                         className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         <MdDownload className="w-4 h-4" /> CV
-                      </a>
+                      </button>
                     ) : <span className="text-slate-400">—</span>}
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>

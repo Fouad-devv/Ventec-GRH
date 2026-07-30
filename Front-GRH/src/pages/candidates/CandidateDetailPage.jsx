@@ -163,14 +163,19 @@ export const CandidateDetailPage = () => {
 
             {/* CV download */}
             {candidate.cvPath && (
-              <a
-                href={api.cvUrl(candidate.id)}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await api.downloadCv(candidate.id);
+                    const url = URL.createObjectURL(res.data);
+                    Object.assign(document.createElement('a'), { href: url, download: `CV-${candidate.firstName}-${candidate.lastName}.pdf` }).click();
+                    URL.revokeObjectURL(url);
+                  } catch (e) { console.error(e); }
+                }}
                 className="mt-2 flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 <MdDownload className="w-4 h-4" /> Télécharger le CV
-              </a>
+              </button>
             )}
           </div>
 
@@ -236,15 +241,20 @@ export const CandidateDetailPage = () => {
                         </span>
                         <ScoreBadge score={app.aiScore} />
                         {app.status === 'HIRED' && app.jobPostingId && (
-                          <a
-                            href={api.checklistDocxUrl(id, app.jobPostingId)}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await api.downloadChecklist(id, app.jobPostingId);
+                                const url = URL.createObjectURL(res.data);
+                                Object.assign(document.createElement('a'), { href: url, download: `checklist-${candidate.lastName}.docx` }).click();
+                                URL.revokeObjectURL(url);
+                              } catch (e) { console.error(e); }
+                            }}
                             className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
                           >
                             <MdDescription className="w-3.5 h-3.5" />
                             Liste documents
-                          </a>
+                          </button>
                         )}
                       </div>
                     </div>

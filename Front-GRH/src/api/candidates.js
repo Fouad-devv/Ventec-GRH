@@ -8,7 +8,7 @@ export const candidatesApi = (axios) => ({
   }),
   update: (id, params) => axios.put(`${BASE}/${id}`, null, { params }),
   delete: (id) => axios.delete(`${BASE}/${id}`),
-  cvUrl: (id) => `${import.meta.env.VITE_API_URL}/candidates/${id}/cv`,
+  downloadCv: (id) => axios.get(`/candidates/${id}/cv`, { responseType: 'blob' }),
   extractCv: (file) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -16,6 +16,6 @@ export const candidatesApi = (axios) => ({
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-  checklistDocxUrl: (candidateId, postingId) =>
-    `${import.meta.env.VITE_API_URL}/checklists/candidate/${candidateId}/posting/${postingId}/export/docx`,
+  downloadChecklist: (candidateId, postingId) =>
+    axios.get(`/checklists/candidate/${candidateId}/posting/${postingId}/export/docx`, { responseType: 'blob' }),
 });

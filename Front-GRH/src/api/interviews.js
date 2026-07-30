@@ -7,5 +7,5 @@ export const interviewsApi = (axios) => ({
   update: (id, data) => axios.put(`${BASE}/${id}`, data),
   cancel: (id) => axios.put(`${BASE}/${id}/cancel`),
   generateQuestions: (id) => axios.post(`${BASE}/${id}/questions/generate`),
-  exportPdfUrl: (id) => `${import.meta.env.VITE_API_URL}/interviews/${id}/export/pdf`,
+  exportPdf: (id) => axios.get(`${BASE}/${id}/export/pdf`, { responseType: 'blob' }),
 });

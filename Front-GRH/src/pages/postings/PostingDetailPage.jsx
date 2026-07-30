@@ -666,24 +666,30 @@ export const PostingDetailPage = () => {
             )}
             Dupliquer
           </button>
-          <a
-            href={pApi.exportDocxUrl(id)}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            onClick={async () => {
+              const res = await pApi.exportDocx(id);
+              const url = URL.createObjectURL(res.data);
+              Object.assign(document.createElement('a'), { href: url, download: `offre-${id}.docx` }).click();
+              URL.revokeObjectURL(url);
+            }}
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
           >
             <MdDownload className="w-4 h-4" />
             Exporter Word
-          </a>
-          <a
-            href={pApi.exportFicheFonctionUrl(id)}
-            target="_blank"
-            rel="noreferrer"
+          </button>
+          <button
+            onClick={async () => {
+              const res = await pApi.exportFicheFonction(id);
+              const url = URL.createObjectURL(res.data);
+              Object.assign(document.createElement('a'), { href: url, download: `fiche-fonction-${id}.docx` }).click();
+              URL.revokeObjectURL(url);
+            }}
             className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
           >
             <MdAutoAwesome className="w-4 h-4" />
             Fiche de fonction
-          </a>
+          </button>
           <button
             onClick={() => setConfirmDelete(true)}
             className="p-2 rounded-xl border border-red-200 dark:border-red-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"

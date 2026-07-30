@@ -16,8 +16,8 @@ export const postingsApi = (axios) => ({
     return axios.post(`${BASE}/${id}/fiche-fonction`, fd);
   },
   generateFicheFonction: (id) => axios.post(`${BASE}/${id}/generate-fiche-fonction`),
-  exportDocxUrl: (id) => `${import.meta.env.VITE_API_URL}/postings/${id}/export/docx`,
-  exportFicheFonctionUrl: (id) => `${import.meta.env.VITE_API_URL}/postings/${id}/export/fiche-fonction`,
+  exportDocx: (id) => axios.get(`${BASE}/${id}/export/docx`, { responseType: 'blob' }),
+  exportFicheFonction: (id) => axios.get(`${BASE}/${id}/export/fiche-fonction`, { responseType: 'blob' }),
   getHistory: () => axios.get(`${BASE}/history`),
   importCvs: (id, files) => {
     const fd = new FormData();
