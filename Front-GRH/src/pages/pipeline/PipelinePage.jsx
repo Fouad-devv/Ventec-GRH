@@ -22,7 +22,7 @@ const ScoreBadge = ({ score }) => {
   );
 };
 
-const STATUSES = ['NEW', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
+const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
 
 const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) => {
   const api = interviewsApi(axios);
@@ -310,7 +310,7 @@ export const PipelinePage = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {STATUSES.map((status) => (
             <div key={status} className="flex flex-col gap-2">
               <div className="flex items-center justify-between mb-1">
@@ -335,7 +335,18 @@ export const PipelinePage = () => {
                       className="w-full text-xs border border-slate-200 dark:border-slate-700 rounded px-1 py-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s === 'NEW' ? 'Nouveau'
+                            : s === 'SCREENING' ? 'Présélection'
+                            : s === 'SHORTLISTED' ? 'Sélectionné'
+                            : s === 'INTERVIEW' ? 'Entretien'
+                            : s === 'OFFER' ? 'Offre'
+                            : s === 'HIRED' ? 'Embauché'
+                            : s === 'REJECTED' ? 'Rejeté'
+                            : s}
+                        </option>
+                      ))}
                     </select>
                     {app.status === 'INTERVIEW' && (
                       <div className="flex gap-1">
