@@ -573,6 +573,66 @@ public class ExportService {
             table.setSpacingAfter(16);
             pdf.add(table);
 
+            // ── AI-generated questions ───────────────────────────────────────────
+            if (interview.getQuestions() != null && !interview.getQuestions().isBlank()) {
+                try {
+                    List<?> rawList = objectMapper.readValue(interview.getQuestions(), List.class);
+                    if (!rawList.isEmpty()) {
+                        Font qLabelFont  = new Font(Font.HELVETICA, 9, Font.BOLD,   new Color(4, 120, 87));
+                        Font qAnswerFont = new Font(Font.HELVETICA, 9, Font.ITALIC, new Color(6, 78, 59));
+
+                        Paragraph qSection = new Paragraph("Questions d'entretien IA", headingFont);
+                        qSection.setSpacingBefore(8);
+                        qSection.setSpacingAfter(8);
+                        pdf.add(qSection);
+
+                        int num = 1;
+                        for (Object raw : rawList) {
+                            String questionText = null;
+                            String answerText   = null;
+
+                            if (raw instanceof String s) {
+                                questionText = s;
+                            } else if (raw instanceof Map<?, ?> m) {
+                                questionText = m.get("question") instanceof String q ? q : null;
+                                answerText   = m.get("answer")   instanceof String a ? a : null;
+                            }
+                            if (questionText == null) continue;
+
+                            Paragraph qPara = new Paragraph(num + ". " + questionText, valueFont);
+                            qPara.setSpacingAfter(answerText != null ? 3 : 8);
+                            pdf.add(qPara);
+
+                            if (answerText != null && !answerText.isBlank()) {
+                                PdfPTable ansBox = new PdfPTable(1);
+                                ansBox.setWidthPercentage(95);
+                                ansBox.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                                PdfPCell labelCell = new PdfPCell(new Phrase("Réponse attendue :", qLabelFont));
+                                labelCell.setBackgroundColor(new Color(236, 253, 245));
+                                labelCell.setBorderColor(new Color(167, 243, 208));
+                                labelCell.setPaddingTop(5);
+                                labelCell.setPaddingBottom(2);
+                                labelCell.setPaddingLeft(8);
+                                labelCell.setBorderWidthBottom(0);
+                                ansBox.addCell(labelCell);
+                                PdfPCell ansCell = new PdfPCell(new Phrase(answerText, qAnswerFont));
+                                ansCell.setBackgroundColor(new Color(236, 253, 245));
+                                ansCell.setBorderColor(new Color(167, 243, 208));
+                                ansCell.setPaddingTop(2);
+                                ansCell.setPaddingBottom(6);
+                                ansCell.setPaddingLeft(8);
+                                ansCell.setBorderWidthTop(0);
+                                ansBox.addCell(ansCell);
+                                ansBox.setSpacingAfter(8);
+                                pdf.add(ansBox);
+                            }
+                            num++;
+                        }
+                        pdf.add(new Paragraph(" "));
+                    }
+                } catch (Exception ignored) {}
+            }
+
             pdf.add(new Paragraph("Notes et observations", headingFont));
             pdf.add(new Paragraph(" "));
             String notes = (interview.getNotes() != null && !interview.getNotes().isBlank())
