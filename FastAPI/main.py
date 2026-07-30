@@ -400,15 +400,30 @@ Fiche de poste :
             response_format={"type": "json_object"},
         )
         data = _json.loads(response.choices[0].message.content)
+
+        def _to_str(val) -> str | None:
+            if val is None:
+                return None
+            if isinstance(val, list):
+                return "\n".join(f"- {item}" for item in val if item)
+            return str(val)
+
+        def _to_list(val) -> list:
+            if not val:
+                return []
+            if isinstance(val, str):
+                return [v.strip() for v in val.replace("\n", ",").split(",") if v.strip()]
+            return list(val)
+
         return ExtractJobPostingResponse(
-            required_skills=data.get("required_skills", []),
-            tools=data.get("tools", []),
-            required_education=data.get("required_education"),
-            required_experience=data.get("required_experience"),
-            missions=data.get("missions", []),
-            nice_to_have=data.get("nice_to_have", []),
-            description=data.get("description"),
-            requirements=data.get("requirements"),
+            required_skills=_to_list(data.get("required_skills")),
+            tools=_to_list(data.get("tools")),
+            required_education=_to_str(data.get("required_education")),
+            required_experience=_to_str(data.get("required_experience")),
+            missions=_to_list(data.get("missions")),
+            nice_to_have=_to_list(data.get("nice_to_have")),
+            description=_to_str(data.get("description")),
+            requirements=_to_str(data.get("requirements")),
         )
     except HTTPException:
         raise
