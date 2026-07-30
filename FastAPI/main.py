@@ -501,7 +501,7 @@ async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
 
 {context}
 
-Retourne UNIQUEMENT un objet JSON valide :
+Retourne UNIQUEMENT un objet JSON valide où chaque élément de "questions" est une chaîne de caractères (string) :
 {{
   "questions": [
     "Question 1 ?",
@@ -510,6 +510,7 @@ Retourne UNIQUEMENT un objet JSON valide :
   ]
 }}
 
+IMPORTANT : chaque élément doit être une string simple, pas un objet.
 Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de motivation, 1 question de mise en situation.
 """
     try:
@@ -520,7 +521,15 @@ Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de m
             response_format={"type": "json_object"},
         )
         data = _json.loads(response.choices[0].message.content)
-        questions = data.get("questions", [])
+        raw = data.get("questions", [])
+        questions = []
+        for q in raw:
+            if isinstance(q, dict):
+                text = q.get("question") or q.get("text") or q.get("content") or q.get("q") or ""
+                if text:
+                    questions.append(str(text).strip())
+            elif isinstance(q, str) and q.strip():
+                questions.append(q.strip())
         return GenerateInterviewQuestionsResponse(questions=questions[:10])
     except Exception as e:
         logger.error("Interview questions generation failed: %s", e)
