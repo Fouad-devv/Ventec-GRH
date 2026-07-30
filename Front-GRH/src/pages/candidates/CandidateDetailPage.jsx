@@ -93,9 +93,15 @@ export const CandidateDetailPage = () => {
   }
 
   const initials = `${candidate.firstName?.[0] ?? ''}${candidate.lastName?.[0] ?? ''}`.toUpperCase();
-  const skills = candidate.skills
-    ? candidate.skills.split(',').map((s) => s.trim()).filter(Boolean)
-    : [];
+  let skills = [];
+  if (candidate.skills) {
+    try {
+      const parsed = JSON.parse(candidate.skills);
+      skills = Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : candidate.skills.split(',').map((s) => s.trim()).filter(Boolean);
+    } catch {
+      skills = candidate.skills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
   const bestScore = applications.length > 0
     ? Math.max(...applications.map((a) => Number(a.aiScore ?? 0)))
     : null;
