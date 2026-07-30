@@ -195,13 +195,25 @@ const InterviewDetailModal = ({ application, onClose, axios }) => {
                 {questions.length === 0 ? (
                   <p className="text-xs text-slate-400 italic">Aucune question générée. Cliquez sur "Générer" pour créer des questions personnalisées avec l'IA.</p>
                 ) : (
-                  <ol className="space-y-2">
-                    {questions.map((q, i) => (
-                      <li key={i} className="flex gap-2.5 text-sm">
-                        <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 text-xs flex items-center justify-center font-bold">{i + 1}</span>
-                        <span className="text-slate-700 dark:text-slate-300">{q}</span>
-                      </li>
-                    ))}
+                  <ol className="space-y-3">
+                    {questions.map((q, i) => {
+                      const questionText = typeof q === 'string' ? q : q?.question;
+                      const answerText = typeof q === 'object' ? q?.answer : null;
+                      return (
+                        <li key={i} className="flex gap-2.5">
+                          <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 text-xs flex items-center justify-center font-bold mt-0.5">{i + 1}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{questionText}</p>
+                            {answerText && (
+                              <div className="mt-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900 rounded-lg">
+                                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">Réponse attendue</p>
+                                <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">{answerText}</p>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ol>
                 )}
               </div>

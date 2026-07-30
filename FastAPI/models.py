@@ -74,8 +74,13 @@ class GenerateInterviewQuestionsRequest(BaseModel):
     candidate_experience_years: Optional[int] = None
 
 
+class QuestionItem(BaseModel):
+    question: str
+    answer: Optional[str] = None
+
+
 class GenerateInterviewQuestionsResponse(BaseModel):
-    questions: List[str]
+    questions: List[QuestionItem]
 
 
 # ── Generate document checklist ─────────────────────────────

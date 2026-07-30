@@ -23,7 +23,7 @@ from llm_scorer import score_multiple_candidates
 from models import (
     FilterRequest, ExtractCvRequest, ExtractCvResponse,
     GenerateDescriptionRequest, GenerateDescriptionResponse,
-    GenerateInterviewQuestionsRequest, GenerateInterviewQuestionsResponse,
+    GenerateInterviewQuestionsRequest, GenerateInterviewQuestionsResponse, QuestionItem,
     GenerateChecklistRequest, GenerateChecklistResponse, ChecklistItem,
     GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere,
     ExtractJobPostingResponse,
@@ -497,21 +497,25 @@ async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
         context_parts.append(f"Expérience candidat : {req.candidate_experience_years} an(s)")
     context = "\n".join(context_parts)
 
-    prompt = f"""Tu es un expert RH. Génère 8 questions d'entretien pertinentes en français pour :
+    prompt = f"""Tu es un recruteur RH expérimenté. Tu dois générer 8 questions d'entretien RH en français pour évaluer ce candidat.
 
 {context}
 
-Retourne UNIQUEMENT un objet JSON valide où chaque élément de "questions" est une chaîne de caractères (string) :
+STYLE DES QUESTIONS :
+- Questions générales et accessibles, adaptées à un entretien RH (pas un entretien technique approfondi)
+- Centrées sur le parcours, les motivations, le comportement, et les compétences générales du domaine
+- Pour les questions qui touchent légèrement à un aspect technique du domaine (ex : outils RH, processus de recrutement, gestion des compétences), ajoute un champ "answer" avec une réponse attendue courte et claire
+- Pour les questions purement comportementales ou de motivation, laisse "answer" à null
+
+Répartition : 2 questions de présentation/parcours, 2 questions de motivation, 2 questions comportementales, 2 questions sur le domaine métier (avec réponse suggérée).
+
+Retourne UNIQUEMENT ce JSON :
 {{
   "questions": [
-    "Question 1 ?",
-    "Question 2 ?",
-    "Question 3 ?"
+    {{"question": "Pouvez-vous vous présenter et nous parler de votre parcours ?", "answer": null}},
+    {{"question": "Quels outils SIRH avez-vous utilisés ?", "answer": "Les principaux SIRH sont SAP SuccessFactors, Workday, Lucca, ou ADP. L'important est la capacité d'adaptation à de nouveaux outils."}}
   ]
 }}
-
-IMPORTANT : chaque élément doit être une string simple, pas un objet.
-Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de motivation, 1 question de mise en situation.
 """
     try:
         response = await client.chat.completions.create(
@@ -525,11 +529,18 @@ Inclure : 3 questions techniques, 2 questions comportementales, 2 questions de m
         questions = []
         for q in raw:
             if isinstance(q, dict):
-                text = q.get("question") or q.get("text") or q.get("content") or q.get("q") or ""
-                if text:
-                    questions.append(str(text).strip())
+                question_text = q.get("question") or q.get("text") or q.get("content") or q.get("q") or ""
+                if not question_text:
+                    continue
+                answer_text = q.get("answer") or q.get("reponse") or q.get("suggested_answer") or None
+                if answer_text and str(answer_text).strip().lower() in ("null", "none", ""):
+                    answer_text = None
+                questions.append(QuestionItem(
+                    question=str(question_text).strip(),
+                    answer=str(answer_text).strip() if answer_text else None,
+                ))
             elif isinstance(q, str) and q.strip():
-                questions.append(q.strip())
+                questions.append(QuestionItem(question=q.strip(), answer=None))
         return GenerateInterviewQuestionsResponse(questions=questions[:10])
     except Exception as e:
         logger.error("Interview questions generation failed: %s", e)
