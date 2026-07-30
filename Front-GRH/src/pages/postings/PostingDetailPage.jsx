@@ -464,6 +464,36 @@ export const PostingDetailPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteApp, setConfirmDeleteApp] = useState(null); // { id, name }
   const [deletingApp, setDeletingApp] = useState(false);
+  const [activeFilterJob, setActiveFilterJob] = useState(null);
+  const pollRef = useRef(null);
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const startPolling = (filterJobId) => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fApi.getFilterJob(filterJobId);
+        const job = res.data;
+        setActiveFilterJob(job);
+        if (job.status === 'DONE' || job.status === 'FAILED') {
+          stopPolling();
+          appApi.getByPosting(id)
+            .then((r) => setApplications(r.data || []))
+            .catch(console.error);
+        }
+      } catch (e) {
+        console.error('Filter poll error:', e);
+      }
+    }, 3000);
+  };
+
+  useEffect(() => () => stopPolling(), []);
 
   const load = useCallback(() => {
     Promise.all([
@@ -475,6 +505,11 @@ export const PostingDetailPage = () => {
         setPosting(p.data);
         setApplications(apps.data || []);
         setFilterJobs(fj.data || []);
+        const latest = (fj.data || [])[0];
+        if (latest && (latest.status === 'RUNNING' || latest.status === 'PENDING') && !pollRef.current) {
+          setActiveFilterJob(latest);
+          startPolling(latest.id);
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -505,8 +540,9 @@ export const PostingDetailPage = () => {
   const handleFilter = async () => {
     setFiltering(true);
     try {
-      await fApi.requestFilter(id);
-      setTimeout(load, 2000);
+      const res = await fApi.requestFilter(id);
+      setActiveFilterJob(res.data);
+      startPolling(res.data.id);
     } catch (e) {
       console.error(e);
     } finally {
@@ -661,6 +697,57 @@ export const PostingDetailPage = () => {
         </div>
       </div>
 
+      {/* Live filter job banner */}
+      {activeFilterJob && (
+        activeFilterJob.status === 'RUNNING' || activeFilterJob.status === 'PENDING' ? (
+          <div className="flex items-center gap-4 rounded-2xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/40 p-4 shadow-sm">
+            <div className="w-6 h-6 border-[3px] border-violet-200 dark:border-violet-800 border-t-violet-600 dark:border-t-violet-400 rounded-full animate-spin shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-violet-800 dark:text-violet-200">
+                Filtrage IA en cours…
+              </p>
+              <p className="text-xs text-violet-600 dark:text-violet-400 mt-0.5">
+                Les candidats sont en cours d'évaluation. Les résultats s'afficheront automatiquement.
+              </p>
+            </div>
+          </div>
+        ) : activeFilterJob.status === 'DONE' ? (
+          <div className="flex items-center gap-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4 shadow-sm">
+            <MdCheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                Filtrage terminé
+              </p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                Les candidats ont été classés et les statuts mis à jour automatiquement.
+              </p>
+            </div>
+            <button
+              onClick={() => setActiveFilterJob(null)}
+              className="p-1 rounded-lg text-emerald-400 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors shrink-0"
+            >
+              <MdClose className="w-4 h-4" />
+            </button>
+          </div>
+        ) : activeFilterJob.status === 'FAILED' ? (
+          <div className="flex items-center gap-4 rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 shadow-sm">
+            <MdError className="w-6 h-6 text-red-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-800 dark:text-red-200">Filtrage échoué</p>
+              {activeFilterJob.errorMessage && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{activeFilterJob.errorMessage}</p>
+              )}
+            </div>
+            <button
+              onClick={() => setActiveFilterJob(null)}
+              className="p-1 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900 transition-colors shrink-0"
+            >
+              <MdClose className="w-4 h-4" />
+            </button>
+          </div>
+        ) : null
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: description + requirements */}
         <div className="lg:col-span-2 space-y-4">
@@ -681,29 +768,6 @@ export const PostingDetailPage = () => {
 
           <FilterCriteriaPanel posting={posting} onSave={async (patch) => { await pApi.update(id, patch); load(); }} />
 
-          {/* Filter job status */}
-          {latestFilter && (
-            <div className={`rounded-2xl border p-4 shadow-sm ${
-              latestFilter.status === 'DONE'
-                ? 'bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800'
-                : latestFilter.status === 'FAILED'
-                ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800'
-                : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800'
-            }`}>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <MdAutoAwesome className="w-4 h-4 text-violet-500" />
-                  Dernier filtre IA — {latestFilter.status}
-                </p>
-                {latestFilter.status === 'PROCESSING' && (
-                  <div className="w-4 h-4 border-2 border-amber-400 border-t-amber-700 rounded-full animate-spin" />
-                )}
-              </div>
-              {latestFilter.status === 'FAILED' && latestFilter.errorMessage && (
-                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{latestFilter.errorMessage}</p>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right: ranked candidates */}
