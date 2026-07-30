@@ -3,6 +3,7 @@ package com.ventec.grh_backend.service;
 import com.ventec.grh_backend.domain.Candidate;
 import com.ventec.grh_backend.DTO.response.CandidateResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
+import com.ventec.grh_backend.repository.ApplicationRepository;
 import com.ventec.grh_backend.repository.CandidateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,6 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -19,6 +24,7 @@ import java.util.UUID;
 public class CandidateService {
 
     private final CandidateRepository candidateRepository;
+    private final ApplicationRepository applicationRepository;
     private final StorageService storageService;
 
     public CandidateResponse createCandidate(MultipartFile cv,
@@ -38,7 +44,7 @@ public class CandidateService {
                 .location(location)
                 .cvPath(cvPath)
                 .build();
-        return toResponse(candidateRepository.save(candidate));
+        return toResponse(candidateRepository.save(candidate), List.of());
     }
 
     public CandidateResponse updateCandidate(UUID id, String firstName, String lastName,
@@ -52,19 +58,28 @@ public class CandidateService {
         if (phone != null) candidate.setPhone(phone);
         if (linkedinUrl != null) candidate.setLinkedinUrl(linkedinUrl);
         if (location != null) candidate.setLocation(location);
-        return toResponse(candidateRepository.save(candidate));
+        return toResponse(candidateRepository.save(candidate), List.of());
     }
 
     @Transactional(readOnly = true)
     public CandidateResponse getCandidate(UUID id) {
-        return candidateRepository.findById(id)
-                .map(this::toResponse)
+        Candidate c = candidateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Candidate not found: " + id));
+        return toResponse(c, applicationRepository.findJobPostingTitlesByCandidateId(id));
     }
 
     @Transactional(readOnly = true)
     public Page<CandidateResponse> getAllCandidates(Pageable pageable) {
-        return candidateRepository.findAll(pageable).map(this::toResponse);
+        Page<Candidate> page = candidateRepository.findAll(pageable);
+        List<UUID> ids = page.stream().map(Candidate::getId).toList();
+        Map<UUID, List<String>> titlesMap = new HashMap<>();
+        if (!ids.isEmpty()) {
+            applicationRepository.findJobPostingTitlesByCandidateIds(ids)
+                    .forEach(row -> titlesMap
+                            .computeIfAbsent((UUID) row[0], k -> new ArrayList<>())
+                            .add((String) row[1]));
+        }
+        return page.map(c -> toResponse(c, titlesMap.getOrDefault(c.getId(), List.of())));
     }
 
     public void deleteCandidate(UUID id) {
@@ -80,13 +95,14 @@ public class CandidateService {
                 .orElseThrow(() -> new NotFoundException("Candidate not found: " + id));
     }
 
-    public CandidateResponse toResponse(Candidate c) {
+    public CandidateResponse toResponse(Candidate c, List<String> jobPostingTitles) {
         return new CandidateResponse(
                 c.getId(), c.getFirstName(), c.getLastName(), c.getEmail(),
                 c.getPhone(), c.getLinkedinUrl(), c.getCvPath(),
                 c.getSkills(), c.getExperienceYears(), c.getEducation(),
                 c.getCurrentPosition(), c.getLocation(),
-                c.getCreatedAt(), c.getUpdatedAt()
+                c.getCreatedAt(), c.getUpdatedAt(),
+                jobPostingTitles
         );
     }
 }

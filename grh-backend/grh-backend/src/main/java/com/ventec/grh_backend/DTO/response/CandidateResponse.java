@@ -1,6 +1,7 @@
 package com.ventec.grh_backend.DTO.response;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record CandidateResponse(
@@ -17,5 +18,6 @@ public record CandidateResponse(
         String currentPosition,
         String location,
         OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        List<String> jobPostingTitles
 ) {}
