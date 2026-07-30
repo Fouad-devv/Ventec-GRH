@@ -67,7 +67,7 @@ public class CandidateController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         candidateService.deleteCandidate(id);
         return ResponseEntity.noContent().build();
