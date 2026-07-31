@@ -37,13 +37,16 @@ import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBorder;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDecimalNumber;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTShd;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblBorders;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STShd;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 
@@ -82,7 +85,9 @@ public class ExportService {
 
     private static final String NAVY  = "1F3864";
     private static final String WHITE = "FFFFFF";
+    private static final String BLACK = "000000";
     private static final String LGRAY = "D9D9D9";
+    private static final String HDR_FONT = "Times New Roman";
 
     private static final String[] COMPETENCES_COMPORTEMENTALES = {
         "Rigueur et organisation",
@@ -200,31 +205,90 @@ public class ExportService {
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            // ── Header (logos | title | signatures) ─────────────────────────
-            XWPFTable headerTbl = doc.createTable(1, 3);
-            setTableWidth(headerTbl, 9360);
-            XWPFTableRow hRow = headerTbl.getRow(0);
+            // ── Header: 4-col table matching original Ventec design ─────────
+            // Rows 0-3: logo cell (v-merge) | title content (h-span 3 cols)
+            // Rows 4-6: logo cell (v-merge) | Intéressé | Dpt/Service | Direction
+            XWPFTable hdrTbl = doc.createTable(7, 4);
+            setTableWidth(hdrTbl, 9360);
+            final int LOGO_W = 2520;
+            final int SIG_W  = 2280; // (9360 - 2520) / 3
 
-            // Left: Ventec + Ecowell logos on white background
-            setLogosInCell(doc, hRow.getCell(0));
+            for (int ri = 0; ri < 7; ri++) {
+                setCellWidth(hdrTbl.getRow(ri).getCell(0), LOGO_W);
+                for (int ci = 1; ci <= 3; ci++) setCellWidth(hdrTbl.getRow(ri).getCell(ci), SIG_W);
+            }
 
-            // Center: MPM3 title + FICHE DE FONCTION + job title (navy)
-            XWPFTableCell midC = hRow.getCell(1);
-            navyCell(midC, "MPM3 – MACROPROCESSUS DIRECTION", ParagraphAlignment.CENTER, 9, false);
-            XWPFParagraph midP2 = midC.addParagraph();
-            midP2.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun midR2 = midP2.createRun();
-            midR2.setBold(true); midR2.setFontSize(14); midR2.setColor(WHITE);
-            midR2.setUnderline(UnderlinePatterns.SINGLE);
-            midR2.setText("FICHE DE FONCTION");
-            XWPFParagraph midP3 = midC.addParagraph();
-            midP3.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun midR3 = midP3.createRun();
-            midR3.setBold(true); midR3.setFontSize(11); midR3.setColor(WHITE);
-            midR3.setText(p.getTitle());
+            // Col 0: logos in row 0, then v-merge continue rows 1-6
+            setVMerge(hdrTbl.getRow(0).getCell(0), true);
+            setLogosInCell(doc, hdrTbl.getRow(0).getCell(0));
+            for (int ri = 1; ri < 7; ri++) setVMerge(hdrTbl.getRow(ri).getCell(0), false);
 
-            // Right: Intéressé(e) / Dpt ou Service / Direction signature boxes
-            setSignatureCell(hRow.getCell(2));
+            // Rows 0-3: cols 1-3 merged horizontally (h-span 3) for title content
+            for (int ri = 0; ri < 4; ri++) {
+                XWPFTableCell titleC = hdrTbl.getRow(ri).getCell(1);
+                setHSpan(titleC, 3);
+                setCellWidth(titleC, SIG_W * 3);
+                setCellBg(titleC, WHITE);
+                hdrTbl.getRow(ri).getCtRow().removeTc(3);
+                hdrTbl.getRow(ri).getCtRow().removeTc(2);
+            }
+
+            // Row 0: "MPM3 :" — centered, underlined, Times New Roman
+            XWPFParagraph hP0 = hdrTbl.getRow(0).getCell(1).getParagraphs().get(0);
+            hP0.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun hR0 = hP0.createRun();
+            hR0.setFontFamily(HDR_FONT); hR0.setFontSize(11);
+            hR0.setColor(BLACK); hR0.setUnderline(UnderlinePatterns.SINGLE);
+            hR0.setText("MPM3 :");
+
+            // Row 1: "MACROPROCESSUS DIRECTION" — bold, underlined, centered
+            XWPFParagraph hP1 = hdrTbl.getRow(1).getCell(1).getParagraphs().get(0);
+            hP1.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun hR1 = hP1.createRun();
+            hR1.setFontFamily(HDR_FONT); hR1.setBold(true); hR1.setFontSize(13);
+            hR1.setColor(BLACK); hR1.setUnderline(UnderlinePatterns.SINGLE);
+            hR1.setText("MACROPROCESSUS DIRECTION");
+
+            // Row 2: "FICHE DE FONCTION" — bold, underlined, centered
+            XWPFParagraph hP2 = hdrTbl.getRow(2).getCell(1).getParagraphs().get(0);
+            hP2.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun hR2 = hP2.createRun();
+            hR2.setFontFamily(HDR_FONT); hR2.setBold(true); hR2.setFontSize(16);
+            hR2.setColor(BLACK); hR2.setUnderline(UnderlinePatterns.SINGLE);
+            hR2.setText("FICHE DE FONCTION");
+
+            // Row 3: job title — bold, centered
+            XWPFParagraph hP3 = hdrTbl.getRow(3).getCell(1).getParagraphs().get(0);
+            hP3.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun hR3 = hP3.createRun();
+            hR3.setFontFamily(HDR_FONT); hR3.setBold(true); hR3.setFontSize(13);
+            hR3.setColor(BLACK);
+            hR3.setText(p.getTitle().toUpperCase());
+
+            // Rows 4-6: 3 separate signature columns
+            String[] sigLabels = {"Intéressé(e) :", "Dpt ou Service :", "Direction :"};
+            for (int ci = 1; ci <= 3; ci++) {
+                XWPFTableCell lC = hdrTbl.getRow(4).getCell(ci);
+                setCellBg(lC, WHITE);
+                XWPFParagraph lP = lC.getParagraphs().get(0);
+                lP.setAlignment(ParagraphAlignment.LEFT);
+                XWPFRun lR = lP.createRun();
+                lR.setFontFamily(HDR_FONT); lR.setBold(true); lR.setFontSize(9);
+                lR.setColor(BLACK); lR.setUnderline(UnderlinePatterns.SINGLE);
+                lR.setText(sigLabels[ci - 1]);
+
+                XWPFTableCell dC = hdrTbl.getRow(5).getCell(ci);
+                setCellBg(dC, WHITE);
+                XWPFRun dR = dC.getParagraphs().get(0).createRun();
+                dR.setFontFamily(HDR_FONT); dR.setFontSize(9); dR.setColor(BLACK);
+                dR.setText("Date : …………");
+
+                XWPFTableCell vC = hdrTbl.getRow(6).getCell(ci);
+                setCellBg(vC, WHITE);
+                XWPFRun vR = vC.getParagraphs().get(0).createRun();
+                vR.setFontFamily(HDR_FONT); vR.setFontSize(9); vR.setColor(BLACK);
+                vR.setText("Visa : …………");
+            }
 
             doc.createParagraph();
 
@@ -244,18 +308,18 @@ public class ExportService {
             doc.createParagraph();
 
             // ── I. Missions ─────────────────────────────────────────────────
-            sectionHeading(doc, "I.", "MISSIONS PRINCIPALES");
+            sectionHeading(doc, "I-", "MISSIONS PRINCIPALES :");
             for (int i = 0; i < missions.size(); i++) numberedItem(doc, i + 1, missions.get(i));
             doc.createParagraph();
 
             // ── II. Place dans l'organisation ───────────────────────────────
-            sectionHeading(doc, "II.", "PLACE DANS L'ORGANISATION");
+            sectionHeading(doc, "II-", "PLACE DANS L'ORGANISATION :");
             doc.createParagraph().createRun()
                .setText("Rattachement hiérarchique : ......................................................................");
             doc.createParagraph();
 
             // ── III. Activités principales ───────────────────────────────────
-            sectionHeading(doc, "III.", "ACTIVITES PRINCIPALES");
+            sectionHeading(doc, "III-", "ACTIVITES PRINCIPALES :");
             for (int i = 0; i < activites.size(); i++) numberedItem(doc, i + 1, activites.get(i));
             doc.createParagraph();
 
@@ -280,18 +344,18 @@ public class ExportService {
             doc.createParagraph();
 
             // ── IV. Indicateurs de performance ──────────────────────────────
-            sectionHeading(doc, "IV.", "INDICATEURS DE PERFORMANCE (KPI)");
+            sectionHeading(doc, "IV-", "INDICATEURS DE PERFORMANCE (KPI) :");
             for (int i = 0; i < indicateurs.size(); i++) numberedItem(doc, i + 1, indicateurs.get(i));
             doc.createParagraph();
 
             // ── V. Intérim ──────────────────────────────────────────────────
-            sectionHeading(doc, "V.", "INTERIMAIRE");
+            sectionHeading(doc, "V-", "INTERIMAIRE :");
             doc.createParagraph().createRun()
                .setText("En cas d'absence, le titulaire est remplacé par : ......................................................................");
             doc.createParagraph();
 
             // ── VI. Critères de compétences ─────────────────────────────────
-            sectionHeading(doc, "VI.", "CRITERES DE COMPETENCES");
+            sectionHeading(doc, "VI-", "CRITERES DE COMPETENCES :");
 
             XWPFParagraph formP = doc.createParagraph();
             XWPFRun formLbl = formP.createRun();
@@ -316,14 +380,12 @@ public class ExportService {
             techLblR.setText("C. Compétences techniques :");
 
             int techRows = compTech.isEmpty() ? 7 : compTech.size();
-            XWPFTable techTbl = doc.createTable(techRows + 2, 5);
+            XWPFTable techTbl = doc.createTable(techRows + 2, 3);
             setTableWidth(techTbl, 9360);
             XWPFTableRow techHdr = techTbl.getRow(0);
             navyCell(techHdr.getCell(0), "N°",                    ParagraphAlignment.CENTER, 9, true);
             navyCell(techHdr.getCell(1), "Compétences techniques", ParagraphAlignment.LEFT,   9, true);
-            navyCell(techHdr.getCell(2), "Poids",                  ParagraphAlignment.CENTER, 9, true);
-            navyCell(techHdr.getCell(3), "Niveau requis (1–5)",    ParagraphAlignment.CENTER, 9, true);
-            navyCell(techHdr.getCell(4), "Maîtrise",               ParagraphAlignment.CENTER, 9, true);
+            navyCell(techHdr.getCell(2), "Poids du Critère",       ParagraphAlignment.CENTER, 9, true);
             for (int i = 0; i < techRows; i++) {
                 XWPFTableRow r = techTbl.getRow(i + 1);
                 String label   = i < compTech.size() ? toStr(compTech.get(i).get("label"), "") : "";
@@ -332,15 +394,11 @@ public class ExportService {
                 plainCell(r.getCell(0), String.valueOf(i + 1), ParagraphAlignment.CENTER, 9, false);
                 plainCell(r.getCell(1), label,                  ParagraphAlignment.LEFT,   9, false);
                 plainCell(r.getCell(2), String.valueOf(poids),  ParagraphAlignment.CENTER, 9, false);
-                plainCell(r.getCell(3), "",                     ParagraphAlignment.CENTER, 9, false);
-                plainCell(r.getCell(4), "",                     ParagraphAlignment.CENTER, 9, false);
             }
             XWPFTableRow techTotal = techTbl.getRow(techRows + 1);
             navyCell(techTotal.getCell(0), "",      ParagraphAlignment.CENTER, 9, true);
             navyCell(techTotal.getCell(1), "TOTAL", ParagraphAlignment.LEFT,   9, true);
             navyCell(techTotal.getCell(2), "35",    ParagraphAlignment.CENTER, 9, true);
-            navyCell(techTotal.getCell(3), "",      ParagraphAlignment.CENTER, 9, true);
-            navyCell(techTotal.getCell(4), "",      ParagraphAlignment.CENTER, 9, true);
 
             doc.createParagraph();
 
@@ -370,7 +428,7 @@ public class ExportService {
             doc.createParagraph();
 
             // ── VII. QSE ────────────────────────────────────────────────────
-            sectionHeading(doc, "VII.", "QUALITE – SECURITE – ENVIRONNEMENT (QSE)");
+            sectionHeading(doc, "VII-", "QUALITE – SECURITE – ENVIRONNEMENT (QSE) :");
             XWPFParagraph qseP = doc.createParagraph();
             XWPFRun qseR = qseP.createRun();
             qseR.setFontSize(10);
@@ -815,7 +873,7 @@ public class ExportService {
         }
     }
 
-    /** Puts Ventec logo above Ecowell logo in a white cell. */
+    /** Puts Ventec logo above Ecowell logo in a white cell with vertical spacing between them. */
     private void setLogosInCell(XWPFDocument doc, XWPFTableCell cell) {
         byte[] ventec  = loadLogoBytes("/logos/ventec-logo.jpeg");
         byte[] ecowell = loadLogoBytes("/logos/ecowell-logo.jpg");
@@ -823,6 +881,7 @@ public class ExportService {
 
         XWPFParagraph p1 = cell.getParagraphs().isEmpty() ? cell.addParagraph() : cell.getParagraphs().get(0);
         p1.setAlignment(ParagraphAlignment.CENTER);
+        p1.setSpacingAfter(160); // ~8pt gap below Ventec logo
         if (ventec != null) {
             try {
                 // Ventec: very wide logo (aspect ~3.75:1) → 105pt × 28pt
@@ -916,6 +975,20 @@ public class ExportService {
         CTTblWidth w = tcPr.isSetTcW() ? tcPr.getTcW() : tcPr.addNewTcW();
         w.setType(STTblWidth.DXA);
         w.setW(BigInteger.valueOf(twips));
+    }
+
+    private void setVMerge(XWPFTableCell cell, boolean restart) {
+        CTTc ctTc = cell.getCTTc();
+        CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+        CTVMerge vMerge = tcPr.isSetVMerge() ? tcPr.getVMerge() : tcPr.addNewVMerge();
+        if (restart) vMerge.setVal(STMerge.RESTART);
+    }
+
+    private void setHSpan(XWPFTableCell cell, int span) {
+        CTTc ctTc = cell.getCTTc();
+        CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+        CTDecimalNumber gs = tcPr.isSetGridSpan() ? tcPr.getGridSpan() : tcPr.addNewGridSpan();
+        gs.setVal(BigInteger.valueOf(span));
     }
 
     private void removeBorders(XWPFTable table) {
