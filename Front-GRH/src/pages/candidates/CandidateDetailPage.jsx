@@ -180,22 +180,9 @@ export const CandidateDetailPage = () => {
             )}
           </div>
 
-          {/* Skills */}
-          {skills.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Compétences</h3>
-              <div className="flex flex-wrap gap-2">
-                {skills.map((s) => (
-                  <span key={s} className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* ── Right column: applications history ── */}
+        {/* ── Right column: applications history + skills ── */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800">
@@ -264,6 +251,20 @@ export const CandidateDetailPage = () => {
               </div>
             )}
           </div>
+
+          {/* Skills */}
+          {skills.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Compétences</h3>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((s) => (
+                  <span key={s} className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
