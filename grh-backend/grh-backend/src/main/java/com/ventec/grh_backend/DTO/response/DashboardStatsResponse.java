@@ -8,6 +8,10 @@ public record DashboardStatsResponse(
         long totalCandidates,
         long totalApplications,
         long pendingApplications,
+        long shortlistedApplications,
+        long interviewApplications,
+        long hiredApplications,
+        long rejectedApplications,
         long interviewsThisWeek,
         long hiredThisMonth,
         List<UpcomingInterviewDto> upcomingInterviews

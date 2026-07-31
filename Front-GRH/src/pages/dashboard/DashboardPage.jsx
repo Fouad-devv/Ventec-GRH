@@ -87,16 +87,12 @@ export const DashboardPage = () => {
     { name: 'Embauchés',    value: stats?.hiredThisMonth      ?? 0, fill: '#10b981' },
   ];
 
-  const inProgress = Math.max(
-    0,
-    (stats?.totalApplications   ?? 0) -
-    (stats?.pendingApplications ?? 0) -
-    (stats?.hiredThisMonth      ?? 0),
-  );
   const statusData = [
-    { name: 'En attente', value: stats?.pendingApplications ?? 0, color: '#f59e0b' },
-    { name: 'En cours',   value: inProgress,                      color: '#6366f1' },
-    { name: 'Embauchés',  value: stats?.hiredThisMonth      ?? 0, color: '#10b981' },
+    { name: 'En attente',   value: stats?.pendingApplications    ?? 0, color: '#f59e0b' },
+    { name: 'Sélectionné',  value: stats?.shortlistedApplications ?? 0, color: '#6366f1' },
+    { name: 'Entretien',    value: stats?.interviewApplications   ?? 0, color: '#3b82f6' },
+    { name: 'Embauché',     value: stats?.hiredApplications       ?? 0, color: '#10b981' },
+    { name: 'Rejeté',       value: stats?.rejectedApplications    ?? 0, color: '#ef4444' },
   ].filter((d) => d.value > 0);
 
   /* Smart alerts */

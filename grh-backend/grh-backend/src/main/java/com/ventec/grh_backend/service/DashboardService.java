@@ -64,6 +64,10 @@ public class DashboardService {
                 candidateRepository.count(),
                 applicationRepository.count(),
                 applicationRepository.countByStatus("NEW") + applicationRepository.countByStatus("SCREENING"),
+                applicationRepository.countByStatus("SHORTLISTED"),
+                applicationRepository.countByStatus("INTERVIEW"),
+                applicationRepository.countByStatus("HIRED"),
+                applicationRepository.countByStatus("REJECTED"),
                 interviewsThisWeek,
                 applicationRepository.countByStatus("HIRED"),
                 upcoming
