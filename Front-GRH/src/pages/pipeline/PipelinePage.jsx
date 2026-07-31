@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription } from 'react-icons/md';
+import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription, MdRefresh } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
+import { usePageActions } from '../../context/HeaderContext';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
@@ -274,14 +275,22 @@ export const PipelinePage = () => {
       .catch(console.error);
   }, []);
 
-  useEffect(() => {
+  const loadApplications = () => {
     if (!selectedPosting) return;
     setLoading(true);
     appApi.getByPosting(selectedPosting)
       .then((r) => setApplications(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [selectedPosting]);
+  };
+
+  useEffect(() => { loadApplications(); }, [selectedPosting]);
+
+  usePageActions(
+    <button onClick={loadApplications} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <MdRefresh className="w-4 h-4" /><span className="hidden sm:inline">Actualiser</span>
+    </button>
+  );
 
   const updateStatus = async (appId, status) => {
     await appApi.updateStatus(appId, { status });

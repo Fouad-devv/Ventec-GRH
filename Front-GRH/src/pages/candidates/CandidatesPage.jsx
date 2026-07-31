@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { MdAdd, MdSearch, MdDownload, MdDelete, MdWarning } from 'react-icons/md';
+import { MdAdd, MdSearch, MdDownload, MdDelete, MdWarning, MdRefresh } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { CreateCandidateModal } from './CreateCandidateModal';
+import { usePageActions } from '../../context/HeaderContext';
 
 export const CandidatesPage = () => {
   const axios = useAxiosPrivate();
@@ -26,6 +27,12 @@ export const CandidatesPage = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  usePageActions(
+    <button onClick={load} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <MdRefresh className="w-4 h-4" /><span className="hidden sm:inline">Actualiser</span>
+    </button>
+  );
 
   const filtered = candidates.filter((c) =>
     !search ||

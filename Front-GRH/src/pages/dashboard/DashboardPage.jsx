@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   MdWork, MdPeople, MdAccountTree, MdCheckCircle,
-  MdWarning, MdInfo, MdTrendingUp, MdEvent, MdCalendarMonth,
+  MdWarning, MdInfo, MdTrendingUp, MdEvent, MdCalendarMonth, MdRefresh,
 } from 'react-icons/md';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { dashboardApi } from '../../api/dashboard';
+import { usePageActions } from '../../context/HeaderContext';
 
 /* ── Stat card ─────────────────────────────────────────── */
 const StatCard = ({ icon: Icon, label, value, gradient, sub }) => (
@@ -70,12 +71,21 @@ export const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     api.getStats()
       .then((r) => setStats(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  usePageActions(
+    <button onClick={load} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <MdRefresh className="w-4 h-4" /><span className="hidden sm:inline">Actualiser</span>
+    </button>
+  );
 
   if (loading) return <Spinner />;
 

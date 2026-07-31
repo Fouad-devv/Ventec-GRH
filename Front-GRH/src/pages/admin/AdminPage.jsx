@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { MdPowerSettingsNew, MdPersonAdd, MdAdd, MdEdit, MdDelete, MdClose, MdCheck, MdPerson, MdWarning } from 'react-icons/md';
+import { MdPowerSettingsNew, MdPersonAdd, MdAdd, MdEdit, MdDelete, MdClose, MdCheck, MdPerson, MdWarning, MdRefresh } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { adminApi } from '../../api/admin';
+import { usePageActions } from '../../context/HeaderContext';
 
 const ROLES = ['RH', 'MANAGER', 'ADMIN'];
 
@@ -530,6 +531,13 @@ export const AdminPage = () => {
   const axios = useAxiosPrivate();
   const api = adminApi(axios);
   const [tab, setTab] = useState('users');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  usePageActions(
+    <button onClick={() => setRefreshKey((k) => k + 1)} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <MdRefresh className="w-4 h-4" /><span className="hidden sm:inline">Actualiser</span>
+    </button>
+  );
 
   return (
     <div className="p-6">
@@ -550,8 +558,8 @@ export const AdminPage = () => {
         ))}
       </div>
 
-      {tab === 'users' && <UsersTab api={api} />}
-      {tab === 'templates' && <TemplatesTab api={api} />}
+      {tab === 'users' && <UsersTab key={refreshKey} api={api} />}
+      {tab === 'templates' && <TemplatesTab key={refreshKey} api={api} />}
     </div>
   );
 };
