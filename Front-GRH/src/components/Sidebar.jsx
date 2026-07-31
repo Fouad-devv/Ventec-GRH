@@ -53,7 +53,7 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
     <aside
       className={`flex flex-col h-screen shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-[width] duration-300 ease-in-out overflow-hidden ${
         isLarge
-          ? `z-40 ${expanded ? 'w-64' : 'w-16'}`
+          ? `sticky top-0 z-40 ${expanded ? 'w-64' : 'w-16'}`
           : `fixed inset-y-0 left-0 z-50 ${expanded ? 'w-64' : 'w-0'}`
       }`}
     >

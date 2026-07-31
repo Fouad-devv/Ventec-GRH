@@ -26,7 +26,7 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
   const btnLeft = expanded ? 'left-64' : 'left-16';
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="relative flex min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Backdrop — mobile only, when sidebar is open */}
       {!isLarge && expanded && (
         <div
@@ -42,14 +42,14 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
         <button
           onClick={onToggle}
           aria-label="Toggle sidebar"
-          className={`absolute top-14 sm:top-16 -translate-x-1/2 -translate-y-1/2 z-[51] w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-[left,colors] duration-300 ease-in-out ${btnLeft}`}
+          className={`fixed top-14 sm:top-16 -translate-x-1/2 -translate-y-1/2 z-[51] w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-[left,colors] duration-300 ease-in-out ${btnLeft}`}
         >
           {expanded ? <MdChevronLeft className="w-5 h-5" /> : <MdChevronRight className="w-5 h-5" />}
         </button>
       )}
 
-      <div className="flex flex-col flex-1 min-h-0">
-        <header className="grid grid-cols-3 items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0 shrink-0">
+      <div className="flex flex-col flex-1">
+        <header className="grid grid-cols-3 items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0">
           {/* Left — hamburger on small screens */}
           <div>
             {!isLarge && (
@@ -76,7 +76,7 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>
