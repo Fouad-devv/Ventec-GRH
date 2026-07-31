@@ -311,7 +311,7 @@ export const PipelinePage = () => {
         <select
           value={selectedPosting || ''}
           onChange={(e) => setSelectedPosting(e.target.value)}
-          className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white min-w-[280px]"
+          className="w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white sm:min-w-[280px]"
         >
           <option value="">— Sélectionner une offre —</option>
           {postings.map((p) => (
@@ -327,7 +327,7 @@ export const PipelinePage = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {STATUSES.map((status) => (
             <div key={status} className="flex flex-col gap-2">
               <div className="flex items-center justify-between mb-1">
