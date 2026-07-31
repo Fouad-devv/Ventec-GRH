@@ -22,7 +22,7 @@ const ScoreBadge = ({ score }) => {
   );
 };
 
-const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
+const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'HIRED', 'REJECTED'];
 
 const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) => {
   const api = interviewsApi(axios);
@@ -327,7 +327,7 @@ export const PipelinePage = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {STATUSES.map((status) => (
             <div key={status} className="flex flex-col gap-2">
               <div className="flex items-center justify-between mb-1">
@@ -358,7 +358,6 @@ export const PipelinePage = () => {
                             : s === 'SCREENING' ? 'Présélection'
                             : s === 'SHORTLISTED' ? 'Sélectionné'
                             : s === 'INTERVIEW' ? 'Entretien'
-                            : s === 'OFFER' ? 'Offre'
                             : s === 'HIRED' ? 'Embauché'
                             : s === 'REJECTED' ? 'Rejeté'
                             : s}
