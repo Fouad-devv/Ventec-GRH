@@ -108,7 +108,7 @@ public class PostingService {
     @Transactional(readOnly = true)
     public Page<JobPostingResponse> getAllPostings(String status, Pageable pageable) {
         if (status != null && !status.isBlank()) {
-            return jobPostingRepository.findAll(pageable)
+            return jobPostingRepository.findByStatus(status, pageable)
                     .map(this::toResponse);
         }
         return jobPostingRepository.findAll(pageable).map(this::toResponse);
