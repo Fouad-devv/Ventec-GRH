@@ -469,7 +469,6 @@ export const PostingDetailPage = () => {
   const [filterJobs, setFilterJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtering, setFiltering] = useState(false);
-  const [duplicating, setDuplicating] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -562,18 +561,6 @@ export const PostingDetailPage = () => {
 
   const handlePublish = () => pApi.publish(id).then(load);
   const handleClose = () => pApi.close(id).then(load);
-
-  const handleDuplicate = async () => {
-    setDuplicating(true);
-    try {
-      const res = await pApi.duplicate(id);
-      navigate(`/app/postings/${res.data.id}`);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDuplicating(false);
-    }
-  };
 
   const handleSaveSkills = async (skillsWeightsJson) => {
     await pApi.update(id, { skillsWeights: skillsWeightsJson });
@@ -688,30 +675,6 @@ export const PostingDetailPage = () => {
               </button>
             </>
           )}
-          <button
-            onClick={handleDuplicate}
-            disabled={duplicating}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-sm"
-          >
-            {duplicating ? (
-              <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-            ) : (
-              <MdContentCopy className="w-4 h-4" />
-            )}
-            Dupliquer
-          </button>
-          <button
-            onClick={async () => {
-              const res = await pApi.exportDocx(id);
-              const url = URL.createObjectURL(res.data);
-              Object.assign(document.createElement('a'), { href: url, download: `offre-${id}.docx` }).click();
-              URL.revokeObjectURL(url);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <MdDownload className="w-4 h-4" />
-            Exporter Word
-          </button>
           <button
             onClick={async () => {
               setGeneratingFiche(true);
