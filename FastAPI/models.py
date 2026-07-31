@@ -107,6 +107,11 @@ class CompetenceCritere(BaseModel):
     poids: int = 5
 
 
+class ActivityItem(BaseModel):
+    label: str
+    sub: List[str] = []
+
+
 class GenerateFicheFonctionRequest(BaseModel):
     title: str
     department: Optional[str] = None
@@ -118,10 +123,12 @@ class GenerateFicheFonctionRequest(BaseModel):
 
 class GenerateFicheFonctionResponse(BaseModel):
     missions: List[str]
-    activites_principales: List[str]
+    activites_principales: List[ActivityItem]
+    collaborateurs_directs: str = "Néant"
     indicateurs_performance: List[str]
     niveau_formation: str
     experience_requise: str
     competences_techniques: List[CompetenceCritere]
     interlocuteurs_internes: List[str]
     interlocuteurs_externes: List[str]
+    interimaire: str = ""

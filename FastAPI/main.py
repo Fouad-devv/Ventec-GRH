@@ -25,7 +25,7 @@ from models import (
     GenerateDescriptionRequest, GenerateDescriptionResponse,
     GenerateInterviewQuestionsRequest, GenerateInterviewQuestionsResponse, QuestionItem,
     GenerateChecklistRequest, GenerateChecklistResponse, ChecklistItem,
-    GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere,
+    GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere, ActivityItem,
     ExtractJobPostingResponse,
 )
 
@@ -564,62 +564,99 @@ async def generate_fiche_fonction(req: GenerateFicheFonctionRequest):
     if req.requirements:  context_parts.append(f"Exigences existantes :\n{req.requirements[:600]}")
     context = "\n".join(context_parts)
 
-    prompt = f"""Tu es un expert RH chez Ventec. Génère le contenu d'une fiche de fonction \
-professionnelle en français pour le poste suivant :
+    prompt = f"""Tu es un expert RH chez Ventec Maroc. Tu dois générer le contenu d'une fiche de fonction \
+professionnelle en français, en suivant EXACTEMENT le style et la structure des fiches de fonction Ventec.
 
+Poste à documenter :
 {context}
+
+STYLE VENTEC À RESPECTER :
+- Les missions sont courtes, concrètes, orientées action (verbe d'action à l'infinitif)
+  Exemples pour un poste RH : "Coordonner les activités RH du Groupe", "Assurer le suivi des procédures RH"
+- Les activités sont des tâches opérationnelles détaillées et spécifiques au poste
+  Exemples : "Mettre en œuvre la politique de recrutement selon les orientations stratégiques",
+             "Elaborer et mettre à jour les fiches de fonction des salariés",
+             "Participer à l'élaboration du plan de formation annuel"
+- L'intérimaire : une phrase complète mentionnant le supérieur hiérarchique direct
+  Exemple : "Pendant l'absence du titulaire, l'intérim sera assuré par une personne désignée par le [titre du responsable]."
+- collaborateurs_directs : "Néant" si aucun subordonné direct, sinon liste les postes
+- Les compétences techniques sont précises et propres au métier (pas génériques)
 
 Retourne UNIQUEMENT un objet JSON valide avec exactement cette structure :
 {{
   "missions": [
-    "Mission principale 1",
-    "Mission principale 2",
-    "Mission principale 3"
+    "Coordonner les ... du ...",
+    "Assurer le suivi de ...",
+    "Apporter une expertise en ...",
+    "Contribuer à ..."
   ],
   "activites_principales": [
-    "Activité détaillée 1",
-    "Activité détaillée 2",
-    "Activité détaillée 3",
-    "Activité détaillée 4",
-    "Activité détaillée 5"
+    {{
+      "label": "Activité principale 1 du titulaire (verbe d'action à l'infinitif, spécifique au poste) :",
+      "sub": [
+        "Sous-activité détaillée 1a",
+        "Sous-activité détaillée 1b",
+        "Sous-activité détaillée 1c"
+      ]
+    }},
+    {{
+      "label": "Activité principale 2 :",
+      "sub": [
+        "Sous-activité détaillée 2a",
+        "Sous-activité détaillée 2b"
+      ]
+    }},
+    {{
+      "label": "Activité principale 3 :",
+      "sub": [
+        "Sous-activité détaillée 3a",
+        "Sous-activité détaillée 3b"
+      ]
+    }}
   ],
+  "collaborateurs_directs": "Néant",
   "indicateurs_performance": [
-    "Indicateur mesurable 1",
-    "Indicateur mesurable 2",
-    "Indicateur mesurable 3"
+    "KPI mesurable 1",
+    "KPI mesurable 2",
+    "KPI mesurable 3",
+    "KPI mesurable 4"
   ],
-  "niveau_formation": "BAC+X en Domaine ou équivalent",
-  "experience_requise": "Description précise de l'expérience requise",
+  "niveau_formation": "BAC+X en Domaine spécifique ou en Domaine équivalent",
+  "experience_requise": "Débutant(e) accepté(e) ou X à Y ans d'expérience dans un poste similaire",
   "competences_techniques": [
-    {{"label": "Compétence technique ou fonctionnelle 1", "poids": 5}},
-    {{"label": "Compétence technique ou fonctionnelle 2", "poids": 5}},
-    {{"label": "Compétence technique ou fonctionnelle 3", "poids": 5}},
-    {{"label": "Compétence technique ou fonctionnelle 4", "poids": 5}},
-    {{"label": "Compétence technique ou fonctionnelle 5", "poids": 5}},
-    {{"label": "Compétence technique ou fonctionnelle 6", "poids": 5}},
-    {{"label": "Compétence technique ou fonctionnelle 7", "poids": 5}}
+    {{"label": "Compétence technique spécifique au poste 1", "poids": 5}},
+    {{"label": "Compétence technique spécifique au poste 2", "poids": 5}},
+    {{"label": "Compétence technique spécifique au poste 3", "poids": 5}},
+    {{"label": "Compétence technique spécifique au poste 4", "poids": 5}},
+    {{"label": "Compétence technique spécifique au poste 5", "poids": 5}},
+    {{"label": "Compétence technique spécifique au poste 6", "poids": 5}},
+    {{"label": "Compétence technique spécifique au poste 7", "poids": 5}}
   ],
   "interlocuteurs_internes": [
-    "Service ou département interne 1",
-    "Service ou département interne 2"
+    "Service ou Département interne 1",
+    "Service ou Département interne 2",
+    "Service ou Département interne 3"
   ],
   "interlocuteurs_externes": [
-    "Partenaire ou organisme externe 1",
-    "Partenaire ou organisme externe 2"
-  ]
+    "Organisme ou Partenaire externe 1",
+    "Organisme ou Partenaire externe 2"
+  ],
+  "interimaire": "Pendant l'absence du titulaire, l'intérim sera assuré par une personne désignée par le [titre du responsable hiérarchique direct]."
 }}
 
 Règles strictes :
-- missions : 3 à 5 missions principales, formulation concise et orientée résultat
-- activites_principales : 6 à 10 activités opérationnelles précises
-- indicateurs_performance : 4 à 6 KPIs mesurables et pertinents pour le poste
-- niveau_formation : diplôme requis (ex: "BAC+5 en Informatique ou en Systèmes d'Information")
-- experience_requise : durée et type d'expérience (ex: "Débutant(e) accepté(e) ou 1 à 2 ans d'expérience en développement logiciel")
-- competences_techniques : exactement 7 compétences techniques/fonctionnelles clés du poste, toutes avec poids = 5
-- interlocuteurs_internes : 2 à 4 services internes avec lesquels le poste interagit
-- interlocuteurs_externes : 2 à 4 organismes/partenaires externes
-- Toutes les valeurs en français professionnel
-- Ne retourne QUE le JSON, sans aucun texte avant ou après
+- missions : 3 à 5 missions CONCISES, verbe à l'infinitif, spécifiques au poste (pas génériques)
+- activites_principales : 4 à 6 objets avec "label" (activité principale, verbe infinitif, finissant par ":") et "sub" (2 à 4 sous-tâches opérationnelles et spécifiques). EXEMPLE pour un poste RH : {{"label": "Mettre en œuvre la politique de recrutement selon les orientations stratégiques :", "sub": ["Analyser les besoins en recrutement en lien avec les managers", "Assurer la campagne de recrutement et la procédure de sélection", "Rédiger et publier les offres d'emploi sur les canaux appropriés"]}}
+- collaborateurs_directs : "Néant" pour un poste sans subordonnés, sinon les titres des postes gérés
+- indicateurs_performance : 4 à 6 KPIs mesurables et pertinents pour CE poste précis
+- niveau_formation : diplôme et domaine précis (ex: "BAC+5 en Gestion des Ressources Humaines ou en Droit Social")
+- experience_requise : précis et adapté au niveau du poste
+- competences_techniques : exactement 7, toutes très spécifiques au métier, poids = 5
+- interlocuteurs_internes : 2 à 4 services avec lesquels ce poste interagit vraiment
+- interlocuteurs_externes : 2 à 4 organismes/partenaires externes réels pour ce métier
+- interimaire : phrase complète avec le titre du responsable hiérarchique direct déduit du contexte
+- Français professionnel, style Ventec formel
+- Ne retourne QUE le JSON, sans texte avant ou après
 """
 
     try:
@@ -640,15 +677,28 @@ Règles strictes :
                     poids=int(c.get("poids", 5)),
                 ))
 
+        activites_raw = data.get("activites_principales", [])
+        activites = []
+        for a in activites_raw:
+            if isinstance(a, dict):
+                activites.append(ActivityItem(
+                    label=str(a.get("label", "")),
+                    sub=[str(s) for s in a.get("sub", [])],
+                ))
+            elif isinstance(a, str):
+                activites.append(ActivityItem(label=a, sub=[]))
+
         return GenerateFicheFonctionResponse(
             missions=data.get("missions", []),
-            activites_principales=data.get("activites_principales", []),
+            activites_principales=activites,
+            collaborateurs_directs=data.get("collaborateurs_directs", "Néant"),
             indicateurs_performance=data.get("indicateurs_performance", []),
             niveau_formation=data.get("niveau_formation", ""),
             experience_requise=data.get("experience_requise", ""),
             competences_techniques=competences,
             interlocuteurs_internes=data.get("interlocuteurs_internes", []),
             interlocuteurs_externes=data.get("interlocuteurs_externes", []),
+            interimaire=data.get("interimaire", ""),
         )
     except Exception as e:
         logger.error("Fiche de fonction generation failed: %s", e)

@@ -90,16 +90,16 @@ public class ExportService {
     private static final String HDR_FONT = "Times New Roman";
 
     private static final String[] COMPETENCES_COMPORTEMENTALES = {
-        "Rigueur et organisation",
-        "Sens de la communication",
-        "Travail en équipe",
-        "Adaptabilité et flexibilité",
-        "Orientation résultats",
-        "Sens des responsabilités",
-        "Initiative et proactivité",
-        "Gestion du stress",
-        "Leadership et management",
-        "Orientation client"
+        "Ponctualité/Engagement/Disponibilité",
+        "Attitude – Présentation",
+        "Esprit de négociation et persuasion",
+        "Gestion du temps et des priorités",
+        "Sens de l'organisation",
+        "Sens de l'anticipation",
+        "Aisance relationnelle",
+        "Sens de la responsabilité et autonomie",
+        "Sens de la collaboration / travail en équipe",
+        "Proactivité et Dynamisme"
     };
 
     // ── Word export for job posting ──────────────────────────────────────────
@@ -193,14 +193,16 @@ public class ExportService {
                 .block();
         if (ai == null) ai = Map.of();
 
-        List<String> missions    = toStringList(ai.get("missions"));
-        List<String> activites   = toStringList(ai.get("activites_principales"));
-        List<String> indicateurs = toStringList(ai.get("indicateurs_performance"));
-        String niveauFormation   = toStr(ai.get("niveau_formation"), "");
-        String experienceRequise = toStr(ai.get("experience_requise"), "");
+        List<String> missions             = toStringList(ai.get("missions"));
+        List<Map<String, Object>> activites = toMapList(ai.get("activites_principales"));
+        String collaborateursDirects      = toStr(ai.get("collaborateurs_directs"), "Néant");
+        List<String> indicateurs          = toStringList(ai.get("indicateurs_performance"));
+        String niveauFormation            = toStr(ai.get("niveau_formation"), "");
+        String experienceRequise          = toStr(ai.get("experience_requise"), "");
         List<Map<String, Object>> compTech = toMapList(ai.get("competences_techniques"));
-        List<String> internesL   = toStringList(ai.get("interlocuteurs_internes"));
-        List<String> externesL   = toStringList(ai.get("interlocuteurs_externes"));
+        List<String> internesL            = toStringList(ai.get("interlocuteurs_internes"));
+        List<String> externesL            = toStringList(ai.get("interlocuteurs_externes"));
+        String interimaire                = toStr(ai.get("interimaire"), "");
 
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -308,32 +310,49 @@ public class ExportService {
             doc.createParagraph();
 
             // ── I. Missions ─────────────────────────────────────────────────
-            sectionHeading(doc, "I-", "MISSIONS PRINCIPALES :");
-            for (int i = 0; i < missions.size(); i++) numberedItem(doc, i + 1, missions.get(i));
+            sectionHeading(doc, "I-", "MISSIONS :");
+            for (String m : missions) bulletItem(doc, m);
             doc.createParagraph();
 
-            // ── II. Place dans l'organisation ───────────────────────────────
-            sectionHeading(doc, "II-", "PLACE DANS L'ORGANISATION :");
+            // ── II. Place du poste dans l'organisation ───────────────────────
+            sectionHeading(doc, "II-", "PLACE DU POSTE DANS L'ORGANISATION :");
             doc.createParagraph().createRun()
                .setText("Rattachement hiérarchique : ......................................................................");
             doc.createParagraph();
 
-            // ── III. Activités principales ───────────────────────────────────
-            sectionHeading(doc, "III-", "ACTIVITES PRINCIPALES :");
-            for (int i = 0; i < activites.size(); i++) numberedItem(doc, i + 1, activites.get(i));
+            // ── III. Activités ───────────────────────────────────────────────
+            sectionHeading(doc, "III-", "ACTIVITES :");
+
+            // 1. Activités principales du titulaire
+            subSectionHeading(doc, "1.", "Activités principales du titulaire");
+            for (Map<String, Object> act : activites) {
+                String label = toStr(act.get("label"), "");
+                bulletItem(doc, label);
+                Object subRaw = act.get("sub");
+                if (subRaw instanceof List<?> subList) {
+                    for (Object sub : subList) bulletSubItem(doc, String.valueOf(sub));
+                }
+            }
+            bulletItem(doc, "Autres fonctions jugées nécessaires par la hiérarchie.");
             doc.createParagraph();
 
-            // Interlocuteurs
-            XWPFParagraph interTitleP = doc.createParagraph();
-            XWPFRun interTitleR = interTitleP.createRun();
-            interTitleR.setBold(true); interTitleR.setFontSize(10);
-            interTitleR.setText("Interlocuteurs :");
+            // 2. Collaborateurs directs
+            subSectionHeading(doc, "2.", "Collaborateurs directs :");
+            XWPFParagraph collabP = doc.createParagraph();
+            collabP.setIndentationLeft(360);
+            XWPFRun collabR = collabP.createRun();
+            collabR.setFontSize(10);
+            collabR.setText(collaborateursDirects);
+            doc.createParagraph();
+
+            // 3. Principaux Interlocuteurs
+            subSectionHeading(doc, "3.", "Principaux Interlocuteurs :");
             int interRows = Math.max(Math.max(internesL.size(), externesL.size()), 1);
             XWPFTable interTbl = doc.createTable(interRows + 1, 2);
             setTableWidth(interTbl, 9360);
             XWPFTableRow interHdr = interTbl.getRow(0);
-            navyCell(interHdr.getCell(0), "Interlocuteurs internes", ParagraphAlignment.CENTER, 10, true);
-            navyCell(interHdr.getCell(1), "Interlocuteurs externes", ParagraphAlignment.CENTER, 10, true);
+            navyCell(interHdr.getCell(0), "Relations Internes", ParagraphAlignment.CENTER, 10, true);
+            navyCell(interHdr.getCell(1), "Relations Externes", ParagraphAlignment.CENTER, 10, true);
             for (int i = 0; i < interRows; i++) {
                 XWPFTableRow r = interTbl.getRow(i + 1);
                 String interne = i < internesL.size() ? internesL.get(i) : "";
@@ -344,40 +363,35 @@ public class ExportService {
             doc.createParagraph();
 
             // ── IV. Indicateurs de performance ──────────────────────────────
-            sectionHeading(doc, "IV-", "INDICATEURS DE PERFORMANCE (KPI) :");
-            for (int i = 0; i < indicateurs.size(); i++) numberedItem(doc, i + 1, indicateurs.get(i));
+            sectionHeading(doc, "IV-", "INDICATEURS DE PERFORMANCE :");
+            for (String kpi : indicateurs) bulletItem(doc, kpi);
             doc.createParagraph();
 
             // ── V. Intérim ──────────────────────────────────────────────────
-            sectionHeading(doc, "V-", "INTERIMAIRE :");
-            doc.createParagraph().createRun()
-               .setText("En cas d'absence, le titulaire est remplacé par : ......................................................................");
+            sectionHeading(doc, "V-", "INTERIM :");
+            XWPFParagraph interimP = doc.createParagraph();
+            XWPFRun interimR = interimP.createRun();
+            interimR.setFontSize(10);
+            interimR.setText(interimaire.isBlank()
+                ? "Pendant l'absence du titulaire, l'intérim sera assuré par une personne désignée par le responsable hiérarchique."
+                : interimaire);
             doc.createParagraph();
 
             // ── VI. Critères de compétences ─────────────────────────────────
             sectionHeading(doc, "VI-", "CRITERES DE COMPETENCES :");
 
-            XWPFParagraph formP = doc.createParagraph();
-            XWPFRun formLbl = formP.createRun();
-            formLbl.setBold(true); formLbl.setFontSize(10);
-            formLbl.setText("A. Niveau de formation : ");
-            XWPFRun formVal = formP.createRun();
-            formVal.setFontSize(10); formVal.setText(niveauFormation);
-
-            XWPFParagraph expP = doc.createParagraph();
-            XWPFRun expLbl = expP.createRun();
-            expLbl.setBold(true); expLbl.setFontSize(10);
-            expLbl.setText("B. Expérience requise : ");
-            XWPFRun expVal = expP.createRun();
-            expVal.setFontSize(10); expVal.setText(experienceRequise);
-
+            // 1. Niveau de formation et Diplôme requis
+            subSectionHeading(doc, "1.", "Niveau de formation et Diplôme requis");
+            bulletItem(doc, niveauFormation);
             doc.createParagraph();
 
-            // C. Compétences techniques
-            XWPFParagraph techLblP = doc.createParagraph();
-            XWPFRun techLblR = techLblP.createRun();
-            techLblR.setBold(true); techLblR.setFontSize(10);
-            techLblR.setText("C. Compétences techniques :");
+            // 2. Expérience requise
+            subSectionHeading(doc, "2.", "Expérience requise");
+            bulletItem(doc, experienceRequise);
+            doc.createParagraph();
+
+            // 3. Compétences techniques et transverses
+            subSectionHeading(doc, "3.", "Compétences techniques et transverses :");
 
             int techRows = compTech.isEmpty() ? 7 : compTech.size();
             XWPFTable techTbl = doc.createTable(techRows + 2, 3);
@@ -402,11 +416,8 @@ public class ExportService {
 
             doc.createParagraph();
 
-            // D. Compétences comportementales
-            XWPFParagraph behLblP = doc.createParagraph();
-            XWPFRun behLblR = behLblP.createRun();
-            behLblR.setBold(true); behLblR.setFontSize(10);
-            behLblR.setText("D. Compétences comportementales :");
+            // 4. Compétences comportementales
+            subSectionHeading(doc, "4.", "Compétences comportementales :");
 
             XWPFTable behTbl = doc.createTable(COMPETENCES_COMPORTEMENTALES.length + 2, 3);
             setTableWidth(behTbl, 9360);
@@ -428,12 +439,9 @@ public class ExportService {
             doc.createParagraph();
 
             // ── VII. QSE ────────────────────────────────────────────────────
-            sectionHeading(doc, "VII-", "QUALITE – SECURITE – ENVIRONNEMENT (QSE) :");
-            XWPFParagraph qseP = doc.createParagraph();
-            XWPFRun qseR = qseP.createRun();
-            qseR.setFontSize(10);
-            qseR.setText("Le titulaire du poste est responsable de l'application des procédures QSE en vigueur "
-                    + "dans l'entreprise et contribue à l'amélioration continue du système de management QSE.");
+            sectionHeading(doc, "VII-", "QUALITE SECURITE ENVIRONNEMENT :");
+            bulletItem(doc, "Veiller aux respects des dispositions QSE dans le milieu de travail "
+                    + "et remonter tout dysfonctionnement");
 
             doc.createParagraph();
 
@@ -1025,6 +1033,31 @@ public class ExportService {
         run.setBold(true); run.setFontSize(11);
         run.setUnderline(UnderlinePatterns.SINGLE);
         run.setText(roman + " " + heading);
+    }
+
+    private void subSectionHeading(XWPFDocument doc, String number, String text) {
+        XWPFParagraph p = doc.createParagraph();
+        p.setIndentationLeft(180);
+        XWPFRun run = p.createRun();
+        run.setBold(true); run.setFontSize(10);
+        run.setUnderline(UnderlinePatterns.SINGLE);
+        run.setText(number + " " + text);
+    }
+
+    private void bulletItem(XWPFDocument doc, String text) {
+        XWPFParagraph p = doc.createParagraph();
+        p.setIndentationLeft(360);
+        XWPFRun run = p.createRun();
+        run.setFontSize(10);
+        run.setText("– " + text);
+    }
+
+    private void bulletSubItem(XWPFDocument doc, String text) {
+        XWPFParagraph p = doc.createParagraph();
+        p.setIndentationLeft(720);
+        XWPFRun run = p.createRun();
+        run.setFontSize(10);
+        run.setText("o " + text);
     }
 
     private void numberedItem(XWPFDocument doc, int n, String text) {
