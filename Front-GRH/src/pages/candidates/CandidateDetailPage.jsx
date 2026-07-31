@@ -7,6 +7,7 @@ import {
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { applicationsApi } from '../../api/applications';
+import { usePageBack } from '../../context/HeaderContext';
 
 const STATUS_STYLES = {
   PENDING:     'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
@@ -55,6 +56,16 @@ export const CandidateDetailPage = () => {
   const backTo = location.state?.from || '/app/candidates';
   const backLabel = location.state?.fromLabel ? `Retour à "${location.state.fromLabel}"` : 'Retour aux candidats';
   const axios = useAxiosPrivate();
+
+  usePageBack(
+    <button
+      onClick={() => navigate(backTo)}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+    >
+      <MdArrowBack className="w-4 h-4" />
+      {backLabel}
+    </button>
+  );
   const api = candidatesApi(axios);
   const appApi = applicationsApi(axios);
 
@@ -87,10 +98,6 @@ export const CandidateDetailPage = () => {
     return (
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <p className="text-slate-400">Candidat introuvable</p>
-        <button onClick={() => navigate(backTo)}
-          className="text-sm text-blue-600 hover:underline">
-          {backLabel}
-        </button>
       </div>
     );
   }
@@ -111,15 +118,6 @@ export const CandidateDetailPage = () => {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Back */}
-      <button
-        onClick={() => navigate(backTo)}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-      >
-        <MdArrowBack className="w-4 h-4" />
-        {backLabel}
-      </button>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Left column: profile card ── */}
         <div className="lg:col-span-1 space-y-4">

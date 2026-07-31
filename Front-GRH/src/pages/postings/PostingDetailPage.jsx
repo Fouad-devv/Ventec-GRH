@@ -10,6 +10,7 @@ import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
 import { filterApi } from '../../api/filter';
+import { usePageBack } from '../../context/HeaderContext';
 
 const ScoreBadge = ({ score }) => {
   if (score == null) return <span className="text-slate-400 text-xs">—</span>;
@@ -449,6 +450,16 @@ export const PostingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const axios = useAxiosPrivate();
+
+  usePageBack(
+    <button
+      onClick={() => navigate('/app/postings')}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+    >
+      <MdArrowBack className="w-4 h-4" />
+      Retour aux offres
+    </button>
+  );
   const pApi = postingsApi(axios);
   const appApi = applicationsApi(axios);
   const fApi = filterApi(axios);
@@ -621,15 +632,6 @@ export const PostingDetailPage = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      {/* Back */}
-      <button
-        onClick={() => navigate('/app/postings')}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-      >
-        <MdArrowBack className="w-4 h-4" />
-        Retour aux offres
-      </button>
-
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
