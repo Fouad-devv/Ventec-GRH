@@ -419,39 +419,59 @@ public class ExportService {
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            // ── Header (logos | title | Management RH) ──────────────────────
+            // ── Header (logos | title | Management RH) — dashed outer border ─
             XWPFTable headerTbl = doc.createTable(1, 3);
             setTableWidth(headerTbl, 9360);
+            // Dashed outer border, thin inner borders (matching original template)
+            CTTblPr htPr = headerTbl.getCTTbl().getTblPr();
+            if (htPr == null) htPr = headerTbl.getCTTbl().addNewTblPr();
+            CTTblBorders htB = htPr.isSetTblBorders() ? htPr.getTblBorders() : htPr.addNewTblBorders();
+            setDashedBorder(htB.isSetTop()     ? htB.getTop()     : htB.addNewTop(),     "000000", 8);
+            setDashedBorder(htB.isSetBottom()  ? htB.getBottom()  : htB.addNewBottom(),  "000000", 8);
+            setDashedBorder(htB.isSetLeft()    ? htB.getLeft()    : htB.addNewLeft(),     "000000", 8);
+            setDashedBorder(htB.isSetRight()   ? htB.getRight()   : htB.addNewRight(),    "000000", 8);
+            setDashedBorder(htB.isSetInsideH() ? htB.getInsideH() : htB.addNewInsideH(), "AAAAAA", 4);
+            setDashedBorder(htB.isSetInsideV() ? htB.getInsideV() : htB.addNewInsideV(), "AAAAAA", 4);
+
             XWPFTableRow hRow = headerTbl.getRow(0);
 
-            // Left: logos
+            // Set column widths: logos 25% | title 50% | management 25%
+            setCellWidth(hRow.getCell(0), 2340);
+            setCellWidth(hRow.getCell(1), 4680);
+            setCellWidth(hRow.getCell(2), 2340);
+
+            // Left: logos (white bg) — vertically centered
             setLogosInCell(doc, hRow.getCell(0));
+            hRow.getCell(0).setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
 
-            // Center: title (navy) — matches PDF exactly
+            // Center: bold title — white bg, vertically centered
             XWPFTableCell midC = hRow.getCell(1);
-            navyCell(midC, "LISTE DES DOCUMENTS", ParagraphAlignment.CENTER, 11, true);
-            XWPFParagraph midP2 = midC.addParagraph();
-            midP2.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun midR2 = midP2.createRun();
-            midR2.setBold(true); midR2.setFontSize(11); midR2.setColor(WHITE);
-            midR2.setText("ADMINISTRATIFS A FOURNIR");
-            XWPFParagraph midP3 = midC.addParagraph();
-            midP3.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun midR3 = midP3.createRun();
-            midR3.setBold(true); midR3.setFontSize(11); midR3.setColor(WHITE);
-            midR3.setText("CDI-CDD");
+            midC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+            XWPFParagraph mp1 = midC.getParagraphs().isEmpty() ? midC.addParagraph() : midC.getParagraphs().get(0);
+            mp1.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun mr1 = mp1.createRun(); mr1.setBold(true); mr1.setFontSize(12);
+            mr1.setText("LISTE DES DOCUMENTS");
+            XWPFParagraph mp2 = midC.addParagraph(); mp2.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun mr2 = mp2.createRun(); mr2.setBold(true); mr2.setFontSize(12);
+            mr2.setText("ADMINISTRATIFS A FOURNIR");
+            XWPFParagraph mp3 = midC.addParagraph(); mp3.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun mr3 = mp3.createRun(); mr3.setBold(true); mr3.setFontSize(12);
+            mr3.setText("CDI-CDD");
 
-            // Right: Management RH (navy)
+            // Right: Management Ressources Humaines — white bg, bold, centered, vertically centered
             XWPFTableCell rightC = hRow.getCell(2);
-            navyCell(rightC, "Management", ParagraphAlignment.RIGHT, 9, false);
-            XWPFParagraph rp2 = rightC.addParagraph(); rp2.setAlignment(ParagraphAlignment.RIGHT);
-            XWPFRun rr2 = rp2.createRun(); rr2.setFontSize(9); rr2.setColor(WHITE); rr2.setText("Ressources");
-            XWPFParagraph rp3 = rightC.addParagraph(); rp3.setAlignment(ParagraphAlignment.RIGHT);
-            XWPFRun rr3 = rp3.createRun(); rr3.setFontSize(9); rr3.setColor(WHITE); rr3.setText("Humaines");
+            rightC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+            XWPFParagraph rp1 = rightC.getParagraphs().isEmpty() ? rightC.addParagraph() : rightC.getParagraphs().get(0);
+            rp1.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun rr1 = rp1.createRun(); rr1.setBold(true); rr1.setFontSize(10); rr1.setText("Management");
+            XWPFParagraph rp2 = rightC.addParagraph(); rp2.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun rr2 = rp2.createRun(); rr2.setBold(true); rr2.setFontSize(10); rr2.setText("Ressources");
+            XWPFParagraph rp3 = rightC.addParagraph(); rp3.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun rr3 = rp3.createRun(); rr3.setBold(true); rr3.setFontSize(10); rr3.setText("Humaines");
 
             doc.createParagraph();
 
-            // ── Info table ──────────────────────────────────────────────────
+            // ── Info table (Filiale / Catégorie / Candidat) ─────────────────
             XWPFTable infoTbl = doc.createTable(3, 2);
             setTableWidth(infoTbl, 9360);
             addInfoRow(infoTbl, 0, "Filiale",   "Ventec");
@@ -465,15 +485,19 @@ public class ExportService {
             XWPFTable docTbl = doc.createTable(rows + 1, 3);
             setTableWidth(docTbl, 9360);
             XWPFTableRow docHdr = docTbl.getRow(0);
-            navyCell(docHdr.getCell(0), "Documents",            ParagraphAlignment.LEFT,   10, true);
-            navyCell(docHdr.getCell(1), "Nombre d'exemplaires", ParagraphAlignment.CENTER, 10, true);
-            navyCell(docHdr.getCell(2), "Observation",          ParagraphAlignment.LEFT,   10, true);
+            // Header row: gray background, bold dark text (matching original template)
+            grayCell(docHdr.getCell(0), "Documents",            ParagraphAlignment.CENTER, 10, true);
+            grayCell(docHdr.getCell(1), "Nombre d'exemplaires", ParagraphAlignment.CENTER, 10, true);
+            grayCell(docHdr.getCell(2), "Observation",          ParagraphAlignment.CENTER, 10, true);
+
+            // Light blue for alternating rows — matches original table style
+            final String LIGHT_BLUE = "BDD7EE";
 
             if (documents.isEmpty()) {
                 XWPFTableRow r = docTbl.getRow(1);
-                plainCell(r.getCell(0), "Aucun document spécifié", ParagraphAlignment.LEFT,   10, false);
+                plainCell(r.getCell(0), "Aucun document spécifié", ParagraphAlignment.CENTER, 10, true);
                 plainCell(r.getCell(1), "",                         ParagraphAlignment.CENTER, 10, false);
-                plainCell(r.getCell(2), "",                         ParagraphAlignment.LEFT,   10, false);
+                plainCell(r.getCell(2), "",                         ParagraphAlignment.CENTER, 10, false);
             } else {
                 for (int i = 0; i < documents.size(); i++) {
                     Map<String, Object> item = documents.get(i);
@@ -481,8 +505,14 @@ public class ExportService {
                     String copies  = toStr(item.get("copies"), "1");
                     String obs     = toStr(item.get("observation"), "");
                     XWPFTableRow r = docTbl.getRow(i + 1);
-                    plainCell(r.getCell(0), name,   ParagraphAlignment.LEFT,   10, false);
-                    plainCell(r.getCell(1), copies, ParagraphAlignment.CENTER, 10, false);
+                    // Alternating rows: even index = white, odd index = light blue
+                    if (i % 2 != 0) {
+                        setCellBg(r.getCell(0), LIGHT_BLUE);
+                        setCellBg(r.getCell(1), LIGHT_BLUE);
+                        setCellBg(r.getCell(2), LIGHT_BLUE);
+                    }
+                    plainCell(r.getCell(0), name,   ParagraphAlignment.CENTER, 10, true);
+                    plainCell(r.getCell(1), copies, ParagraphAlignment.CENTER, 10, true);
                     plainCell(r.getCell(2), obs,    ParagraphAlignment.LEFT,   10, false);
                 }
             }
@@ -494,12 +524,12 @@ public class ExportService {
             noteR.setText("Poste : " + postingTitle);
 
             doc.createParagraph();
-            // Footer matches PDF: "Version du 01/01/2022  Annule et remplace celle du 04/01/2021"
+            // Footer — matches original: "Version du 01/01/2022   Annule et remplace celle du 04/01/2021"
             XWPFTable footerTbl = doc.createTable(1, 2);
             setTableWidth(footerTbl, 9360);
             removeBorders(footerTbl);
             plainCell(footerTbl.getRow(0).getCell(0),
-                      "Version du 01/01/2022", ParagraphAlignment.LEFT, 8, false);
+                      "Version du 01/01/2022", ParagraphAlignment.LEFT, 8, true);
             plainCell(footerTbl.getRow(0).getCell(1),
                       "Annule et remplace celle du 04/01/2021", ParagraphAlignment.RIGHT, 8, false);
 
@@ -880,6 +910,14 @@ public class ExportService {
         w.setW(BigInteger.valueOf(twips));
     }
 
+    private void setCellWidth(XWPFTableCell cell, int twips) {
+        CTTc tc = cell.getCTTc();
+        CTTcPr tcPr = tc.isSetTcPr() ? tc.getTcPr() : tc.addNewTcPr();
+        CTTblWidth w = tcPr.isSetTcW() ? tcPr.getTcW() : tcPr.addNewTcW();
+        w.setType(STTblWidth.DXA);
+        w.setW(BigInteger.valueOf(twips));
+    }
+
     private void removeBorders(XWPFTable table) {
         CTTblPr tblPr = table.getCTTbl().getTblPr();
         if (tblPr == null) tblPr = table.getCTTbl().addNewTblPr();
@@ -896,10 +934,16 @@ public class ExportService {
         border.setVal(STBorder.NONE);
     }
 
+    private void setDashedBorder(CTBorder border, String color, int sz) {
+        border.setVal(STBorder.DASHED);
+        border.setSz(BigInteger.valueOf(sz));
+        border.setColor(color);
+    }
+
     private void addInfoRow(XWPFTable table, int rowIdx, String label, String value) {
         XWPFTableRow row = table.getRow(rowIdx);
-        grayCell(row.getCell(0), label, ParagraphAlignment.LEFT, 10, true);
-        plainCell(row.getCell(1), value, ParagraphAlignment.LEFT, 10, false);
+        grayCell(row.getCell(0), label, ParagraphAlignment.CENTER, 10, true);
+        plainCell(row.getCell(1), value, ParagraphAlignment.CENTER, 10, false);
     }
 
     private void sectionHeading(XWPFDocument doc, String roman, String heading) {

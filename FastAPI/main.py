@@ -656,18 +656,19 @@ Règles strictes :
 
 
 _CHECKLIST_DEFAULT = [
-    {"name": "Curriculum Vitae",                                    "copies": 1, "observation": ""},
-    {"name": "Photo d'identité récente",                            "copies": 3, "observation": ""},
-    {"name": "Photocopie CIN légalisée",                            "copies": 2, "observation": ""},
-    {"name": "Photocopie carte CNSS",                               "copies": 1, "observation": "Si déjà inscrit"},
-    {"name": "N° CIMR",                                             "copies": 1, "observation": "Si déjà inscrit"},
-    {"name": "Relevé d'Identité Bancaire",                          "copies": 1, "observation": ""},
-    {"name": "Fiche anthropométrique",                              "copies": 1, "observation": ""},
-    {"name": "Photocopie des diplômes",                             "copies": 1, "observation": ""},
-    {"name": "Certificat de travail / Attestation de stage",        "copies": 1, "observation": "Expérimenté ou débutant"},
-    {"name": "Radio pulmonaire (petit format)",                     "copies": 1, "observation": ""},
-    {"name": "Bulletin d'adhésion Assurance + Fiche Administrative","copies": 1, "observation": "Jour de l'intégration"},
-    {"name": "Contrat de travail",                                  "copies": 2, "observation": ""},
+    {"name": "Curriculum Vitae",                                     "copies": 1, "observation": ""},
+    {"name": "Photo d'identité récente",                             "copies": 3, "observation": ""},
+    {"name": "Photocopie CIN légalisée",                             "copies": 2, "observation": ""},
+    {"name": "Photocopie carte CNSS",                                "copies": 1, "observation": "Si déjà inscrit"},
+    {"name": "N° CIMR",                                              "copies": 1, "observation": "Si déjà inscrit"},
+    {"name": "Relevé d'Identité Bancaire",                           "copies": 1, "observation": ""},
+    {"name": "Fiche anthropométrique",                               "copies": 1, "observation": ""},
+    {"name": "Photocopie des diplômes",                              "copies": 1, "observation": ""},
+    {"name": "Attestations de stage",                                "copies": 1, "observation": "Pour débutant"},
+    {"name": "Certificat de travail du dernier employeur",           "copies": 1, "observation": "Expérimenté"},
+    {"name": "Radio pulmonaire (petit format)",                      "copies": 1, "observation": ""},
+    {"name": "Bulletin d'adhésion Assurance + Fiche Administrative", "copies": 1, "observation": "À remplir le jour de l'intégration"},
+    {"name": "Contrat de travail",                                   "copies": 2, "observation": ""},
 ]
 
 
@@ -682,44 +683,72 @@ async def generate_checklist(req: GenerateChecklistRequest):
         logger.warning("Groq API key not set — returning default checklist")
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
 
-    is_chantier = any(kw in (req.job_title + " " + (req.department or "")).lower()
-                      for kw in ("chantier", "terrain", "site", "travaux", "btp",
-                                 "génie civil", "construction", "ouvrier"))
+    context = (req.job_title + " " + (req.department or "")).lower()
 
-    prompt = f"""Tu es un assistant RH chez Ventec (entreprise marocaine).
-Génère la liste personnalisée des documents administratifs à fournir pour un candidat recruté.
+    is_chantier = any(kw in context for kw in (
+        "chantier", "terrain", "site", "travaux", "btp",
+        "génie civil", "construction", "ouvrier", "technicien de chantier",
+    ))
+    is_senior = any(kw in context for kw in (
+        "senior", "confirmé", "expérimenté", "chef", "directeur",
+        "responsable", "manager", "lead", "principal", "coordinateur",
+    ))
+    is_junior = any(kw in context for kw in (
+        "junior", "débutant", "stagiaire", "assistant", "aide",
+        "trainee", "apprenti", "entry", "profil junior",
+    ))
 
-Informations:
-- Candidat : {req.candidate_name or ""}
+    # Build conditional instructions
+    if is_senior:
+        exp_rule = "INCLURE uniquement 'Certificat de travail du dernier employeur' (observation: 'Expérimenté'). NE PAS inclure 'Attestations de stage'."
+    elif is_junior:
+        exp_rule = "INCLURE uniquement 'Attestations de stage' (observation: 'Pour débutant'). NE PAS inclure 'Certificat de travail du dernier employeur'."
+    else:
+        exp_rule = "INCLURE les deux : 'Attestations de stage' (observation: 'Pour débutant') ET 'Certificat de travail du dernier employeur' (observation: 'Expérimenté')."
+
+    chantier_rule = (
+        "INCLURE 'Analyse de sang NFS (numérotation formule sanguine)' (1 ex, observation vide) ET 'Analyse de sang IGE (immunoglobuline non spécifique)' (1 ex, observation vide)."
+        if is_chantier else
+        "NE PAS inclure 'Analyse de sang NFS' ni 'Analyse de sang IGE'. Ces documents sont CHANTIER UNIQUEMENT et ce poste n'est pas un poste de chantier."
+    )
+
+    prompt = f"""Tu es un assistant RH chez Ventec Maroc.
+Génère la liste exacte des documents administratifs à fournir pour ce candidat recruté.
+
+Contexte :
+- Candidat : {req.candidate_name or "—"}
 - Poste : {req.job_title}
 - Type de contrat : {req.contract_type or "CDI"}
-- Département : {req.department or ""}
-- Personnel chantier/terrain : {"oui" if is_chantier else "non"}
+- Département : {req.department or "—"}
 
-Documents standards Ventec CDI/CDD (à adapter) :
-1. Curriculum Vitae — 1 exemplaire
-2. Photo d'identité récente — 3 exemplaires
-3. Photocopie CIN légalisée — 2 exemplaires
-4. Photocopie carte CNSS — 1 exemplaire — si déjà inscrit
-5. N° CIMR — 1 exemplaire — si déjà inscrit
-6. Relevé d'Identité Bancaire — 1 exemplaire
-7. Fiche anthropométrique — 1 exemplaire
-8. Photocopie des diplômes — 1 exemplaire
-9. Certificat de travail du dernier employeur — 1 exemplaire — pour expérimenté
-10. Attestations de stage — 1 exemplaire — pour débutant
-11. Radio pulmonaire (petit format) — 1 exemplaire
-12. Analyse de sang NFS (numérotation formule sanguine) — 1 exemplaire — CHANTIER UNIQUEMENT
-13. Analyse de sang IGE (immunoglobuline non spécifique) — 1 exemplaire — CHANTIER UNIQUEMENT
-14. Bulletin d'adhésion Assurance + Fiche Administrative — 1 exemplaire — à remplir le jour de l'intégration
-15. Contrat de travail — 2 exemplaires
+Documents à toujours inclure (ordre obligatoire) :
+1. Curriculum Vitae — 1 ex — observation vide
+2. Photo d'identité récente — 3 ex — observation vide
+3. Photocopie CIN légalisée — 2 ex — observation vide
+4. Photocopie carte CNSS — 1 ex — observation : "Si déjà inscrit"
+5. N° CIMR — 1 ex — observation : "Si déjà inscrit"
+6. Relevé d'Identité Bancaire — 1 ex — observation vide
+7. Fiche anthropométrique — 1 ex — observation vide
+8. Photocopie des diplômes — 1 ex — observation vide
 
-Règles strictes :
-- Inclure "Analyse de sang NFS" et "Analyse de sang IGE" UNIQUEMENT si personnel chantier = oui
-- Inclure "Certificat de travail" OU "Attestations de stage", pas les deux (selon le profil du poste)
-- Adapter les observations selon le contexte du poste (courtes, max 8 mots, ou vide)
-- Adapter le nombre d'exemplaires si nécessaire
+Règle expérience (appliquer strictement) :
+{exp_rule}
 
-Retourne UNIQUEMENT un objet JSON valide :
+Règle analyses sanguines (appliquer strictement) :
+{chantier_rule}
+
+Documents à toujours inclure en fin de liste :
+- Radio pulmonaire (petit format) — 1 ex — observation vide
+- Bulletin d'adhésion Assurance + Fiche Administrative — 1 ex — observation : "À remplir le jour de l'intégration"
+- Contrat de travail — 2 ex — observation vide
+
+IMPORTANT :
+- Ne jamais inclure NFS/IGE si le poste n'est pas un poste de chantier
+- Ne jamais modifier les noms des documents (copie exacte des libellés ci-dessus)
+- Observations : courtes (max 6 mots) ou vides — jamais "null" ou "None"
+- Retourner UNIQUEMENT le JSON, sans texte autour
+
+Format JSON attendu :
 {{
   "documents": [
     {{"name": "Curriculum Vitae", "copies": 1, "observation": ""}},
@@ -733,6 +762,7 @@ Retourne UNIQUEMENT un objet JSON valide :
             model=settings.groq_model_fast,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
+            temperature=0.1,
         )
         data = _json.loads(response.choices[0].message.content)
         raw_items = data.get("documents", [])
@@ -740,7 +770,7 @@ Retourne UNIQUEMENT un objet JSON valide :
             ChecklistItem(
                 name=str(item.get("name", "")),
                 copies=int(item.get("copies", 1)),
-                observation=str(item.get("observation", "")),
+                observation=str(item.get("observation", "") or ""),
             )
             for item in raw_items
             if item.get("name")
