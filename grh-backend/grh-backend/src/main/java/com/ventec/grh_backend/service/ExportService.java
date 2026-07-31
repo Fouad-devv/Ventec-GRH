@@ -6,6 +6,7 @@ import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
+import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
@@ -509,145 +510,260 @@ public class ExportService {
         }
     }
 
-    // ── PDF export for interview compte-rendu ────────────────────────────────
+    // ── PDF export for interview guide d'entretien ───────────────────────────
     public byte[] exportInterviewToPdf(UUID id) {
         Interview interview = interviewRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document pdf = new Document(PageSize.A4, 50, 50, 60, 60);
+            Document pdf = new Document(PageSize.A4, 45, 45, 50, 50);
             PdfWriter.getInstance(pdf, out);
             pdf.open();
 
-            Font titleFont   = new Font(Font.HELVETICA, 18, Font.BOLD,   new Color(29, 78, 216));
-            Font headingFont = new Font(Font.HELVETICA, 12, Font.BOLD,   new Color(55, 65, 81));
-            Font labelFont   = new Font(Font.HELVETICA, 10, Font.BOLD,   new Color(107, 114, 128));
-            Font valueFont   = new Font(Font.HELVETICA, 10, Font.NORMAL, new Color(17, 24, 39));
-            Font noteFont    = new Font(Font.HELVETICA, 10, Font.ITALIC, new Color(75, 85, 99));
-            Font footerFont  = new Font(Font.HELVETICA,  8, Font.NORMAL, new Color(156, 163, 175));
+            // ── Colors ──────────────────────────────────────────────────────
+            Color navy      = new Color(31, 56, 100);
+            Color navyLight = new Color(44, 72, 120);
+            Color white     = Color.WHITE;
+            Color grayText  = new Color(55, 65, 81);
+            Color lightGray = new Color(249, 250, 251);
+            Color green     = new Color(4, 120, 87);
+            Color greenBg   = new Color(236, 253, 245);
+            Color greenBorder= new Color(167, 243, 208);
 
-            Paragraph titlePara = new Paragraph("Compte-rendu d'entretien", titleFont);
-            titlePara.setAlignment(Element.ALIGN_CENTER);
-            titlePara.setSpacingAfter(6);
-            pdf.add(titlePara);
-
-            PdfPTable divider = new PdfPTable(1);
-            divider.setWidthPercentage(100);
-            PdfPCell divCell = new PdfPCell();
-            divCell.setBackgroundColor(new Color(29, 78, 216));
-            divCell.setFixedHeight(2f);
-            divCell.setBorder(Rectangle.NO_BORDER);
-            divider.addCell(divCell);
-            divider.setSpacingAfter(16);
-            pdf.add(divider);
+            // ── Fonts ────────────────────────────────────────────────────────
+            Font headerTitleFont = new Font(Font.HELVETICA, 16, Font.BOLD,   white);
+            Font headerSubFont   = new Font(Font.HELVETICA,  9, Font.NORMAL, new Color(199, 210, 254));
+            Font sectionFont     = new Font(Font.HELVETICA, 10, Font.BOLD,   white);
+            Font labelFont       = new Font(Font.HELVETICA,  9, Font.BOLD,   new Color(107, 114, 128));
+            Font valueFont       = new Font(Font.HELVETICA,  9, Font.NORMAL, grayText);
+            Font qNumFont        = new Font(Font.HELVETICA, 10, Font.BOLD,   navy);
+            Font qTextFont       = new Font(Font.HELVETICA, 10, Font.NORMAL, grayText);
+            Font ansLabelFont    = new Font(Font.HELVETICA,  8, Font.BOLD,   green);
+            Font ansTextFont     = new Font(Font.HELVETICA,  9, Font.ITALIC, new Color(6, 78, 59));
+            Font noteFont        = new Font(Font.HELVETICA, 10, Font.ITALIC, new Color(75, 85, 99));
+            Font footerFont      = new Font(Font.HELVETICA,  8, Font.NORMAL, new Color(156, 163, 175));
 
             var app = interview.getApplication();
-            if (app != null) {
-                pdf.add(new Paragraph("Poste", headingFont));
-                pdf.add(pdfField("Intitulé",
-                        app.getJobPosting() != null ? app.getJobPosting().getTitle() : "—",
-                        labelFont, valueFont));
-                pdf.add(pdfField("Candidat",
-                        app.getCandidate() != null
-                                ? app.getCandidate().getFirstName() + " " + app.getCandidate().getLastName()
-                                : "—",
-                        labelFont, valueFont));
-                pdf.add(new Paragraph(" "));
+            String candidateName = app != null && app.getCandidate() != null
+                    ? app.getCandidate().getFirstName() + " " + app.getCandidate().getLastName() : "—";
+            String posteName = app != null && app.getJobPosting() != null
+                    ? app.getJobPosting().getTitle() : "—";
+
+            // ── HEADER: 3-column (logos white | title navy | candidate navy) ──
+            PdfPTable headerTable = new PdfPTable(new float[]{1.4f, 2.2f, 1.4f});
+            headerTable.setWidthPercentage(100);
+            headerTable.setSpacingAfter(10);
+
+            // Left cell: Ventec + Ecowell logos (white bg)
+            PdfPCell logosCell = new PdfPCell();
+            logosCell.setBackgroundColor(white);
+            logosCell.setBorder(Rectangle.BOX);
+            logosCell.setBorderColor(new Color(226, 232, 240));
+            logosCell.setPadding(10);
+            logosCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            logosCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            byte[] ventecBytes  = loadLogoBytes("/logos/ventec-logo.jpeg");
+            byte[] ecowellBytes = loadLogoBytes("/logos/ecowell-logo.jpg");
+            boolean hasLogo = false;
+            if (ventecBytes != null) {
+                try {
+                    Image vImg = Image.getInstance(ventecBytes);
+                    vImg.scaleToFit(120, 32);
+                    Paragraph vPara = new Paragraph();
+                    vPara.setAlignment(Element.ALIGN_CENTER);
+                    vPara.setSpacingAfter(8);
+                    vPara.add(new Chunk(vImg, 0, 0));
+                    logosCell.addElement(vPara);
+                    hasLogo = true;
+                } catch (Exception ignored) {}
             }
+            if (ecowellBytes != null) {
+                try {
+                    Image eImg = Image.getInstance(ecowellBytes);
+                    eImg.scaleToFit(100, 22);
+                    Paragraph ePara = new Paragraph();
+                    ePara.setAlignment(Element.ALIGN_CENTER);
+                    ePara.add(new Chunk(eImg, 0, 0));
+                    logosCell.addElement(ePara);
+                    hasLogo = true;
+                } catch (Exception ignored) {}
+            }
+            if (!hasLogo) {
+                Paragraph fallback = new Paragraph("Ventec", new Font(Font.HELVETICA, 12, Font.BOLD, navy));
+                fallback.setAlignment(Element.ALIGN_CENTER);
+                logosCell.addElement(fallback);
+            }
+            headerTable.addCell(logosCell);
 
-            pdf.add(new Paragraph("Détails de l'entretien", headingFont));
-            pdf.add(new Paragraph(" "));
+            // Center cell: document title (navy bg)
+            PdfPCell titleCell = new PdfPCell();
+            titleCell.setBackgroundColor(navy);
+            titleCell.setBorder(Rectangle.NO_BORDER);
+            titleCell.setPadding(14);
+            titleCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            titleCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            Paragraph titlePara = new Paragraph();
+            titlePara.setAlignment(Element.ALIGN_CENTER);
+            titlePara.add(new Chunk("GUIDE D'ENTRETIEN\n", headerTitleFont));
+            titlePara.add(new Chunk("Ventec GRH — Recrutement", headerSubFont));
+            titleCell.addElement(titlePara);
+            headerTable.addCell(titleCell);
 
-            PdfPTable table = new PdfPTable(2);
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{1f, 2f});
-            addPdfRow(table, "Date & heure",
-                    interview.getScheduledAt() != null ? interview.getScheduledAt().format(DATE_FMT) : "—",
-                    labelFont, valueFont);
-            addPdfRow(table, "Durée",
-                    interview.getDurationMinutes() != null ? interview.getDurationMinutes() + " minutes" : "—",
-                    labelFont, valueFont);
-            addPdfRow(table, "Type",      toStr(interview.getType(),            "—"), labelFont, valueFont);
-            addPdfRow(table, "Lieu/Lien", toStr(interview.getLocationOrLink(),  "—"), labelFont, valueFont);
-            addPdfRow(table, "Statut",    toStr(interview.getStatus(),          "—"), labelFont, valueFont);
-            table.setSpacingAfter(16);
-            pdf.add(table);
+            // Right cell: candidate + post (navy bg)
+            PdfPCell infoCell = new PdfPCell();
+            infoCell.setBackgroundColor(navyLight);
+            infoCell.setBorder(Rectangle.NO_BORDER);
+            infoCell.setPadding(10);
+            infoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            Paragraph infoPara = new Paragraph();
+            infoPara.add(new Chunk("Candidat\n", new Font(Font.HELVETICA, 7, Font.NORMAL, new Color(199, 210, 254))));
+            infoPara.add(new Chunk(candidateName + "\n", new Font(Font.HELVETICA, 9, Font.BOLD, white)));
+            infoPara.add(new Chunk("\nPoste\n",   new Font(Font.HELVETICA, 7, Font.NORMAL, new Color(199, 210, 254))));
+            infoPara.add(new Chunk(posteName,     new Font(Font.HELVETICA, 9, Font.BOLD, white)));
+            infoCell.addElement(infoPara);
+            headerTable.addCell(infoCell);
+            pdf.add(headerTable);
 
-            // ── AI-generated questions ───────────────────────────────────────────
+            // ── Interview details info bar ───────────────────────────────────
+            PdfPTable detailsTable = new PdfPTable(4);
+            detailsTable.setWidthPercentage(100);
+            detailsTable.setSpacingAfter(14);
+            Color detailBorder = new Color(203, 213, 225);
+            String[][] details = {
+                {"Date & heure", interview.getScheduledAt() != null ? interview.getScheduledAt().format(DATE_FMT) : "—"},
+                {"Durée",        interview.getDurationMinutes() != null ? interview.getDurationMinutes() + " min" : "—"},
+                {"Type",         toStr(interview.getType(), "—")},
+                {"Lieu / Lien",  toStr(interview.getLocationOrLink(), "—")},
+            };
+            for (String[] d : details) {
+                PdfPCell lbl = new PdfPCell();
+                lbl.setBackgroundColor(new Color(241, 245, 249));
+                lbl.setBorderColor(detailBorder);
+                lbl.setBorderWidth(0.75f);
+                lbl.setPadding(8);
+                lbl.addElement(new Paragraph(d[0], labelFont));
+                lbl.addElement(new Paragraph(d[1], valueFont));
+                detailsTable.addCell(lbl);
+            }
+            pdf.add(detailsTable);
+
+            // ── Section I: Questions ─────────────────────────────────────────
+            PdfPTable qHeader = new PdfPTable(1);
+            qHeader.setWidthPercentage(100);
+            qHeader.setSpacingAfter(8);
+            PdfPCell qHCell = new PdfPCell(new Phrase("I.  QUESTIONS D'ENTRETIEN", sectionFont));
+            qHCell.setBackgroundColor(navy);
+            qHCell.setBorder(Rectangle.NO_BORDER);
+            qHCell.setPaddingTop(6); qHCell.setPaddingBottom(6);
+            qHCell.setPaddingLeft(10);
+            qHeader.addCell(qHCell);
+            pdf.add(qHeader);
+
             if (interview.getQuestions() != null && !interview.getQuestions().isBlank()) {
                 try {
                     List<?> rawList = objectMapper.readValue(interview.getQuestions(), List.class);
-                    if (!rawList.isEmpty()) {
-                        Font qLabelFont  = new Font(Font.HELVETICA, 9, Font.BOLD,   new Color(4, 120, 87));
-                        Font qAnswerFont = new Font(Font.HELVETICA, 9, Font.ITALIC, new Color(6, 78, 59));
-
-                        Paragraph qSection = new Paragraph("Questions d'entretien IA", headingFont);
-                        qSection.setSpacingBefore(8);
-                        qSection.setSpacingAfter(8);
-                        pdf.add(qSection);
-
-                        int num = 1;
-                        for (Object raw : rawList) {
-                            String questionText = null;
-                            String answerText   = null;
-
-                            if (raw instanceof String s) {
-                                questionText = s;
-                            } else if (raw instanceof Map<?, ?> m) {
-                                questionText = m.get("question") instanceof String q ? q : null;
-                                answerText   = m.get("answer")   instanceof String a ? a : null;
-                            }
-                            if (questionText == null) continue;
-
-                            Paragraph qPara = new Paragraph(num + ". " + questionText, valueFont);
-                            qPara.setSpacingAfter(answerText != null ? 3 : 8);
-                            pdf.add(qPara);
-
-                            if (answerText != null && !answerText.isBlank()) {
-                                PdfPTable ansBox = new PdfPTable(1);
-                                ansBox.setWidthPercentage(95);
-                                ansBox.setHorizontalAlignment(Element.ALIGN_RIGHT);
-                                PdfPCell labelCell = new PdfPCell(new Phrase("Réponse attendue :", qLabelFont));
-                                labelCell.setBackgroundColor(new Color(236, 253, 245));
-                                labelCell.setBorderColor(new Color(167, 243, 208));
-                                labelCell.setPaddingTop(5);
-                                labelCell.setPaddingBottom(2);
-                                labelCell.setPaddingLeft(8);
-                                labelCell.setBorderWidthBottom(0);
-                                ansBox.addCell(labelCell);
-                                PdfPCell ansCell = new PdfPCell(new Phrase(answerText, qAnswerFont));
-                                ansCell.setBackgroundColor(new Color(236, 253, 245));
-                                ansCell.setBorderColor(new Color(167, 243, 208));
-                                ansCell.setPaddingTop(2);
-                                ansCell.setPaddingBottom(6);
-                                ansCell.setPaddingLeft(8);
-                                ansCell.setBorderWidthTop(0);
-                                ansBox.addCell(ansCell);
-                                ansBox.setSpacingAfter(8);
-                                pdf.add(ansBox);
-                            }
-                            num++;
+                    int num = 1;
+                    for (Object raw : rawList) {
+                        String questionText = null;
+                        String answerText   = null;
+                        if (raw instanceof String s) {
+                            questionText = s;
+                        } else if (raw instanceof Map<?, ?> m) {
+                            questionText = m.get("question") instanceof String q ? q : null;
+                            answerText   = m.get("answer")   instanceof String a ? a : null;
                         }
-                        pdf.add(new Paragraph(" "));
+                        if (questionText == null) continue;
+
+                        // Question row (alternating bg)
+                        PdfPTable qRow = new PdfPTable(new float[]{0.12f, 1f});
+                        qRow.setWidthPercentage(100);
+                        qRow.setSpacingAfter(answerText != null ? 2 : 6);
+                        Color rowBg = (num % 2 == 0) ? lightGray : white;
+
+                        PdfPCell numCell = new PdfPCell(new Phrase(String.valueOf(num), qNumFont));
+                        numCell.setBackgroundColor(rowBg);
+                        numCell.setBorderColor(new Color(229, 231, 235));
+                        numCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                        numCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                        numCell.setPadding(8);
+                        qRow.addCell(numCell);
+
+                        PdfPCell qCell = new PdfPCell(new Phrase(questionText, qTextFont));
+                        qCell.setBackgroundColor(rowBg);
+                        qCell.setBorderColor(new Color(229, 231, 235));
+                        qCell.setPadding(8);
+                        qRow.addCell(qCell);
+                        pdf.add(qRow);
+
+                        // Answer box (green) if present
+                        if (answerText != null && !answerText.isBlank()) {
+                            PdfPTable ansBox = new PdfPTable(1);
+                            ansBox.setWidthPercentage(88);
+                            ansBox.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                            ansBox.setSpacingAfter(6);
+
+                            PdfPCell ansLbl = new PdfPCell(new Phrase("Réponse attendue :", ansLabelFont));
+                            ansLbl.setBackgroundColor(greenBg);
+                            ansLbl.setBorderColor(greenBorder);
+                            ansLbl.setPaddingTop(5); ansLbl.setPaddingBottom(2);
+                            ansLbl.setPaddingLeft(8); ansLbl.setBorderWidthBottom(0);
+                            ansBox.addCell(ansLbl);
+
+                            PdfPCell ansTxt = new PdfPCell(new Phrase(answerText, ansTextFont));
+                            ansTxt.setBackgroundColor(greenBg);
+                            ansTxt.setBorderColor(greenBorder);
+                            ansTxt.setPaddingTop(2); ansTxt.setPaddingBottom(6);
+                            ansTxt.setPaddingLeft(8); ansTxt.setBorderWidthTop(0);
+                            ansBox.addCell(ansTxt);
+                            pdf.add(ansBox);
+                        }
+                        num++;
                     }
                 } catch (Exception ignored) {}
+            } else {
+                Paragraph noQ = new Paragraph("Aucune question générée.", new Font(Font.HELVETICA, 9, Font.ITALIC, new Color(156, 163, 175)));
+                noQ.setSpacingAfter(8);
+                pdf.add(noQ);
             }
 
-            pdf.add(new Paragraph("Notes et observations", headingFont));
-            pdf.add(new Paragraph(" "));
+            // ── Section II: Notes (header + content in one table so they stay together) ──
             String notes = (interview.getNotes() != null && !interview.getNotes().isBlank())
                     ? interview.getNotes() : "Aucune note enregistrée.";
-            Paragraph notesPara = new Paragraph(notes, noteFont);
-            notesPara.setSpacingAfter(24);
-            pdf.add(notesPara);
+            PdfPTable notesSection = new PdfPTable(1);
+            notesSection.setWidthPercentage(100);
+            notesSection.setSpacingBefore(10);
+            notesSection.setSpacingAfter(16);
+            notesSection.setKeepTogether(true);
 
+            PdfPCell nHCell = new PdfPCell(new Phrase("II.  NOTES ET OBSERVATIONS", sectionFont));
+            nHCell.setBackgroundColor(navy);
+            nHCell.setBorder(Rectangle.NO_BORDER);
+            nHCell.setPaddingTop(6); nHCell.setPaddingBottom(6);
+            nHCell.setPaddingLeft(10);
+            notesSection.addCell(nHCell);
+
+            PdfPCell notesCell = new PdfPCell(new Phrase(notes, noteFont));
+            notesCell.setBorderColor(new Color(229, 231, 235));
+            notesCell.setMinimumHeight(70f);
+            notesCell.setPadding(10);
+            notesSection.addCell(notesCell);
+            pdf.add(notesSection);
+
+            // ── Signature row ────────────────────────────────────────────────
             PdfPTable sigTable = new PdfPTable(2);
             sigTable.setWidthPercentage(100);
-            addSigCell(sigTable, "Signature du recruteur", valueFont);
-            addSigCell(sigTable, "Signature du candidat",  valueFont);
+            sigTable.setSpacingAfter(12);
+            for (String label : new String[]{"Signature du recruteur", "Signature du candidat"}) {
+                PdfPCell sc = new PdfPCell();
+                sc.setBorderColor(new Color(209, 213, 219));
+                sc.setMinimumHeight(50f);
+                sc.setPadding(8);
+                sc.addElement(new Paragraph(label, labelFont));
+                sigTable.addCell(sc);
+            }
             pdf.add(sigTable);
 
-            pdf.add(new Paragraph(" "));
+            // ── Footer ───────────────────────────────────────────────────────
             Paragraph footerPara = new Paragraph("Document généré par Ventec GRH", footerFont);
             footerPara.setAlignment(Element.ALIGN_CENTER);
             pdf.add(footerPara);
