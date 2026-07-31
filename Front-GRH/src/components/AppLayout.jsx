@@ -64,9 +64,9 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
             {backButton}
           </div>
 
-          {/* Center — page title, pinned toward the bottom */}
-          <div className="flex justify-center self-end pb-2">
-            <h1 className="text-sm sm:text-base lg:text-3xl font-bold lg:font-extrabold lg:tracking-tight text-slate-900 dark:text-white truncate text-center">
+          {/* Center — page title */}
+          <div className="flex justify-center self-center lg:self-end lg:pb-2">
+            <h1 className="text-base sm:text-lg lg:text-3xl font-semibold lg:font-extrabold lg:tracking-tight text-slate-900 dark:text-white truncate text-center">
               {getTitle(pathname)}
             </h1>
           </div>
