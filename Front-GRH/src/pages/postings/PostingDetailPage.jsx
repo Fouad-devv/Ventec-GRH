@@ -466,6 +466,10 @@ export const PostingDetailPage = () => {
   const [deletingApp, setDeletingApp] = useState(false);
   const [activeFilterJob, setActiveFilterJob] = useState(null);
   const [generatingFiche, setGeneratingFiche] = useState(false);
+  const [ficheUploading, setFicheUploading] = useState(false);
+  const [ficheGenerating, setFicheGenerating] = useState(false);
+  const [ficheDragOver, setFicheDragOver] = useState(false);
+  const ficheFileRef = useRef(null);
   const pollRef = useRef(null);
 
   const stopPolling = () => {
@@ -517,6 +521,33 @@ export const PostingDetailPage = () => {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleFicheUpload = async (file) => {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf', 'doc', 'docx'].includes(ext)) return;
+    setFicheUploading(true);
+    try {
+      await pApi.uploadFicheFonction(id, file);
+      load();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFicheUploading(false);
+    }
+  };
+
+  const handleFicheGenerate = async () => {
+    setFicheGenerating(true);
+    try {
+      await pApi.generateFicheFonction(id);
+      load();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFicheGenerating(false);
+    }
+  };
 
   const handlePublish = () => pApi.publish(id).then(load);
   const handleClose = () => pApi.close(id).then(load);
@@ -786,6 +817,78 @@ export const PostingDetailPage = () => {
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Exigences</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">{posting.requirements}</p>
+            </div>
+          )}
+
+          {/* Fiche de poste — upload / generate when missing */}
+          {!posting.extractedJobData && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                <MdUploadFile className="w-4 h-4 text-amber-500" />
+                Fiche de poste manquante
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Importez ou générez une fiche de poste pour activer le filtrage IA des candidats.
+              </p>
+
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setFicheDragOver(true); }}
+                onDragLeave={() => setFicheDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setFicheDragOver(false); handleFicheUpload(e.dataTransfer.files[0]); }}
+                onClick={() => !ficheUploading && ficheFileRef.current?.click()}
+                className={`flex flex-col items-center justify-center gap-2 px-4 py-5 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                  ficheDragOver
+                    ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {ficheUploading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-blue-400/40 border-t-blue-500 rounded-full animate-spin" />
+                    <p className="text-sm text-blue-600 dark:text-blue-400">Envoi en cours…</p>
+                  </>
+                ) : (
+                  <>
+                    <MdUploadFile className="w-6 h-6 text-slate-400" />
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                      <span className="font-medium text-blue-600 dark:text-blue-400">Importer</span> ou glisser une fiche de poste
+                    </p>
+                    <p className="text-xs text-slate-400">PDF, DOC, DOCX</p>
+                  </>
+                )}
+                <input
+                  ref={ficheFileRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => handleFicheUpload(e.target.files[0])}
+                />
+              </div>
+
+              <div className="flex items-center gap-3 my-3">
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                <span className="text-xs text-slate-400">ou</span>
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+              </div>
+
+              <button
+                onClick={handleFicheGenerate}
+                disabled={ficheGenerating || ficheUploading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {ficheGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
+                    Génération IA en cours…
+                  </>
+                ) : (
+                  <>
+                    <MdAutoAwesome className="w-4 h-4" />
+                    Générer la fiche de poste avec l'IA
+                  </>
+                )}
+              </button>
             </div>
           )}
 
