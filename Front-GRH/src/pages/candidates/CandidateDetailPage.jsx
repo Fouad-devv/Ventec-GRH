@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   MdArrowBack, MdDownload, MdEmail, MdPhone, MdLocationOn,
   MdWork, MdSchool, MdStar, MdOpenInNew, MdDescription,
@@ -51,6 +51,9 @@ const InfoRow = ({ icon: Icon, label, value }) => {
 export const CandidateDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = location.state?.from || '/app/candidates';
+  const backLabel = location.state?.fromLabel ? `Retour à "${location.state.fromLabel}"` : 'Retour aux candidats';
   const axios = useAxiosPrivate();
   const api = candidatesApi(axios);
   const appApi = applicationsApi(axios);
@@ -84,9 +87,9 @@ export const CandidateDetailPage = () => {
     return (
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <p className="text-slate-400">Candidat introuvable</p>
-        <button onClick={() => navigate('/app/candidates')}
+        <button onClick={() => navigate(backTo)}
           className="text-sm text-blue-600 hover:underline">
-          Retour à la liste
+          {backLabel}
         </button>
       </div>
     );
@@ -110,11 +113,11 @@ export const CandidateDetailPage = () => {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Back */}
       <button
-        onClick={() => navigate('/app/candidates')}
+        onClick={() => navigate(backTo)}
         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
       >
         <MdArrowBack className="w-4 h-4" />
-        Retour aux candidats
+        {backLabel}
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

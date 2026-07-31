@@ -919,7 +919,7 @@ export const PostingDetailPage = () => {
                       <div className="min-w-0 flex-1">
                         <p
                           className="text-sm font-medium text-slate-900 dark:text-white truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-                          onClick={() => navigate(`/app/candidates/${app.candidateId}`)}
+                          onClick={() => navigate(`/app/candidates/${app.candidateId}`, { state: { from: `/app/postings/${id}`, fromLabel: posting.title } })}
                         >
                           {app.candidateFirstName} {app.candidateLastName}
                         </p>
