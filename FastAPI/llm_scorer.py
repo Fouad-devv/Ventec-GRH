@@ -9,6 +9,8 @@ CRITICAL non-discrimination rule:
 """
 import json
 import logging
+import re
+import unicodedata
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -17,24 +19,211 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
+# ─── Protected-characteristic filter ────────────────────────────────────────
+# Gender, religion, nationality, marital status are illegal hiring criteria.
+# Any sentence in free_filter_prompt that references these is silently stripped.
+_DISCRIM_RE = re.compile(
+    r'(?:'
+    r'\b(?:homme|femme|male|female|masculin|féminin|genre|sexe)\b'
+    r'|\b(?:religion|musulman[e]?|chrétien[ne]?|juif|juive|bouddhiste|athée)\b'
+    r'|\b(?:nationalité|marocain[e]?|français[e]?|étranger[ère]?)\b'
+    r'|\b(?:marié[e]?|célibataire|veuf|divorcé[e]?|état\s+civil)\b'
+    r'|\b(?:enceinte|grossesse|maternité|paternité)\b'
+    r')',
+    re.IGNORECASE,
+)
+
+
+def _sanitize_free_prompt(prompt: str) -> str:
+    """Strip sentences containing protected-characteristic criteria. Returns cleaned prompt."""
+    if not prompt:
+        return prompt
+    parts = re.split(r'(?<=[.!?\n,;])\s*', prompt)
+    kept = []
+    for part in parts:
+        if _DISCRIM_RE.search(part):
+            logger.warning("Discriminatory criterion ignored: %r", part.strip())
+        else:
+            kept.append(part)
+    return ' '.join(kept).strip()
+
+
+# ─── Deterministic eliminatory pre-checks ────────────────────────────────────
+
+def _nfc(text: str) -> str:
+    """Normalize Unicode to NFC so pdfplumber NFD output matches precomposed patterns."""
+    return unicodedata.normalize("NFC", text)
+
+
+# Student patterns — written to survive both accented (NFC) and unaccented (OCR drift) text.
+# Matched against NFC-normalized text so `é/è` always precomposed before comparison.
+_STUDENT_RE = re.compile(
+    r'(?:'
+    r'(?:eleve|élève)\s*[-]?\s*ing[eé]nieure?'        # "élève ingénieur" / "eleve ingenieur"
+    r'|en\s+cours\s+de\s+(?:formation|cycle|scolarit[eé]|[eé]tudes)'
+    r'|\d\s*(?:[eè]re?|[eè]me)\s+ann[eé]e\s+(?:en\s+)?(?:cycle|ing[eé]nieur|master|bac)'
+    r'|(?:premi[eè]re?|deuxi[eè]me?|troisi[eè]me?|quatri[eè]me?|cinqui[eè]me?)'
+      r'\s+ann[eé]e\s+(?:en\s+)?(?:cycle|ing[eé]nieur|master)'
+    r'|(?:en\s+)?(?:deuxi[eè]me?|premi[eè]re?|troisi[eè]me?)\s+ann[eé]e\s+en\s+cycle'  # "en deuxième année en cycle"
+    r')',
+    re.IGNORECASE | re.UNICODE,
+)
+
+# Detect highest completed diploma level in CV text (run on NFC text)
+_EDU_LEVEL_5_RE = re.compile(r'\b(?:master|bac\s*\+\s*5)\b', re.IGNORECASE | re.UNICODE)
+_EDU_LEVEL_3_RE = re.compile(r'\blicence\b|\bbac\s*\+\s*3\b', re.IGNORECASE | re.UNICODE)
+
+# Detect school-type constraint keywords in free_filter_prompt
+_SCHOOL_CONSTRAINT_RE = re.compile(
+    r'(?:école\s+d\'?ing[eé]nieur|ensa[a-z]*|ensam|emi\b|ehtp|insa\b|'
+    r'(?:doit|faut|obligatoire|uniquement|seulement)\s+.{0,40}(?:école|ing[eé]nieur|ensa|ensam))',
+    re.IGNORECASE | re.UNICODE,
+)
+# Patterns that indicate the candidate studied at a regular university (faculté)
+_FST_RE = re.compile(
+    r'\b(?:fst\b|fsjes\b|fsjest?\b|facult[eé]\s+des\s+sciences|'
+    r'universit[eé]\s+(?:hassan|mohammed|ibn|cadi|sidi|abdelmalek))',
+    re.IGNORECASE | re.UNICODE,
+)
+_GRANDE_ECOLE_RE = re.compile(
+    r'\b(?:ensa[a-z]*|ensam\b|emi\b|ehtp\b|insa[a-z]*|'
+    r'[eé]cole\s+(?:nationale|poly|centrale|sup[eé]rieure))',
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+def _required_bac_level(required_education: str) -> Optional[int]:
+    """Extract required Bac+ level from the education string."""
+    m = re.search(r'bac\s*\+\s*(\d)', required_education, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    low = required_education.lower()
+    if any(w in low for w in ('master', 'ingénieur', 'bac+5')):
+        return 5
+    if any(w in low for w in ('licence', 'bac+3')):
+        return 3
+    return None
+
+
+def _candidate_bac_level(cv_text: str) -> Optional[int]:
+    """Detect the highest completed diploma level in the CV."""
+    if _EDU_LEVEL_5_RE.search(cv_text):
+        return 5
+    if _EDU_LEVEL_3_RE.search(cv_text):
+        return 3
+    return None
+
+
+def _school_type_eliminatory(cv_text: str, free_filter_prompt: Optional[str]) -> Optional[str]:
+    """
+    If HR explicitly requires an école d'ingénieur and the candidate studied
+    at a regular faculté (FST, FSJES, etc.), return an elimination reason.
+    """
+    if not free_filter_prompt:
+        return None
+    if not _SCHOOL_CONSTRAINT_RE.search(free_filter_prompt):
+        return None
+    # HR requires a grande école — check if candidate studied at faculté instead
+    candidate_has_grande_ecole = bool(_GRANDE_ECOLE_RE.search(cv_text))
+    candidate_has_faculte = bool(_FST_RE.search(cv_text))
+    if candidate_has_faculte and not candidate_has_grande_ecole:
+        return (
+            "Le candidat a étudié dans une faculté (université classique) alors que "
+            "le responsable RH exige un diplôme d'une école d'ingénieur (ENSA, ENSAM, EMI…). "
+            "Critère éliminatoire non satisfait (score = 0)."
+        )
+    return None
+
+
+def _eliminatory_check(
+    cv_text: str,
+    required_education: Optional[str],
+    free_filter_prompt: Optional[str],
+) -> Optional[str]:
+    """
+    Returns an elimination reason string if the candidate is hard-eliminated,
+    or None if they should proceed to LLM scoring.
+    Priority: student → level → school type.
+    """
+    # Normalize to NFC — pdfplumber may emit NFD (decomposed accents) which
+    # breaks regex matches on precomposed chars like é, è, ê.
+    cv = _nfc(cv_text)
+
+    # 1. Still a student?
+    if _STUDENT_RE.search(cv):
+        return (
+            "Le candidat est encore étudiant (non diplômé). "
+            "Un candidat en cours de cycle de formation ne peut pas être retenu pour ce poste."
+        )
+
+    # 2. Education level too low?
+    if required_education:
+        req = _required_bac_level(required_education)
+        cand = _candidate_bac_level(cv)
+        if req and cand and cand < req:
+            return (
+                f"Le candidat possède un diplôme Bac+{cand} "
+                f"alors que le poste exige un Bac+{req}. "
+                f"Niveau de formation insuffisant — critère éliminatoire (score = 0)."
+            )
+
+    # 3. Wrong school type (if HR specified école d'ingénieur)?
+    school_reason = _school_type_eliminatory(cv, free_filter_prompt)
+    if school_reason:
+        return school_reason
+
+    return None
+
 client = AsyncOpenAI(
     api_key=settings.groq_api_key,
     base_url="https://api.groq.com/openai/v1",
 )
 
-SYSTEM_PROMPT = """Tu es un assistant RH expert en évaluation de candidats.
-Ta tâche est d'évaluer la pertinence d'un CV par rapport à une offre d'emploi.
+SYSTEM_PROMPT = """Tu es un assistant RH STRICT chargé d'évaluer des candidats pour Ventec Maroc.
 
-RÈGLES IMPÉRATIVES :
-1. Évalue UNIQUEMENT les compétences techniques, l'expérience professionnelle et la formation.
-2. N'utilise JAMAIS le nom, l'âge, le sexe, la nationalité ou toute information démographique dans ton évaluation.
-3. Toute information personnelle dans le CV doit être ignorée.
-4. Sois objectif et factuel.
+══════════════════════════════════════════════════════
+ÉTAPE 1 — CRITÈRES ÉLIMINATOIRES (VÉRIFICATION OBLIGATOIRE EN PREMIER)
+══════════════════════════════════════════════════════
+Avant d'évaluer quoi que ce soit, vérifie ces critères dans l'ordre.
+Si UN SEUL critère éliminatoire n'est pas satisfait → score = 0, POINT FINAL.
+Aucune compétence, aucune expérience ne peut compenser un critère éliminatoire non respecté.
 
-Retourne un objet JSON valide avec exactement ces champs :
+CRITÈRES ÉLIMINATOIRES AUTOMATIQUES :
+
+[A] NIVEAU DE DIPLÔME :
+  - Si le poste exige Bac+5 et que le candidat a seulement Bac+3 (Licence) ou Bac+4 → score = 0.
+  - "Licence" seule = Bac+3 → éliminatoire si Bac+5 requis.
+  - "Master" ou "Ingénieur diplômé" = Bac+5 → acceptable.
+
+[B] CANDIDAT ENCORE ÉTUDIANT (non diplômé) :
+  - Si le CV mentionne "élève ingénieur", "en cours de formation", "en 1ère/2ème/3ème année",
+    "étudiant", ou toute formulation indiquant que le candidat n'est PAS encore diplômé → score = 0.
+  - Un élève ingénieur en cours de cycle n'est PAS un ingénieur diplômé.
+
+[C] CRITÈRES SPÉCIFIQUES DU RESPONSABLE RH :
+  - Tous les critères listés dans "CRITÈRES ÉLIMINATOIRES DU RESPONSABLE RH" sont des filtres ABSOLUS.
+  - Si le candidat ne satisfait pas l'un d'eux → score = 0 immédiatement.
+  - Exemples : école requise (ENSA, ENSAM…), secteur requis, certification obligatoire, etc.
+
+══════════════════════════════════════════════════════
+ÉTAPE 2 — ÉVALUATION DES COMPÉTENCES (seulement si étape 1 est 100% passée)
+══════════════════════════════════════════════════════
+Si et seulement si TOUS les critères éliminatoires sont satisfaits :
+- Adéquation des compétences techniques au poste : 50%
+- Pertinence de l'expérience professionnelle : 30%
+- Niveau et domaine de formation : 20%
+
+RÈGLES NON-DISCRIMINATION (priorité absolue sur tout autre critère) :
+- IGNORE tout critère basé sur : le sexe, le genre, la religion, la nationalité, l'état civil, l'origine.
+- Si un critère éliminatoire mentionne le sexe (homme/femme/male/female) ou toute caractéristique protégée,
+  tu DOIS l'ignorer complètement et ne PAS l'appliquer, quelle que soit la formulation.
+- N'utilise jamais le prénom ou le nom pour déduire le sexe, la religion ou l'origine d'un candidat.
+
+══════════════════════════════════════════════════════
+FORMAT JSON DE RÉPONSE (obligatoire) :
 {
-  "score": <nombre entre 0 et 100>,
-  "summary": "<2-3 phrases expliquant le score en français>"
+  "score": <entier entre 0 et 100>,
+  "summary": "<2-3 phrases en français : si score=0, cite EXPLICITEMENT le critère éliminatoire non respecté ; sinon explique le score>"
 }"""
 
 
@@ -56,6 +245,25 @@ async def score_candidate(
             "summary": "Évaluation IA non disponible (clé API manquante).",
         }
 
+    # ── Strip discriminatory criteria before any processing ─────────────────
+    if free_filter_prompt:
+        free_filter_prompt = _sanitize_free_prompt(free_filter_prompt)
+    # ────────────────────────────────────────────────────────────────────────
+
+    # ── Deterministic eliminatory pre-check (no LLM call needed) ────────────
+    req_edu: Optional[str] = None
+    if extracted_job_data:
+        try:
+            req_edu = json.loads(extracted_job_data).get("required_education")
+        except Exception:
+            pass
+
+    elim_reason = _eliminatory_check(cv_text, req_edu, free_filter_prompt)
+    if elim_reason:
+        logger.info("Candidate %s eliminated deterministically: %s", candidate_id, elim_reason)
+        return {"candidate_id": candidate_id, "score": 0.0, "summary": elim_reason}
+    # ────────────────────────────────────────────────────────────────────────
+
     # Build the job context block
     job_context_parts = []
     if job_description:
@@ -67,30 +275,46 @@ async def score_candidate(
     if extracted_job_data:
         try:
             parsed = json.loads(extracted_job_data)
-            structured_parts = []
-            if parsed.get("required_skills"):
-                structured_parts.append("Compétences requises : " + ", ".join(parsed["required_skills"]))
-            if parsed.get("tools"):
-                structured_parts.append("Outils/Technologies : " + ", ".join(parsed["tools"]))
+            elim_parts = []
+            skill_parts = []
+
             if parsed.get("required_education"):
-                structured_parts.append(f"Formation requise : {parsed['required_education']}")
+                # Education is always an eliminatory criterion
+                elim_parts.append(
+                    f"⛔ FORMATION ÉLIMINATOIRE : {parsed['required_education']} — "
+                    f"Tout candidat sans ce niveau exact DOIT recevoir score = 0."
+                )
             if parsed.get("required_experience"):
-                structured_parts.append(f"Expérience requise : {parsed['required_experience']}")
+                elim_parts.append(f"⛔ EXPÉRIENCE ÉLIMINATOIRE : {parsed['required_experience']}")
+
+            if parsed.get("required_skills"):
+                skill_parts.append("Compétences requises : " + ", ".join(parsed["required_skills"]))
+            if parsed.get("tools"):
+                skill_parts.append("Outils/Technologies : " + ", ".join(parsed["tools"]))
             if parsed.get("missions"):
-                structured_parts.append("Missions : " + " | ".join(parsed["missions"]))
+                skill_parts.append("Missions : " + " | ".join(parsed["missions"]))
             if parsed.get("nice_to_have"):
-                structured_parts.append("Atouts supplémentaires : " + ", ".join(parsed["nice_to_have"]))
-            if structured_parts:
-                job_context_parts.append("CRITÈRES STRUCTURÉS DU POSTE :\n" + "\n".join(structured_parts))
+                skill_parts.append("Atouts supplémentaires : " + ", ".join(parsed["nice_to_have"]))
+
+            if elim_parts:
+                job_context_parts.append(
+                    "CRITÈRES ÉLIMINATOIRES DU POSTE (score = 0 si non respecté) :\n"
+                    + "\n".join(elim_parts)
+                )
+            if skill_parts:
+                job_context_parts.append("COMPÉTENCES ET MISSIONS DU POSTE :\n" + "\n".join(skill_parts))
         except Exception:
             pass
 
-    # HR's free-form filter instructions (evaluated after skills/experience)
+    # HR's free-form instructions — always treated as eliminatory hard filters
     if free_filter_prompt and free_filter_prompt.strip():
         job_context_parts.append(
-            f"CRITÈRES SUPPLÉMENTAIRES DU RESPONSABLE RH :\n{free_filter_prompt.strip()}\n"
-            "(Ces critères sont à considérer dans l'évaluation globale, "
-            "sans jamais prendre en compte des informations personnelles ou discriminatoires.)"
+            "⛔ CRITÈRES ÉLIMINATOIRES DU RESPONSABLE RH (score = 0 si non respecté) :\n"
+            f"{free_filter_prompt.strip()}\n\n"
+            "RAPPEL ABSOLU : Chaque instruction ci-dessus est un filtre ÉLIMINATOIRE. "
+            "Si le candidat ne satisfait pas même UN SEUL de ces critères, le score DOIT être 0. "
+            "Ne jamais donner un score positif à un candidat qui échoue à un critère éliminatoire, "
+            "même s'il a de très bonnes compétences techniques."
         )
 
     if not job_context_parts:
@@ -108,7 +332,7 @@ CONTENU DU CV (informations personnelles supprimées) :
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0.2,
+            temperature=0.0,
             response_format={"type": "json_object"},
         )
         data = json.loads(response.choices[0].message.content)
