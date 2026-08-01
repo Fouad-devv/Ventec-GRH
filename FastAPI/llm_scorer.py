@@ -11,6 +11,7 @@ import json
 import logging
 import re
 import unicodedata
+from datetime import date
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -197,8 +198,14 @@ CRITÈRES ÉLIMINATOIRES AUTOMATIQUES :
 
 [B] CANDIDAT ENCORE ÉTUDIANT (non diplômé) :
   - Si le CV mentionne "élève ingénieur", "en cours de formation", "en 1ère/2ème/3ème année",
-    "étudiant", ou toute formulation indiquant que le candidat n'est PAS encore diplômé → score = 0.
+    ou toute formulation indiquant EXPLICITEMENT que le candidat n'est PAS encore diplômé → score = 0.
   - Un élève ingénieur en cours de cycle n'est PAS un ingénieur diplômé.
+  - RÈGLE CRITIQUE SUR LES DATES : Une formation indiquée avec une plage d'années (ex. "2023 – 2025")
+    dont l'année de fin est STRICTEMENT ANTÉRIEURE à l'année actuelle (fournie dans le message)
+    signifie que la formation EST TERMINÉE → le candidat EST diplômé → NE PAS éliminer.
+  - Exemple : "Master 2023–2025" avec année actuelle = 2026 → diplôme OBTENU, critère [B] non applicable.
+  - N'éliminer sur [B] que si le CV indique EXPLICITEMENT "en cours", "en formation", une année de fin
+    FUTURE, ou une formulation active comme "1ère année de master" sans date de fin passée.
 
 [C] CRITÈRES SPÉCIFIQUES DU RESPONSABLE RH :
   - Tous les critères listés dans "CRITÈRES ÉLIMINATOIRES DU RESPONSABLE RH" sont des filtres ABSOLUS.
@@ -320,7 +327,8 @@ async def score_candidate(
     if not job_context_parts:
         job_context_parts.append("Aucune description du poste fournie.")
 
-    user_message = "\n\n".join(job_context_parts) + f"""
+    today_str = date.today().strftime("%d/%m/%Y")
+    user_message = f"DATE ACTUELLE : {today_str}\n\n" + "\n\n".join(job_context_parts) + f"""
 
 CONTENU DU CV (informations personnelles supprimées) :
 {cv_text[:6000]}"""
