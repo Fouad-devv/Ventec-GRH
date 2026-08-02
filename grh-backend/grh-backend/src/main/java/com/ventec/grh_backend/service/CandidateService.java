@@ -75,13 +75,27 @@ public class CandidateService {
                 : candidateRepository.findAll(pageable);
         List<UUID> ids = page.stream().map(Candidate::getId).toList();
         Map<UUID, List<String>> titlesMap = new HashMap<>();
+        Map<UUID, Double> scoreMap = new HashMap<>();
+        Map<UUID, String> statusMap = new HashMap<>();
         if (!ids.isEmpty()) {
             applicationRepository.findJobPostingTitlesByCandidateIds(ids)
                     .forEach(row -> titlesMap
                             .computeIfAbsent((UUID) row[0], k -> new ArrayList<>())
                             .add((String) row[1]));
+            if (postingId != null) {
+                applicationRepository.findScoresByCandidateIdsAndPostingId(ids, postingId)
+                        .forEach(row -> {
+                            scoreMap.put((UUID) row[0], row[1] != null ? ((Number) row[1]).doubleValue() : null);
+                            statusMap.put((UUID) row[0], (String) row[2]);
+                        });
+            }
         }
-        return page.map(c -> toResponse(c, titlesMap.getOrDefault(c.getId(), List.of())));
+        return page.map(c -> toResponse(
+                c,
+                titlesMap.getOrDefault(c.getId(), List.of()),
+                scoreMap.get(c.getId()),
+                statusMap.get(c.getId())
+        ));
     }
 
     public void deleteCandidate(UUID id) {
@@ -98,13 +112,17 @@ public class CandidateService {
     }
 
     public CandidateResponse toResponse(Candidate c, List<String> jobPostingTitles) {
+        return toResponse(c, jobPostingTitles, null, null);
+    }
+
+    public CandidateResponse toResponse(Candidate c, List<String> jobPostingTitles, Double aiScore, String applicationStatus) {
         return new CandidateResponse(
                 c.getId(), c.getFirstName(), c.getLastName(), c.getEmail(),
                 c.getPhone(), c.getLinkedinUrl(), c.getCvPath(),
                 c.getSkills(), c.getExperienceYears(), c.getEducation(),
                 c.getCurrentPosition(), c.getLocation(),
                 c.getCreatedAt(), c.getUpdatedAt(),
-                jobPostingTitles
+                jobPostingTitles, aiScore, applicationStatus
         );
     }
 }

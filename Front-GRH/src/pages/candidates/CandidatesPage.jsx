@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdAdd, MdSearch, MdDownload, MdDelete, MdWarning, MdRefresh } from 'react-icons/md';
+import { MdAdd, MdSearch, MdDownload, MdDelete, MdWarning, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
@@ -116,6 +116,7 @@ export const CandidatesPage = () => {
                 <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Email</th>
                 <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Offre d'emploi</th>
                 <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Exp.</th>
+                {postingFilter && <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Score IA</th>}
                 <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">CV</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -123,7 +124,7 @@ export const CandidatesPage = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">Aucun candidat trouvé</td>
+                  <td colSpan={postingFilter ? 7 : 6} className="text-center py-10 text-slate-400">Aucun candidat trouvé</td>
                 </tr>
               ) : filtered.map((c) => (
                 <tr
@@ -149,6 +150,23 @@ export const CandidatesPage = () => {
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                     {c.experienceYears != null ? `${c.experienceYears} ans` : '—'}
                   </td>
+                  {postingFilter && (
+                    <td className="px-4 py-3">
+                      {c.aiScore != null ? (() => {
+                        const n = Number(c.aiScore);
+                        const cls = n >= 70
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                          : n >= 40
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                          : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+                            <MdStar className="w-3 h-3" />{n.toFixed(0)}
+                          </span>
+                        );
+                      })() : <span className="text-slate-400 text-xs">—</span>}
+                    </td>
+                  )}
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     {c.cvPath ? (
                       <button

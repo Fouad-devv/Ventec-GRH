@@ -34,6 +34,9 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     @Query("SELECT a.candidate.id, a.jobPosting.title FROM Application a WHERE a.candidate.id IN :candidateIds")
     List<Object[]> findJobPostingTitlesByCandidateIds(@Param("candidateIds") List<UUID> candidateIds);
 
+    @Query("SELECT a.candidate.id, a.aiScore, a.status FROM Application a WHERE a.candidate.id IN :candidateIds AND a.jobPosting.id = :postingId")
+    List<Object[]> findScoresByCandidateIdsAndPostingId(@Param("candidateIds") List<UUID> candidateIds, @Param("postingId") UUID postingId);
+
     @Query("SELECT a.jobPosting.title FROM Application a WHERE a.candidate.id = :candidateId")
     List<String> findJobPostingTitlesByCandidateId(@Param("candidateId") UUID candidateId);
 }

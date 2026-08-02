@@ -19,5 +19,7 @@ public record CandidateResponse(
         String location,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
-        List<String> jobPostingTitles
+        List<String> jobPostingTitles,
+        Double aiScore,
+        String applicationStatus
 ) {}
