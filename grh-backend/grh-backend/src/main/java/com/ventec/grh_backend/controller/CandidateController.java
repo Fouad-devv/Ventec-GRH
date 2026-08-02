@@ -31,8 +31,10 @@ public class CandidateController {
     private final AiServiceClient aiServiceClient;
 
     @GetMapping
-    public ResponseEntity<Page<CandidateResponse>> getAll(Pageable pageable) {
-        return ResponseEntity.ok(candidateService.getAllCandidates(pageable));
+    public ResponseEntity<Page<CandidateResponse>> getAll(
+            @RequestParam(required = false) UUID postingId,
+            Pageable pageable) {
+        return ResponseEntity.ok(candidateService.getAllCandidates(postingId, pageable));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -69,8 +69,10 @@ public class CandidateService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CandidateResponse> getAllCandidates(Pageable pageable) {
-        Page<Candidate> page = candidateRepository.findAll(pageable);
+    public Page<CandidateResponse> getAllCandidates(UUID postingId, Pageable pageable) {
+        Page<Candidate> page = postingId != null
+                ? candidateRepository.findByJobPostingId(postingId, pageable)
+                : candidateRepository.findAll(pageable);
         List<UUID> ids = page.stream().map(Candidate::getId).toList();
         Map<UUID, List<String>> titlesMap = new HashMap<>();
         if (!ids.isEmpty()) {

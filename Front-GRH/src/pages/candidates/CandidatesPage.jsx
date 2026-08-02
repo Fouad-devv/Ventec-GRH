@@ -3,30 +3,40 @@ import { MdAdd, MdSearch, MdDownload, MdDelete, MdWarning, MdRefresh } from 'rea
 import { useNavigate } from 'react-router-dom';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
+import { postingsApi } from '../../api/postings';
 import { CreateCandidateModal } from './CreateCandidateModal';
 import { usePageActions } from '../../context/HeaderContext';
 
 export const CandidatesPage = () => {
   const axios = useAxiosPrivate();
   const api = candidatesApi(axios);
+  const pApi = postingsApi(axios);
   const navigate = useNavigate();
 
   const [candidates, setCandidates] = useState([]);
+  const [postings, setPostings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
+  const [postingFilter, setPostingFilter] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     setLoading(true);
-    api.getAll({ size: 100 })
+    api.getAll({ size: 100, postingId: postingFilter || undefined })
       .then((r) => setCandidates(r.data.content || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    pApi.getAll({ size: 200 })
+      .then((r) => setPostings(r.data.content || []))
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => { load(); }, [postingFilter]);
 
   usePageActions(
     <button onClick={load} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -69,15 +79,27 @@ export const CandidatesPage = () => {
         </button>
       </div>
 
-      <div className="relative mb-5 max-w-xs">
-        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-        <input
-          type="text"
-          placeholder="Rechercher..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400"
-        />
+      <div className="flex gap-3 mb-5 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400"
+          />
+        </div>
+        <select
+          value={postingFilter}
+          onChange={(e) => setPostingFilter(e.target.value)}
+          className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+        >
+          <option value="">Toutes les offres</option>
+          {postings.map((p) => (
+            <option key={p.id} value={p.id}>{p.title}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
