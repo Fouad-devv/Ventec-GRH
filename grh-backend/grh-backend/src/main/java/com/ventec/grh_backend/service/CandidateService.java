@@ -88,6 +88,9 @@ public class CandidateService {
                             scoreMap.put((UUID) row[0], row[1] != null ? ((Number) row[1]).doubleValue() : null);
                             statusMap.put((UUID) row[0], (String) row[2]);
                         });
+            } else {
+                applicationRepository.findBestScoresByCandidateIds(ids)
+                        .forEach(row -> scoreMap.put((UUID) row[0], row[1] != null ? ((Number) row[1]).doubleValue() : null));
             }
         }
         return page.map(c -> toResponse(
