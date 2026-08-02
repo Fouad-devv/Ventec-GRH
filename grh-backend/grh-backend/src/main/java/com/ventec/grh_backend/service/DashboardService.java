@@ -30,6 +30,7 @@ public class DashboardService {
         return new UpcomingInterviewDto(
                 i.getId(),
                 app != null ? app.getId() : null,
+                candidate != null ? candidate.getId() : null,
                 candidate != null ? candidate.getFirstName() : null,
                 candidate != null ? candidate.getLastName() : null,
                 posting != null ? posting.getTitle() : null,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   MdWork, MdPeople, MdAccountTree, MdCheckCircle,
   MdWarning, MdInfo, MdTrendingUp, MdEvent, MdCalendarMonth, MdRefresh,
@@ -68,6 +69,7 @@ const Spinner = () => (
 export const DashboardPage = () => {
   const axios = useAxiosPrivate();
   const api = dashboardApi(axios);
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -247,7 +249,11 @@ export const DashboardPage = () => {
                 const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
                 const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
                 return (
-                  <div key={iv.interviewId} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+                  <button
+                    key={iv.interviewId}
+                    onClick={() => iv.candidateId && navigate(`/app/candidates/${iv.candidateId}`)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors text-left cursor-pointer"
+                  >
                     <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-lg shrink-0">
                       {TYPE_ICONS[iv.type] ?? '📅'}
                     </div>
@@ -265,7 +271,7 @@ export const DashboardPage = () => {
                         {date ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
