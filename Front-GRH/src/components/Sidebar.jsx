@@ -36,10 +36,18 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
   const displayRole = hasRole('ADMIN') ? 'Admin' : hasRole('MANAGER') ? 'Manager' : 'RH';
 
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [tooltip, setTooltip] = useState(null);
 
   useEffect(() => {
-    if (!expanded) setShowUserMenu(false);
+    if (expanded) { setShowUserMenu(false); setTooltip(null); }
   }, [expanded]);
+
+  const showTip = (e, label) => {
+    if (expanded) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setTooltip({ label, top: r.top + r.height / 2 });
+  };
+  const hideTip = () => setTooltip(null);
 
   const labelClass = `whitespace-nowrap transition-opacity duration-200 ${
     expanded ? 'opacity-100' : 'opacity-0'
@@ -83,6 +91,8 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
             key={to}
             to={to}
             onClick={handleNavClick}
+            onMouseEnter={(e) => showTip(e, label)}
+            onMouseLeave={hideTip}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
@@ -109,6 +119,8 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
                 key={to}
                 to={to}
                 onClick={handleNavClick}
+                onMouseEnter={(e) => showTip(e, label)}
+                onMouseLeave={hideTip}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
@@ -168,6 +180,8 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
               setShowUserMenu((v) => !v);
             }
           }}
+          onMouseEnter={(e) => showTip(e, userInfo?.given_name ? `${userInfo.given_name} ${userInfo.family_name || ''}`.trim() : userInfo?.preferred_username || 'Utilisateur')}
+          onMouseLeave={hideTip}
           className="flex items-center gap-2 w-full px-2 py-2 rounded-xl transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
         >
           {/* Avatar */}
@@ -200,6 +214,21 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
         </button>
 
       </div>
+
+      {/* Fixed tooltip — escapes overflow-hidden */}
+      {tooltip && !expanded && (
+        <div
+          className="fixed z-[200] pointer-events-none"
+          style={{ top: tooltip.top, left: 72, transform: 'translateY(-50%)' }}
+        >
+          <div className="relative flex items-center">
+            <div className="w-0 h-0 border-y-[5px] border-y-transparent border-r-[6px] border-r-slate-800 dark:border-r-slate-700" />
+            <div className="px-2.5 py-1.5 bg-slate-800 dark:bg-slate-700 text-white text-xs font-medium rounded-lg whitespace-nowrap shadow-lg">
+              {tooltip.label}
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };
