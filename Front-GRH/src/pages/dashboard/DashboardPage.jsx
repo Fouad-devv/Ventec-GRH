@@ -14,9 +14,12 @@ import { usePageActions } from '../../context/HeaderContext';
 
 /* ── Stat card ─────────────────────────────────────────── */
 const StatCard = ({ icon: Icon, label, value, gradient, numGradient, sub }) => (
-  <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-    <div className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${gradient}`} />
-    <div className="flex items-start justify-between gap-3 pt-1">
+  <div className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 cursor-default">
+    {/* Top accent bar — grows on hover */}
+    <div className={`absolute inset-x-0 top-0 h-[3px] group-hover:h-[5px] bg-gradient-to-r ${gradient} transition-all duration-300`} />
+    {/* Subtle color wash on hover */}
+    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-[0.05] dark:group-hover:opacity-[0.1] transition-opacity duration-300`} />
+    <div className="relative flex items-start justify-between gap-3 pt-1">
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">{label}</p>
         <p className={`text-3xl font-extrabold mt-1.5 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
@@ -24,7 +27,7 @@ const StatCard = ({ icon: Icon, label, value, gradient, numGradient, sub }) => (
         </p>
         {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 truncate">{sub}</p>}
       </div>
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
     </div>
