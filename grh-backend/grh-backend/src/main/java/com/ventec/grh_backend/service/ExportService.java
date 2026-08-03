@@ -11,6 +11,8 @@ import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
 import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -502,8 +504,8 @@ public class ExportService {
             setDashedBorder(htB.isSetBottom()  ? htB.getBottom()  : htB.addNewBottom(),  "000000", 8);
             setDashedBorder(htB.isSetLeft()    ? htB.getLeft()    : htB.addNewLeft(),     "000000", 8);
             setDashedBorder(htB.isSetRight()   ? htB.getRight()   : htB.addNewRight(),    "000000", 8);
-            setDashedBorder(htB.isSetInsideH() ? htB.getInsideH() : htB.addNewInsideH(), "AAAAAA", 4);
-            setDashedBorder(htB.isSetInsideV() ? htB.getInsideV() : htB.addNewInsideV(), "AAAAAA", 4);
+            setDashedBorder(htB.isSetInsideH() ? htB.getInsideH() : htB.addNewInsideH(), "000000", 4);
+            setDashedBorder(htB.isSetInsideV() ? htB.getInsideV() : htB.addNewInsideV(), "000000", 4);
 
             XWPFTableRow hRow = headerTbl.getRow(0);
 
@@ -512,7 +514,7 @@ public class ExportService {
             setCellWidth(hRow.getCell(1), 4680);
             setCellWidth(hRow.getCell(2), 2340);
 
-            // Left: Ventec / Ecowell text — no logos
+            // Left: Ventec / Ecowell — Franklin Gothic Heavy, no bold, black
             XWPFTableCell leftC = hRow.getCell(0);
             setCellBg(leftC, WHITE);
             leftC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
@@ -520,14 +522,14 @@ public class ExportService {
             lp1.setAlignment(ParagraphAlignment.CENTER);
             lp1.setSpacingBefore(0); lp1.setSpacingAfter(0);
             XWPFRun lr1 = lp1.createRun();
-            lr1.setBold(true); lr1.setFontSize(12); lr1.setFontFamily(HDR_FONT); lr1.setText("Ventec");
+            lr1.setBold(false); lr1.setFontSize(12); lr1.setFontFamily("Franklin Gothic Heavy"); lr1.setText("Ventec");
             XWPFParagraph lp2 = leftC.addParagraph();
             lp2.setAlignment(ParagraphAlignment.CENTER);
             lp2.setSpacingBefore(0); lp2.setSpacingAfter(0);
             XWPFRun lr2 = lp2.createRun();
-            lr2.setBold(true); lr2.setFontSize(12); lr2.setFontFamily(HDR_FONT); lr2.setText("Ecowell");
+            lr2.setBold(false); lr2.setFontSize(12); lr2.setFontFamily("Franklin Gothic Heavy"); lr2.setText("Ecowell");
 
-            // Center: Franklin Gothic Heavy — bold, italic, large, tight spacing
+            // Center: Franklin Gothic Heavy, italic, no bold
             XWPFTableCell midC = hRow.getCell(1);
             setCellBg(midC, WHITE);
             midC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
@@ -539,12 +541,12 @@ public class ExportService {
                 mp.setAlignment(ParagraphAlignment.CENTER);
                 mp.setSpacingBefore(0); mp.setSpacingAfter(0);
                 XWPFRun mr = mp.createRun();
-                mr.setBold(true); mr.setItalic(true);
+                mr.setBold(false); mr.setItalic(true);
                 mr.setFontFamily("Franklin Gothic Heavy"); mr.setFontSize(14);
                 mr.setText(centerLines[li]);
             }
 
-            // Right: Management Ressources Humaines — orange
+            // Right: Management Ressources Humaines — Franklin Gothic Heavy, no bold, black
             XWPFTableCell rightC = hRow.getCell(2);
             setCellBg(rightC, WHITE);
             rightC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
@@ -556,7 +558,8 @@ public class ExportService {
                 rp.setAlignment(ParagraphAlignment.CENTER);
                 rp.setSpacingBefore(0); rp.setSpacingAfter(0);
                 XWPFRun rr = rp.createRun();
-                rr.setBold(true); rr.setFontSize(10); rr.setColor("C55A11");
+                rr.setBold(false); rr.setFontSize(10); rr.setColor("000000");
+                rr.setFontFamily("Franklin Gothic Heavy");
                 rr.setText(rightLines[li]);
             }
 
@@ -571,40 +574,75 @@ public class ExportService {
 
             doc.createParagraph();
 
-            // ── Documents table ─────────────────────────────────────────────
+            // ── Documents table (Documents | Nombre d'exemplaires | Observation) ─
+            final String LIGHT_BLUE = "BDD7EE";
             int rows = Math.max(documents.size(), 1);
             XWPFTable docTbl = doc.createTable(rows + 1, 3);
             setTableWidth(docTbl, 9360);
+            CTTblPr dtPr = docTbl.getCTTbl().getTblPr();
+            if (dtPr == null) dtPr = docTbl.getCTTbl().addNewTblPr();
+            CTTblBorders dtB = dtPr.isSetTblBorders() ? dtPr.getTblBorders() : dtPr.addNewTblBorders();
+            setSolidBorder(dtB.isSetTop()     ? dtB.getTop()     : dtB.addNewTop(),     "4472C4", 4);
+            setSolidBorder(dtB.isSetBottom()  ? dtB.getBottom()  : dtB.addNewBottom(),  "4472C4", 4);
+            setSolidBorder(dtB.isSetLeft()    ? dtB.getLeft()    : dtB.addNewLeft(),     "4472C4", 4);
+            setSolidBorder(dtB.isSetRight()   ? dtB.getRight()   : dtB.addNewRight(),    "4472C4", 4);
+            setSolidBorder(dtB.isSetInsideH() ? dtB.getInsideH() : dtB.addNewInsideH(), "4472C4", 4);
+            setSolidBorder(dtB.isSetInsideV() ? dtB.getInsideV() : dtB.addNewInsideV(), "4472C4", 4);
+            setCellWidth(docTbl.getRow(0).getCell(0), 5040);
+            setCellWidth(docTbl.getRow(0).getCell(1), 1560);
+            setCellWidth(docTbl.getRow(0).getCell(2), 2760);
+
+            // Header
             XWPFTableRow docHdr = docTbl.getRow(0);
-            // Header row: gray background, bold dark text (matching original template)
             grayCell(docHdr.getCell(0), "Documents",            ParagraphAlignment.CENTER, 10, true);
             grayCell(docHdr.getCell(1), "Nombre d'exemplaires", ParagraphAlignment.CENTER, 10, true);
             grayCell(docHdr.getCell(2), "Observation",          ParagraphAlignment.CENTER, 10, true);
 
-            // Light blue for alternating rows — matches original table style
-            final String LIGHT_BLUE = "BDD7EE";
-
             if (documents.isEmpty()) {
                 XWPFTableRow r = docTbl.getRow(1);
+                setCellWidth(r.getCell(0), 5040);
+                setCellWidth(r.getCell(1), 1560);
+                setCellWidth(r.getCell(2), 2760);
                 plainCell(r.getCell(0), "Aucun document spécifié", ParagraphAlignment.CENTER, 10, true);
-                plainCell(r.getCell(1), "",                         ParagraphAlignment.CENTER, 10, false);
-                plainCell(r.getCell(2), "",                         ParagraphAlignment.CENTER, 10, false);
+                plainCell(r.getCell(1), "", ParagraphAlignment.CENTER, 10, false);
+                plainCell(r.getCell(2), "", ParagraphAlignment.CENTER, 10, false);
             } else {
                 for (int i = 0; i < documents.size(); i++) {
                     Map<String, Object> item = documents.get(i);
-                    String name    = toStr(item.get("name"), "");
-                    String copies  = toStr(item.get("copies"), "1");
-                    String obs     = toStr(item.get("observation"), "");
+                    String name   = toStr(item.get("name"), "");
+                    String copies = toStr(item.get("copies"), "1");
+                    String obs    = toStr(item.get("observation"), "");
                     XWPFTableRow r = docTbl.getRow(i + 1);
-                    // Alternating rows: even index = white, odd index = light blue
+                    setCellWidth(r.getCell(0), 5040);
+                    setCellWidth(r.getCell(1), 1560);
+                    setCellWidth(r.getCell(2), 2760);
                     if (i % 2 != 0) {
                         setCellBg(r.getCell(0), LIGHT_BLUE);
                         setCellBg(r.getCell(1), LIGHT_BLUE);
                         setCellBg(r.getCell(2), LIGHT_BLUE);
                     }
-                    plainCell(r.getCell(0), name,   ParagraphAlignment.CENTER, 10, true);
-                    plainCell(r.getCell(1), copies, ParagraphAlignment.CENTER, 10, true);
-                    plainCell(r.getCell(2), obs,    ParagraphAlignment.LEFT,   10, false);
+                    // Documents cell: name centered, (observation) italic centered below
+                    XWPFTableCell nameCell = r.getCell(0);
+                    XWPFParagraph np = nameCell.getParagraphs().isEmpty()
+                        ? nameCell.addParagraph() : nameCell.getParagraphs().get(0);
+                    np.setAlignment(ParagraphAlignment.CENTER);
+                    np.setSpacingBefore(60); np.setSpacingAfter(0);
+                    XWPFRun nr = np.createRun();
+                    nr.setFontFamily("Times New Roman"); nr.setFontSize(10);
+                    if (!name.isEmpty()) nr.setText(name);
+                    if (!obs.isEmpty()) {
+                        XWPFParagraph op = nameCell.addParagraph();
+                        op.setAlignment(ParagraphAlignment.CENTER);
+                        op.setSpacingBefore(0); op.setSpacingAfter(60);
+                        XWPFRun or2 = op.createRun();
+                        or2.setFontFamily("Times New Roman"); or2.setFontSize(9);
+                        or2.setItalic(true); or2.setColor("555555");
+                        or2.setText("(" + obs + ")");
+                    } else {
+                        np.setSpacingAfter(60);
+                    }
+                    plainCell(r.getCell(1), copies, ParagraphAlignment.CENTER, 10, false);
+                    plainCell(r.getCell(2), "",     ParagraphAlignment.CENTER, 10, false);
                 }
             }
 
@@ -921,9 +959,17 @@ public class ExportService {
             Color borderC  = new Color(180, 180, 180);
             Color textGray = new Color(80, 80, 80);
 
-            Font boldFont    = new Font(Font.HELVETICA, 12, Font.BOLD,   black);
-            Font titleFont   = new Font(Font.HELVETICA, 13, Font.BOLDITALIC, black);
-            Font orangeFont  = new Font(Font.HELVETICA, 10, Font.BOLD,   orange);
+            // Load Franklin Gothic Heavy for header (falls back to Helvetica if not found)
+            BaseFont fghBase;
+            try {
+                fghBase = BaseFont.createFont("C:/Windows/Fonts/FRAHV.TTF",
+                        BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            } catch (Exception ex) {
+                fghBase = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, false);
+            }
+            Font fghSide  = new Font(fghBase, 12, Font.NORMAL, black);
+            Font fghTitle = new Font(fghBase, 14, Font.ITALIC,  black);
+            Font fghRight = new Font(fghBase, 10, Font.NORMAL, black);
             Font labelFont   = new Font(Font.HELVETICA,  9, Font.BOLD,   black);
             Font valueFont   = new Font(Font.HELVETICA,  9, Font.NORMAL, black);
             Font footerFont  = new Font(Font.HELVETICA,  7, Font.NORMAL, textGray);
@@ -936,41 +982,62 @@ public class ExportService {
 
             // Left: Ventec / Ecowell
             PdfPCell lcell = new PdfPCell();
-            lcell.setBackgroundColor(white); lcell.setBorderColor(borderC); lcell.setBorderWidth(0.75f);
+            lcell.setBackgroundColor(white); lcell.setBorder(Rectangle.NO_BORDER);
             lcell.setPaddingTop(8); lcell.setPaddingBottom(8);
             lcell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             Paragraph lp = new Paragraph();
             lp.setAlignment(Element.ALIGN_CENTER); lp.setLeading(16f);
-            lp.add(new Chunk("Ventec\n", boldFont));
-            lp.add(new Chunk("Ecowell", boldFont));
+            lp.add(new Chunk("Ventec\n", fghSide));
+            lp.add(new Chunk("Ecowell", fghSide));
             lcell.addElement(lp);
             hdrTbl.addCell(lcell);
 
             // Center: title
             PdfPCell ccell = new PdfPCell();
-            ccell.setBackgroundColor(white); ccell.setBorderColor(borderC); ccell.setBorderWidth(0.75f);
+            ccell.setBackgroundColor(white); ccell.setBorder(Rectangle.NO_BORDER);
             ccell.setPaddingTop(8); ccell.setPaddingBottom(8);
             ccell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             Paragraph cp = new Paragraph();
             cp.setAlignment(Element.ALIGN_CENTER); cp.setLeading(17f);
-            cp.add(new Chunk("LISTE DES DOCUMENTS\n", titleFont));
-            cp.add(new Chunk("ADMINISTRATIFS A FOURNIR\n", titleFont));
-            cp.add(new Chunk("CDI-CDD", titleFont));
+            cp.add(new Chunk("LISTE DES DOCUMENTS\n", fghTitle));
+            cp.add(new Chunk("ADMINISTRATIFS A FOURNIR\n", fghTitle));
+            cp.add(new Chunk("CDI-CDD", fghTitle));
             ccell.addElement(cp);
             hdrTbl.addCell(ccell);
 
             // Right: Management RH
             PdfPCell rcell = new PdfPCell();
-            rcell.setBackgroundColor(white); rcell.setBorderColor(borderC); rcell.setBorderWidth(0.75f);
+            rcell.setBackgroundColor(white); rcell.setBorder(Rectangle.NO_BORDER);
             rcell.setPaddingTop(8); rcell.setPaddingBottom(8);
             rcell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             Paragraph rp = new Paragraph();
             rp.setAlignment(Element.ALIGN_CENTER); rp.setLeading(14f);
-            rp.add(new Chunk("Management\n", orangeFont));
-            rp.add(new Chunk("Ressources\n", orangeFont));
-            rp.add(new Chunk("Humaines", orangeFont));
+            rp.add(new Chunk("Management\n", fghRight));
+            rp.add(new Chunk("Ressources\n", fghRight));
+            rp.add(new Chunk("Humaines", fghRight));
             rcell.addElement(rp);
             hdrTbl.addCell(rcell);
+
+            // Dashed black borders drawn via canvas event
+            hdrTbl.setTableEvent((table, widths, heights, headerRows, rowStart, canvases) -> {
+                PdfContentByte cb = canvases[PdfPTable.LINECANVAS];
+                cb.saveState();
+                cb.setColorStroke(Color.BLACK);
+                cb.setLineWidth(0.75f);
+                cb.setLineDash(3f, 3f, 0f);
+                float top = heights[0];
+                float bottom = heights[heights.length - 1];
+                float[] xs = widths[0];
+                cb.moveTo(xs[0], top);           cb.lineTo(xs[xs.length - 1], top);
+                cb.moveTo(xs[0], bottom);         cb.lineTo(xs[xs.length - 1], bottom);
+                cb.moveTo(xs[0], top);            cb.lineTo(xs[0], bottom);
+                cb.moveTo(xs[xs.length - 1], top); cb.lineTo(xs[xs.length - 1], bottom);
+                for (int i = 1; i < xs.length - 1; i++) {
+                    cb.moveTo(xs[i], top); cb.lineTo(xs[i], bottom);
+                }
+                cb.stroke();
+                cb.restoreState();
+            });
             pdf.add(hdrTbl);
 
             // ── Info table ────────────────────────────────────────────────
@@ -981,27 +1048,45 @@ public class ExportService {
             addPdfInfoRow(infoTbl, "Candidat",  candidateName,                             labelFont, valueFont, dgray, borderC);
             pdf.add(infoTbl);
 
-            // ── Documents table ───────────────────────────────────────────
-            PdfPTable docTbl = new PdfPTable(new float[]{2.5f, 1f, 2f});
+            // ── Documents table (2 columns: Documents | Nombre d'exemplaires) ─
+            Color docBlue = new Color(68, 114, 196);
+            Font docObsFont = new Font(Font.TIMES_ROMAN, 9, Font.ITALIC, new Color(85, 85, 85));
+            PdfPTable docTbl = new PdfPTable(new float[]{3f, 1f, 2f});
             docTbl.setWidthPercentage(100); docTbl.setSpacingAfter(10);
             for (String h : new String[]{"Documents", "Nombre d'exemplaires", "Observation"}) {
                 PdfPCell hc = new PdfPCell(new Phrase(h, labelFont));
-                hc.setBackgroundColor(dgray); hc.setBorderColor(borderC); hc.setBorderWidth(0.75f);
+                hc.setBackgroundColor(dgray); hc.setBorderColor(docBlue); hc.setBorderWidth(0.75f);
                 hc.setPadding(5); hc.setHorizontalAlignment(Element.ALIGN_CENTER);
+                hc.setVerticalAlignment(Element.ALIGN_MIDDLE);
                 docTbl.addCell(hc);
             }
             if (documents.isEmpty()) {
                 PdfPCell ec = new PdfPCell(new Phrase("Aucun document spécifié", valueFont));
-                ec.setColspan(3); ec.setPadding(6);
+                ec.setColspan(3); ec.setPadding(8);
                 ec.setHorizontalAlignment(Element.ALIGN_CENTER);
                 docTbl.addCell(ec);
             } else {
                 for (int i = 0; i < documents.size(); i++) {
                     Map<String, Object> item = documents.get(i);
                     Color bg = (i % 2 != 0) ? altBlue : white;
-                    addPdfDocCell(docTbl, toStr(item.get("name"),        ""), valueFont, bg, borderC, Element.ALIGN_CENTER);
-                    addPdfDocCell(docTbl, toStr(item.get("copies"),      "1"), valueFont, bg, borderC, Element.ALIGN_CENTER);
-                    addPdfDocCell(docTbl, toStr(item.get("observation"), ""), valueFont, bg, borderC, Element.ALIGN_LEFT);
+                    String name   = toStr(item.get("name"), "");
+                    String copies = toStr(item.get("copies"), "1");
+                    String obs    = toStr(item.get("observation"), "");
+                    // Documents cell: name centered, (observation) italic centered below
+                    Paragraph nameP = new Paragraph();
+                    nameP.setAlignment(Element.ALIGN_CENTER);
+                    nameP.add(new Chunk(name, valueFont));
+                    if (!obs.isEmpty()) {
+                        nameP.add(Chunk.NEWLINE);
+                        nameP.add(new Chunk("(" + obs + ")", docObsFont));
+                    }
+                    PdfPCell nameCell = new PdfPCell(nameP);
+                    nameCell.setBackgroundColor(bg); nameCell.setBorderColor(docBlue); nameCell.setBorderWidth(0.75f);
+                    nameCell.setPadding(8); nameCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                    nameCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    docTbl.addCell(nameCell);
+                    addPdfDocCell(docTbl, copies, valueFont, bg, docBlue, Element.ALIGN_CENTER);
+                    addPdfDocCell(docTbl, "",     valueFont, bg, docBlue, Element.ALIGN_CENTER);
                 }
             }
             pdf.add(docTbl);
@@ -1194,6 +1279,12 @@ public class ExportService {
 
     private void setDashedBorder(CTBorder border, String color, int sz) {
         border.setVal(STBorder.DASHED);
+        border.setSz(BigInteger.valueOf(sz));
+        border.setColor(color);
+    }
+
+    private void setSolidBorder(CTBorder border, String color, int sz) {
+        border.setVal(STBorder.SINGLE);
         border.setSz(BigInteger.valueOf(sz));
         border.setColor(color);
     }
