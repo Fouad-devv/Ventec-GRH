@@ -53,10 +53,6 @@
       <span class="vt-grad-text">Recrutement</span><br/>
       avec intelligence
     </h1>
-    <p class="vt-brand-sub">
-      Plateforme intégrée de gestion des ressources humaines — recrutement, candidats, entretiens et bien plus.
-    </p>
-
     <ul class="vt-features">
       <li class="vt-feature">
         <span class="vt-feature-check">
@@ -83,21 +79,6 @@
         Accès sécurisé et centralisé
       </li>
     </ul>
-
-    <div class="vt-stats">
-      <div class="vt-stat">
-        <span class="vt-stat-value">84</span>
-        <span class="vt-stat-label">Candidats</span>
-      </div>
-      <div class="vt-stat">
-        <span class="vt-stat-value">8</span>
-        <span class="vt-stat-label">Offres actives</span>
-      </div>
-      <div class="vt-stat">
-        <span class="vt-stat-value">5</span>
-        <span class="vt-stat-label">Étapes pipeline</span>
-      </div>
-    </div>
 
     <div class="vt-trust">
       <span class="vt-trust-dot"></span>
