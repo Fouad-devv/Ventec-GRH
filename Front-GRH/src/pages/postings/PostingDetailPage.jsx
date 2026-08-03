@@ -453,7 +453,6 @@ export const PostingDetailPage = () => {
   const axios = useAxiosPrivate();
 
   const backTo = location.state?.from || '/app/postings';
-  const backLabel = location.state?.fromLabel ? `Retour à "${location.state.fromLabel}"` : 'Retour aux offres';
 
   usePageBack(
     <button
@@ -461,7 +460,7 @@ export const PostingDetailPage = () => {
       className="flex items-center gap-1 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
     >
       <MdArrowBack className="w-4 h-4" />
-      {backLabel}
+      Retour
     </button>
   );
   const pApi = postingsApi(axios);
