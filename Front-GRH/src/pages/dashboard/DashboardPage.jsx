@@ -13,15 +13,20 @@ import { dashboardApi } from '../../api/dashboard';
 import { usePageActions } from '../../context/HeaderContext';
 
 /* ── Stat card ─────────────────────────────────────────── */
-const StatCard = ({ icon: Icon, label, value, gradient, sub }) => (
-  <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm">
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm`}>
-      <Icon className="w-6 h-6 text-white" />
-    </div>
-    <div className="min-w-0">
-      <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 dark:text-white">{value ?? '—'}</p>
-      {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
+const StatCard = ({ icon: Icon, label, value, gradient, numGradient, sub }) => (
+  <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+    <div className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${gradient}`} />
+    <div className="flex items-start justify-between gap-3 pt-1">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">{label}</p>
+        <p className={`text-3xl font-extrabold mt-1.5 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
+          {value ?? '—'}
+        </p>
+        {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 truncate">{sub}</p>}
+      </div>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
     </div>
   </div>
 );
@@ -57,6 +62,13 @@ const ChartTooltip = ({ active, payload, label }) => {
   );
 };
 
+/* ── Section heading ───────────────────────────────────── */
+const SectionTitle = ({ children }) => (
+  <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">
+    {children}
+  </h2>
+);
+
 /* ── Spinner ───────────────────────────────────────────── */
 const Spinner = () => (
   <div className="flex flex-col items-center justify-center py-40 gap-4">
@@ -84,14 +96,16 @@ export const DashboardPage = () => {
   useEffect(() => { load(); }, []);
 
   usePageActions(
-    <button onClick={load} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+    <button
+      onClick={load}
+      className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+    >
       <MdRefresh className="w-4 h-4" /><span className="hidden sm:inline">Actualiser</span>
     </button>
   );
 
   if (loading) return <Spinner />;
 
-  /* Chart data */
   const funnelData = [
     { name: 'Candidatures', value: stats?.totalApplications   ?? 0, fill: '#6366f1' },
     { name: 'En attente',   value: stats?.pendingApplications ?? 0, fill: '#f59e0b' },
@@ -100,14 +114,13 @@ export const DashboardPage = () => {
   ];
 
   const statusData = [
-    { name: 'En attente',   value: stats?.pendingApplications    ?? 0, color: '#f59e0b' },
-    { name: 'Sélectionné',  value: stats?.shortlistedApplications ?? 0, color: '#6366f1' },
-    { name: 'Entretien',    value: stats?.interviewApplications   ?? 0, color: '#3b82f6' },
-    { name: 'Embauché',     value: stats?.hiredApplications       ?? 0, color: '#10b981' },
-    { name: 'Rejeté',       value: stats?.rejectedApplications    ?? 0, color: '#ef4444' },
+    { name: 'En attente',  value: stats?.pendingApplications    ?? 0, color: '#f59e0b' },
+    { name: 'Sélectionné', value: stats?.shortlistedApplications ?? 0, color: '#6366f1' },
+    { name: 'Entretien',   value: stats?.interviewApplications   ?? 0, color: '#3b82f6' },
+    { name: 'Embauché',    value: stats?.hiredApplications       ?? 0, color: '#10b981' },
+    { name: 'Rejeté',      value: stats?.rejectedApplications    ?? 0, color: '#ef4444' },
   ].filter((d) => d.value > 0);
 
-  /* Smart alerts */
   const alerts = [];
   if ((stats?.pendingApplications ?? 0) > 5)
     alerts.push({ type: 'warning', message: `${stats.pendingApplications} candidatures en attente de traitement` });
@@ -119,177 +132,205 @@ export const DashboardPage = () => {
     alerts.push({ type: 'warning', message: "Aucune offre d'emploi active en ce moment" });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-8">
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={MdPeople}
-          label="Candidats" value={stats?.totalCandidates}
-          gradient="from-violet-500 to-violet-700"
-        />
-        <StatCard
-          icon={MdWork}
-          label="Offres actives" value={stats?.activeJobPostings}
-          sub={`/ ${stats?.totalJobPostings ?? 0} au total`}
-          gradient="from-blue-500 to-blue-700"
-        />
-        <StatCard
-          icon={MdAccountTree}
-          label="Candidatures" value={stats?.totalApplications}
-          gradient="from-orange-500 to-orange-700"
-        />
-        <StatCard
-          icon={MdEvent}
-          label="Entretiens / semaine" value={stats?.interviewsThisWeek}
-          gradient="from-emerald-500 to-emerald-700"
-        />
-      </div>
+      <section>
+        <SectionTitle>Vue d'ensemble</SectionTitle>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={MdPeople}
+            label="Total candidats"
+            value={stats?.totalCandidates}
+            gradient="from-violet-500 to-violet-700"
+            numGradient="from-violet-900 to-violet-600"
+          />
+          <StatCard
+            icon={MdWork}
+            label="Offres actives"
+            value={stats?.activeJobPostings}
+            sub={`sur ${stats?.totalJobPostings ?? 0} au total`}
+            gradient="from-blue-500 to-blue-700"
+            numGradient="from-blue-900 to-blue-600"
+          />
+          <StatCard
+            icon={MdAccountTree}
+            label="Candidatures"
+            value={stats?.totalApplications}
+            gradient="from-orange-500 to-orange-700"
+            numGradient="from-orange-900 to-orange-600"
+          />
+          <StatCard
+            icon={MdEvent}
+            label="Entretiens cette semaine"
+            value={stats?.interviewsThisWeek}
+            gradient="from-emerald-500 to-emerald-700"
+            numGradient="from-emerald-900 to-emerald-600"
+          />
+        </div>
+      </section>
 
       {/* ── Charts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <section>
+        <SectionTitle>Analyse du pipeline</SectionTitle>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-        {/* Bar chart — recruitment funnel */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Entonnoir de recrutement</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Vue d'ensemble du pipeline actuel</p>
+          {/* Bar chart */}
+          <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Entonnoir de recrutement</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Vue d'ensemble du pipeline actuel</p>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <MdTrendingUp className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              </div>
             </div>
-            <MdTrendingUp className="w-5 h-5 text-slate-400" />
-          </div>
-          <ResponsiveContainer width="100%" height={230}>
-            <BarChart data={funnelData} barSize={40} barCategoryGap="30%">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
-                axisLine={false} tickLine={false}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
-                axisLine={false} tickLine={false} width={28}
-              />
-              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(148,163,184,0.08)' }} />
-              <Bar dataKey="value" name="Nombre" radius={[8, 8, 0, 0]}>
-                {funnelData.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Donut chart — application status */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="mb-5">
-            <h3 className="text-base font-semibold text-slate-900 dark:text-white">Statut des candidatures</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Répartition actuelle</p>
-          </div>
-          {statusData.length === 0 ? (
-            <div className="flex items-center justify-center h-[230px] text-slate-400 text-sm">
-              Aucune candidature
-            </div>
-          ) : (
             <ResponsiveContainer width="100%" height={230}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%" cy="45%"
-                  innerRadius={60} outerRadius={88}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<ChartTooltip />} />
-                <Legend
-                  iconType="circle" iconSize={8}
-                  formatter={(value) => (
-                    <span className="text-xs text-slate-600 dark:text-slate-400">{value}</span>
-                  )}
-                />
-              </PieChart>
+              <BarChart data={funnelData} barSize={40} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(148,163,184,0.08)' }} />
+                <Bar dataKey="value" name="Nombre" radius={[6, 6, 0, 0]}>
+                  {funnelData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
-          )}
+          </div>
+
+          {/* Donut chart */}
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Statut des candidatures</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Répartition actuelle</p>
+            </div>
+            {statusData.length === 0 ? (
+              <div className="flex items-center justify-center h-[230px] text-slate-400 text-sm">Aucune candidature</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={230}>
+                <PieChart>
+                  <Pie data={statusData} cx="50%" cy="45%" innerRadius={60} outerRadius={88} paddingAngle={3} dataKey="value">
+                    {statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend iconType="circle" iconSize={8} formatter={(value) => (
+                    <span className="text-xs text-slate-600 dark:text-slate-400">{value}</span>
+                  )} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Hired highlight banner ── */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-        <div>
-          <p className="text-blue-100 text-sm font-medium">Embauchés ce mois</p>
-          <p className="text-white text-4xl font-extrabold mt-1">{stats?.hiredThisMonth ?? 0}</p>
-          <p className="text-blue-200 text-xs mt-1">Nouvelles embauches confirmées</p>
-        </div>
-        <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center">
-          <MdCheckCircle className="w-9 h-9 text-white" />
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-6 shadow-md">
+        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-[0.04]" />
+        <div className="absolute bottom-0 left-1/2 w-64 h-32 rounded-full bg-indigo-500 opacity-10 blur-2xl" />
+        <div className="relative flex items-center justify-between gap-6">
+          <div>
+            <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-1">Ce mois-ci</p>
+            <div className="flex items-end gap-3">
+              <p className="text-white text-5xl font-extrabold leading-none">{stats?.hiredThisMonth ?? 0}</p>
+              <p className="text-blue-200 text-base font-medium mb-1">
+                embauche{(stats?.hiredThisMonth ?? 0) !== 1 ? 's' : ''} confirmée{(stats?.hiredThisMonth ?? 0) !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-6 shrink-0">
+            <div className="text-center">
+              <p className="text-3xl font-extrabold text-white">{stats?.totalCandidates ?? 0}</p>
+              <p className="text-blue-200 text-xs mt-0.5">Candidats</p>
+            </div>
+            <div className="w-px bg-white/20 self-stretch" />
+            <div className="text-center">
+              <p className="text-3xl font-extrabold text-white">{stats?.totalApplications ?? 0}</p>
+              <p className="text-blue-200 text-xs mt-0.5">Candidatures</p>
+            </div>
+            <div className="hidden sm:block w-px bg-white/20 self-stretch" />
+            <div className="hidden sm:block text-center">
+              <p className="text-3xl font-extrabold text-white">{stats?.activeJobPostings ?? 0}</p>
+              <p className="text-blue-200 text-xs mt-0.5">Offres actives</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ── Bottom row: upcoming interviews + alerts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section>
+        <SectionTitle>Activité récente</SectionTitle>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Upcoming interviews */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <MdCalendarMonth className="w-5 h-5 text-blue-500" />
-            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-              Entretiens à venir <span className="text-sm font-normal text-slate-400">(7 jours)</span>
-            </h3>
+          {/* Upcoming interviews */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
+                <MdCalendarMonth className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Entretiens à venir</h3>
+                <p className="text-xs text-slate-400">Dans les 7 prochains jours</p>
+              </div>
+            </div>
+            <div className="p-4">
+              {(!stats?.upcomingInterviews || stats.upcomingInterviews.length === 0) ? (
+                <p className="text-sm text-slate-400 py-6 text-center">Aucun entretien planifié cette semaine</p>
+              ) : (
+                <div className="space-y-2">
+                  {stats.upcomingInterviews.map((iv) => {
+                    const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
+                    const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
+                    return (
+                      <button
+                        key={iv.interviewId}
+                        onClick={() => iv.candidateId && navigate(`/app/candidates/${iv.candidateId}`)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors text-left"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-base shrink-0 shadow-sm">
+                          {TYPE_ICONS[iv.type] ?? '📅'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                            {iv.candidateFirstName} {iv.candidateLastName}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{iv.jobPostingTitle}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {date ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-          {(!stats?.upcomingInterviews || stats.upcomingInterviews.length === 0) ? (
-            <p className="text-sm text-slate-400 py-4 text-center">Aucun entretien planifié cette semaine</p>
-          ) : (
-            <div className="space-y-3">
-              {stats.upcomingInterviews.map((iv) => {
-                const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
-                const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
-                return (
-                  <button
-                    key={iv.interviewId}
-                    onClick={() => iv.candidateId && navigate(`/app/candidates/${iv.candidateId}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors text-left cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-lg shrink-0">
-                      {TYPE_ICONS[iv.type] ?? '📅'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                        {iv.candidateFirstName} {iv.candidateLastName}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{iv.jobPostingTitle}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        {date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {date ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
+
+          {/* Alerts */}
+          {alerts.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center shrink-0">
+                  <MdWarning className="w-4 h-4 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Alertes & notifications</h3>
+                  <p className="text-xs text-slate-400">{alerts.length} notification{alerts.length > 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <div className="p-4 space-y-2">
+                {alerts.map((a, i) => <Alert key={i} {...a} />)}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Alerts */}
-        {alerts.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">
-              Alertes &amp; notifications
-            </h3>
-            <div className="space-y-3">
-              {alerts.map((a, i) => <Alert key={i} {...a} />)}
-            </div>
-          </div>
-        )}
-      </div>
+      </section>
 
     </div>
   );
