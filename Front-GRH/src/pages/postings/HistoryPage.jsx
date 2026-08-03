@@ -5,6 +5,24 @@ import { usePageActions } from '../../context/HeaderContext';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 
+const StatCard = ({ icon: Icon, label, value, gradient, numGradient }) => (
+  <div className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 cursor-default">
+    <div className={`absolute inset-x-0 top-0 h-[3px] group-hover:h-[5px] bg-gradient-to-r ${gradient} transition-all duration-300`} />
+    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-[0.05] dark:group-hover:opacity-[0.1] transition-opacity duration-300`} />
+    <div className="relative flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-2 pt-1">
+      <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300 order-first sm:order-last`}>
+        <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
+      </div>
+      <div className="min-w-0 sm:flex-1">
+        <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">{label}</p>
+        <p className={`text-xl sm:text-3xl font-extrabold mt-1.5 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
+          {value ?? '—'}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
 const ScoreChip = ({ value }) => {
   if (value == null) return <span className="text-slate-400 text-xs">—</span>;
   const n = Number(value);
@@ -61,38 +79,43 @@ export const HistoryPage = () => {
 
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        {[
-          { label: 'Offres clôturées',   value: history.length,                                          icon: MdHistory,     bar: 'bg-slate-400 dark:bg-slate-500',   accent: 'text-slate-400 dark:text-slate-500' },
-          { label: 'Total candidatures', value: history.reduce((s, h) => s + h.totalApplications, 0),   icon: MdPeople,      bar: 'bg-blue-500',                       accent: 'text-blue-400' },
-          { label: 'Total embauchés',    value: history.reduce((s, h) => s + h.hiredCount, 0),          icon: MdCheckCircle, bar: 'bg-emerald-500',                    accent: 'text-emerald-400' },
-        ].map(({ label, value, icon: Icon, bar, accent }) => (
-          <div key={label} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className={`h-1 ${bar}`} />
-            <div className="p-3 sm:p-4 flex items-start justify-between gap-1">
-              <div className="min-w-0">
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white leading-none">{value}</p>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-tight">{label}</p>
-              </div>
-              <Icon className={`w-5 h-5 sm:w-7 sm:h-7 shrink-0 mt-0.5 ${accent} opacity-30`} />
-            </div>
-          </div>
-        ))}
+        <StatCard
+          icon={MdHistory}
+          label="Offres clôturées"
+          value={history.length}
+          gradient="from-slate-500 to-slate-700"
+          numGradient="from-slate-800 to-slate-500"
+        />
+        <StatCard
+          icon={MdPeople}
+          label="Total candidatures"
+          value={history.reduce((s, h) => s + h.totalApplications, 0)}
+          gradient="from-blue-500 to-blue-700"
+          numGradient="from-blue-900 to-blue-600"
+        />
+        <StatCard
+          icon={MdCheckCircle}
+          label="Total embauchés"
+          value={history.reduce((s, h) => s + h.hiredCount, 0)}
+          gradient="from-emerald-500 to-emerald-700"
+          numGradient="from-emerald-900 to-emerald-600"
+        />
       </div>
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[640px]">
+        <table className="w-full text-xs min-w-[640px]">
           <thead className="bg-slate-50 dark:bg-slate-800">
             <tr>
-              <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Offre</th>
-              <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Créé par</th>
-              <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Département</th>
-              <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Contrat</th>
-              <th className="text-center px-4 py-3 font-medium text-slate-600 dark:text-slate-400">Candidatures</th>
-              <th className="text-center px-4 py-3 font-medium text-slate-600 dark:text-slate-400">Embauchés</th>
-              <th className="text-center px-4 py-3 font-medium text-slate-600 dark:text-slate-400">Score IA moy.</th>
-              <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Clôturée le</th>
+              <th className="text-left px-4 py-2.5 font-medium text-slate-600 dark:text-slate-400">Offre</th>
+              <th className="text-left px-4 py-2.5 font-medium text-slate-600 dark:text-slate-400">Créé par</th>
+              <th className="text-left px-4 py-2.5 font-medium text-slate-600 dark:text-slate-400">Département</th>
+              <th className="text-left px-4 py-2.5 font-medium text-slate-600 dark:text-slate-400">Contrat</th>
+              <th className="text-center px-3 py-2.5 font-medium text-slate-600 dark:text-slate-400">Candidatures</th>
+              <th className="text-center px-3 py-2.5 font-medium text-slate-600 dark:text-slate-400">Embauchés</th>
+              <th className="text-center px-3 py-2.5 font-medium text-slate-600 dark:text-slate-400">Score IA moy.</th>
+              <th className="text-left px-4 py-2.5 font-medium text-slate-600 dark:text-slate-400">Clôturée le</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -102,24 +125,24 @@ export const HistoryPage = () => {
                 onClick={() => navigate(`/app/postings/${h.id}`)}
                 className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
               >
-                <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">{h.title}</td>
-                <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-sm">{h.createdByName || '—'}</td>
-                <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{h.department || '—'}</td>
-                <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{h.contractType || '—'}</td>
-                <td className="px-4 py-3.5 text-center">
+                <td className="px-4 py-2.5 font-semibold text-slate-900 dark:text-white">{h.title}</td>
+                <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{h.createdByName || '—'}</td>
+                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{h.department || '—'}</td>
+                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{h.contractType || '—'}</td>
+                <td className="px-3 py-2.5 text-center">
                   <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
-                    <MdPeople className="w-4 h-4 text-blue-400" />{h.totalApplications}
+                    <MdPeople className="w-3.5 h-3.5 text-blue-400" />{h.totalApplications}
                   </span>
                 </td>
-                <td className="px-4 py-3.5 text-center">
+                <td className="px-3 py-2.5 text-center">
                   <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-medium">
-                    <MdCheckCircle className="w-4 h-4" />{h.hiredCount}
+                    <MdCheckCircle className="w-3.5 h-3.5" />{h.hiredCount}
                   </span>
                 </td>
-                <td className="px-4 py-3.5 text-center">
+                <td className="px-3 py-2.5 text-center">
                   <ScoreChip value={h.avgAiScore} />
                 </td>
-                <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-xs">
+                <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">
                   {h.closedAt ? new Date(h.closedAt).toLocaleDateString('fr-FR') : '—'}
                 </td>
               </tr>
