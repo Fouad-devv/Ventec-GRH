@@ -22,7 +22,6 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(false);
 
         if (authenticated) {
-          // Refresh the token proactively before it expires
           setInterval(() => {
             keycloak.updateToken(70).catch(() => keycloak.logout());
           }, 60_000);
@@ -31,7 +30,12 @@ export const AuthProvider = ({ children }) => {
       .catch(() => setIsLoading(false));
   }, []);
 
-  const login  = ()     => keycloak.login();
+  // Pass the current app theme to the Keycloak login page via URL param.
+  // Keycloak runs on a different origin so localStorage is not shared;
+  // extraQueryParams is the only way to hand the preference across the redirect.
+  const login  = () => keycloak.login({
+    extraQueryParams: { ui_theme: localStorage.getItem('theme') || 'dark' },
+  });
   const logout = ()     => keycloak.logout({ redirectUri: window.location.origin });
   const getToken = ()   => keycloak.token;
   const hasRole  = (role) =>

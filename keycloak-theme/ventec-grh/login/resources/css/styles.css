@@ -1,64 +1,69 @@
 /* ================================================================
-   VENTEC GRH – Keycloak Login Theme
-   Matches the landing page visual design:
-   orbs · glassmorphism · cyan accent · split-panel · light+dark
+   VENTEC GRH – Keycloak Login Theme  (Premium Edition)
    ================================================================ */
 
-/* ---------- 1. Design tokens ---------- */
-:root {
-  /* Brand */
-  --cyan:        #06b6d4;
-  --cyan-light:  #67e8f9;
-  --cyan-dim:    rgba(6,182,212,.15);
-  --purple-orb:  rgba(139,92,246,.12);
-  --cyan-orb:    rgba(6,182,212,.10);
+/* ---------- 1. Keyframes ---------- */
+@keyframes vtFloat   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
+@keyframes vtFadeUp  { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:none} }
+@keyframes vtFadeLeft{ from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:none} }
+@keyframes vtPulse   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+@keyframes vtGrad    { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
 
-  /* Light theme (default) */
-  --bg:          #f1f5f9;
-  --surface:     rgba(255,255,255,.72);
-  --surface-2:   rgba(241,245,249,.85);
-  --border:      rgba(0,0,0,.10);
-  --border-focus: var(--cyan);
-  --text:        #0f172a;
-  --text-muted:  #64748b;
-  --text-inverse:#ffffff;
-  --input-bg:    rgba(255,255,255,.80);
-  --dot-color:   rgba(0,0,0,.06);
-  --shadow:      0 8px 32px rgba(0,0,0,.12);
-  --toggle-bg:   rgba(0,0,0,.08);
-  --toggle-icon: #475569;
-  --left-bg:     rgba(6,182,212,.06);
-  --error-bg:    rgba(239,68,68,.08);
-  --error-border:rgba(239,68,68,.30);
-  --error-text:  #dc2626;
-  --info-bg:     rgba(6,182,212,.08);
-  --info-border: rgba(6,182,212,.30);
+/* ---------- 2. Design tokens ---------- */
+:root {
+  --cyan:           #06b6d4;
+  --cyan-light:     #67e8f9;
+  --cyan-dim:       rgba(6,182,212,.16);
+  --indigo:         #818cf8;
+  --purple-orb:     rgba(139,92,246,.10);
+  --cyan-orb:       rgba(6,182,212,.09);
+
+  /* Light theme */
+  --bg:             #f1f5f9;
+  --surface:        rgba(255,255,255,.85);
+  --surface-2:      rgba(241,245,249,.90);
+  --border:         rgba(0,0,0,.09);
+  --border-focus:   var(--cyan);
+  --text:           #0f172a;
+  --text-muted:     #64748b;
+  --input-bg:       rgba(255,255,255,.85);
+  --dot-color:      rgba(0,0,0,.05);
+  --shadow:         0 20px 60px rgba(0,0,0,.10), 0 4px 16px rgba(0,0,0,.06);
+  --toggle-bg:      rgba(255,255,255,.9);
+  --toggle-icon:    #475569;
+  --left-bg:        rgba(6,182,212,.04);
+  --error-bg:       rgba(239,68,68,.07);
+  --error-border:   rgba(239,68,68,.25);
+  --error-text:     #dc2626;
+  --info-bg:        rgba(6,182,212,.07);
+  --info-border:    rgba(6,182,212,.25);
+  --card-border-g:  linear-gradient(135deg, rgba(6,182,212,.30) 0%, rgba(129,140,248,.12) 50%, rgba(6,182,212,.07) 100%);
 }
 
 [data-theme="dark"] {
-  --bg:          #060b17;
-  --surface:     rgba(255,255,255,.05);
-  --surface-2:   rgba(255,255,255,.03);
-  --border:      rgba(255,255,255,.08);
-  --text:        #f1f5f9;
-  --text-muted:  #94a3b8;
-  --text-inverse:#0f172a;
-  --input-bg:    rgba(255,255,255,.06);
-  --dot-color:   rgba(255,255,255,.045);
-  --shadow:      0 8px 40px rgba(0,0,0,.50);
-  --toggle-bg:   rgba(255,255,255,.07);
-  --toggle-icon: #94a3b8;
-  --left-bg:     rgba(6,182,212,.04);
-  --error-bg:    rgba(239,68,68,.12);
-  --error-border:rgba(239,68,68,.35);
-  --error-text:  #f87171;
-  --info-bg:     rgba(6,182,212,.10);
-  --info-border: rgba(6,182,212,.35);
-  --cyan-orb:    rgba(6,182,212,.12);
-  --purple-orb:  rgba(139,92,246,.15);
+  --bg:             #060b17;
+  --surface:        rgba(15,23,42,.75);
+  --surface-2:      rgba(255,255,255,.04);
+  --border:         rgba(255,255,255,.07);
+  --text:           #f1f5f9;
+  --text-muted:     #94a3b8;
+  --input-bg:       rgba(255,255,255,.055);
+  --dot-color:      rgba(255,255,255,.04);
+  --shadow:         0 24px 80px rgba(0,0,0,.60), 0 4px 20px rgba(0,0,0,.40);
+  --toggle-bg:      rgba(255,255,255,.06);
+  --toggle-icon:    #94a3b8;
+  --left-bg:        rgba(6,182,212,.04);
+  --error-bg:       rgba(239,68,68,.12);
+  --error-border:   rgba(239,68,68,.35);
+  --error-text:     #f87171;
+  --info-bg:        rgba(6,182,212,.10);
+  --info-border:    rgba(6,182,212,.30);
+  --cyan-orb:       rgba(6,182,212,.12);
+  --purple-orb:     rgba(139,92,246,.14);
+  --card-border-g:  linear-gradient(135deg, rgba(6,182,212,.55) 0%, rgba(129,140,248,.22) 50%, rgba(6,182,212,.12) 100%);
 }
 
-/* ---------- 2. Reset & base ---------- */
+/* ---------- 3. Reset & base ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -68,13 +73,12 @@ html, body {
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
-  transition: background .25s, color .25s;
 }
 
-a { color: var(--cyan); text-decoration: none; }
+a { color: var(--cyan); text-decoration: none; transition: color .15s; }
 a:hover { text-decoration: underline; }
 
-/* ---------- 3. Full-page layout ---------- */
+/* ---------- 4. Full-page layout ---------- */
 .vt-page {
   min-height: 100vh;
   display: flex;
@@ -82,415 +86,338 @@ a:hover { text-decoration: underline; }
   overflow: hidden;
 }
 
-/* ---------- 4. Ambient orbs ---------- */
+/* ---------- 5. Ambient orbs ---------- */
 .vt-orb {
   position: fixed;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(90px);
   pointer-events: none;
   z-index: 0;
 }
-.vt-orb-cyan {
-  width: 520px; height: 520px;
-  top: -160px; left: -160px;
-  background: var(--cyan-orb);
-}
-.vt-orb-purple {
-  width: 460px; height: 460px;
-  bottom: -120px; right: -120px;
-  background: var(--purple-orb);
-}
-.vt-orb-cyan2 {
-  width: 300px; height: 300px;
-  bottom: 10%; left: 40%;
-  background: var(--cyan-orb);
-  opacity: .5;
-}
+.vt-orb-cyan   { width:560px; height:560px; top:-160px; left:-160px; background:var(--cyan-orb);   animation:vtFloat  9s ease-in-out 0s   infinite; }
+.vt-orb-purple { width:480px; height:480px; bottom:-130px; right:-130px; background:var(--purple-orb); animation:vtFloat 11s ease-in-out 1.8s infinite; }
+.vt-orb-cyan2  { width:320px; height:320px; bottom:10%; left:38%; background:var(--cyan-orb); opacity:.55; animation:vtFloat 13s ease-in-out 3.5s infinite; }
 
-/* ---------- 5. Dot pattern overlay ---------- */
+/* ---------- 6. Dot pattern ---------- */
 .vt-dots {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background-image: radial-gradient(circle at 1px 1px, var(--dot-color) 1px, transparent 0);
   background-size: 28px 28px;
-  pointer-events: none;
-  z-index: 0;
+  pointer-events: none; z-index: 0;
 }
 
-/* ---------- 6. Theme toggle ---------- */
+/* ---------- 7. Theme toggle ---------- */
 .vt-toggle {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  z-index: 100;
+  position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100;
   background: var(--toggle-bg);
   border: 1px solid var(--border);
   border-radius: 50%;
   width: 2.5rem; height: 2.5rem;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: var(--toggle-icon);
-  font-size: 1.1rem;
-  transition: background .2s, border-color .2s, transform .15s;
-  backdrop-filter: blur(8px);
+  cursor: pointer; color: var(--toggle-icon);
+  transition: background .2s, border-color .2s, transform .2s, color .2s;
+  backdrop-filter: blur(12px);
 }
-.vt-toggle:hover { transform: scale(1.1); background: var(--cyan-dim); color: var(--cyan); }
-.vt-toggle .icon-sun  { display: none; }
-.vt-toggle .icon-moon { display: block; }
-[data-theme="dark"] .vt-toggle .icon-sun  { display: block; }
-[data-theme="dark"] .vt-toggle .icon-moon { display: none; }
+.vt-toggle:hover {
+  transform: scale(1.1) rotate(12deg);
+  background: var(--cyan-dim);
+  border-color: rgba(6,182,212,.3);
+  color: var(--cyan);
+}
 
-/* ---------- 7. Left branding panel ---------- */
+/* ---------- 8. Left branding panel ---------- */
 .vt-brand {
   display: none;
   flex-direction: column;
   justify-content: center;
-  padding: 3rem;
+  padding: 3rem 3.5rem;
   background: var(--left-bg);
   border-right: 1px solid var(--border);
-  position: relative;
-  z-index: 1;
+  position: relative; z-index: 1;
+  animation: vtFadeLeft .85s cubic-bezier(.16,1,.3,1) .05s both;
 }
-@media (min-width: 900px) {
-  .vt-brand { display: flex; width: 44%; min-width: 380px; }
-}
+@media (min-width: 900px) { .vt-brand { display: flex; width: 44%; min-width: 380px; } }
 
-.vt-brand-logo {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  margin-bottom: 3rem;
-}
+/* Logo row */
+.vt-brand-logo { display:flex; align-items:center; gap:.75rem; margin-bottom:2rem; }
 .vt-brand-logo-box {
-  width: 2.75rem; height: 2.75rem;
-  border-radius: .6rem;
-  background: linear-gradient(135deg, var(--cyan), #818cf8);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 1.1rem;
-  color: #fff;
-  box-shadow: 0 0 20px var(--cyan-dim);
+  width:2.75rem; height:2.75rem; border-radius:.65rem;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:1.1rem; color:#fff;
+  box-shadow: 0 0 24px var(--cyan-dim);
 }
-.vt-brand-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -.5px;
-}
-.vt-brand-name span { color: var(--cyan); }
+.vt-brand-name { font-size:1.25rem; font-weight:700; color:var(--text); letter-spacing:-.5px; }
+.vt-brand-name span { color:var(--cyan); }
 
+/* Badge */
+.vt-brand-badge {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .35rem 1rem; border-radius: 999px;
+  border: 1px solid rgba(6,182,212,.25);
+  background: rgba(6,182,212,.08);
+  font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--cyan);
+  margin-bottom: 1.75rem;
+  width: fit-content;
+}
+.vt-badge-dot {
+  width: .45rem; height: .45rem; border-radius: 50%;
+  background: var(--cyan);
+  animation: vtPulse 2s ease infinite;
+}
+
+/* Headline */
 .vt-brand-headline {
-  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
-  font-weight: 800;
-  line-height: 1.2;
-  color: var(--text);
-  letter-spacing: -.5px;
+  font-size: clamp(1.7rem, 2.5vw, 2.25rem);
+  font-weight: 800; line-height: 1.2;
+  color: var(--text); letter-spacing: -.5px;
   margin-bottom: 1rem;
 }
-.vt-brand-headline span { color: var(--cyan); }
+.vt-grad-text {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: vtGrad 4s ease infinite;
+}
 
 .vt-brand-sub {
-  font-size: .95rem;
-  color: var(--text-muted);
-  max-width: 32ch;
-  line-height: 1.65;
-  margin-bottom: 2.5rem;
+  font-size: .9rem; color: var(--text-muted);
+  max-width: 34ch; line-height: 1.7; margin-bottom: 2rem;
 }
 
-.vt-features {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* Feature list */
+.vt-features { display:flex; flex-direction:column; gap:.875rem; margin-bottom: 0; }
+.vt-feature  { display:flex; align-items:center; gap:.75rem; color:var(--text-muted); font-size:.875rem; }
+.vt-feature-check {
+  width: 1.25rem; height: 1.25rem; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  box-shadow: 0 0 10px var(--cyan-dim);
 }
-.vt-feature {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  color: var(--text-muted);
-  font-size: .875rem;
+
+/* Stats row */
+.vt-stats {
+  display: flex; gap: 1.5rem; margin-top: 2rem;
+  padding-top: 2rem; border-top: 1px solid var(--border);
 }
-.vt-feature-dot {
-  width: .5rem; height: .5rem;
-  border-radius: 50%;
-  background: var(--cyan);
-  flex-shrink: 0;
-  box-shadow: 0 0 8px var(--cyan);
+.vt-stat { display: flex; flex-direction: column; gap: .2rem; }
+.vt-stat-value {
+  font-size: 1.5rem; font-weight: 800; line-height: 1;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
+.vt-stat-label { font-size: .68rem; color: var(--text-muted); font-weight: 500; }
+
+/* Trust badge */
 .vt-trust {
-  margin-top: 3rem;
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  font-size: .75rem;
-  color: var(--text-muted);
+  margin-top: 2rem; display:flex; align-items:center; gap:.6rem;
+  font-size:.75rem; color:var(--text-muted);
 }
-.vt-trust-dot { color: #22c55e; font-size: .9rem; }
+.vt-trust-dot {
+  width:.5rem; height:.5rem; border-radius:50%;
+  background: #22c55e; flex-shrink:0;
+  box-shadow: 0 0 6px rgba(34,197,94,.6);
+  animation: vtPulse 2.5s ease infinite;
+}
 
-/* ---------- 8. Right form panel ---------- */
+/* ---------- 9. Right form panel ---------- */
 .vt-form-panel {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1rem;
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
+  flex: 1; display:flex; align-items:center; justify-content:center;
+  padding: 2rem 1rem; position:relative; z-index:1; min-height:100vh;
+  animation: vtFadeUp .85s cubic-bezier(.16,1,.3,1) .15s both;
+}
+
+/* Gradient-border wrapper */
+.vt-card-wrapper {
+  width: 100%; max-width: 440px;
+  border-radius: 1.4rem; padding: 1.5px;
+  background: var(--card-border-g);
+  box-shadow: var(--shadow);
+  transition: background .3s;
 }
 
 .vt-card {
   width: 100%;
-  max-width: 420px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1.25rem;
+  border-radius: calc(1.4rem - 1.5px);
   padding: 2.25rem 2rem;
-  backdrop-filter: blur(16px);
-  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-/* mobile: show logo at top of card */
-.vt-mobile-logo {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  margin-bottom: 1.75rem;
-}
-@media (min-width: 900px) { .vt-mobile-logo { display: none; } }
-.vt-mobile-logo .vt-brand-logo-box { width: 2.2rem; height: 2.2rem; font-size: .9rem; }
-.vt-mobile-logo .vt-brand-name { font-size: 1.05rem; }
+/* mobile logo */
+.vt-mobile-logo { display:flex; align-items:center; gap:.6rem; margin-bottom:1.5rem; }
+@media (min-width: 900px) { .vt-mobile-logo { display:none; } }
+.vt-mobile-logo .vt-brand-logo-box { width:2.2rem; height:2.2rem; font-size:.9rem; }
+.vt-mobile-logo .vt-brand-name { font-size:1.05rem; }
 
-/* ---------- 9. Card header ---------- */
+/* Status badge (inside card) */
+.vt-status-badge {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .3rem .85rem; border-radius: 999px;
+  background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.20);
+  font-size: .7rem; font-weight: 600; letter-spacing: .025em;
+  color: #15803d; margin-bottom: 1.6rem;
+}
+[data-theme="dark"] .vt-status-badge {
+  background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.22);
+  color: #4ade80;
+}
+.vt-status-dot {
+  width: .45rem; height: .45rem; border-radius: 50%;
+  background: #22c55e; flex-shrink: 0;
+  animation: vtPulse 2s ease infinite;
+}
+
+/* ---------- 10. Card header ---------- */
 .vt-card-header { margin-bottom: 1.75rem; }
-.vt-card-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -.4px;
-  margin-bottom: .35rem;
-}
-.vt-card-sub {
-  font-size: .875rem;
-  color: var(--text-muted);
-}
+.vt-card-title  { font-size:1.5rem; font-weight:700; color:var(--text); letter-spacing:-.4px; margin-bottom:.35rem; }
+.vt-card-sub    { font-size:.875rem; color:var(--text-muted); }
 
-/* ---------- 10. Form elements ---------- */
+/* ---------- 11. Form elements ---------- */
 .vt-form-group { margin-bottom: 1.1rem; }
 
 .vt-label {
-  display: block;
-  font-size: .8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  margin-bottom: .4rem;
+  display:block; font-size:.78rem; font-weight:600;
+  color:var(--text-muted); text-transform:uppercase;
+  letter-spacing:.06em; margin-bottom:.4rem;
 }
 
-.vt-input-wrap { position: relative; }
+.vt-input-wrap { position:relative; display:flex; align-items:center; }
+
+/* Prefix icon */
+.vt-input-icon {
+  position:absolute; left:.875rem; top:50%; transform:translateY(-50%);
+  color:var(--text-muted); pointer-events:none; display:flex; align-items:center;
+  z-index:1; transition:color .2s;
+}
+.vt-input-wrap:focus-within .vt-input-icon { color:var(--cyan); }
 
 .vt-input {
-  width: 100%;
-  padding: .7rem 1rem;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: .6rem;
-  color: var(--text);
-  font-size: .95rem;
-  font-family: inherit;
-  outline: none;
-  transition: border-color .2s, box-shadow .2s, background .2s;
+  width:100%; padding:.75rem 1rem;
+  background:var(--input-bg); border:1px solid var(--border);
+  border-radius:.7rem; color:var(--text); font-size:.95rem;
+  font-family:inherit; outline:none;
+  transition:border-color .2s, box-shadow .2s, background .2s;
 }
-.vt-input::placeholder { color: var(--text-muted); opacity: .7; }
+.vt-input::placeholder { color:var(--text-muted); opacity:.65; }
 .vt-input:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 3px var(--cyan-dim);
-  background: var(--input-bg);
+  border-color:var(--cyan);
+  box-shadow:0 0 0 3px var(--cyan-dim);
 }
+.vt-input.has-icon   { padding-left: 2.6rem; }
 .vt-input.has-toggle { padding-right: 2.75rem; }
 
-/* password toggle button */
+/* Eye (password toggle) */
 .vt-eye {
-  position: absolute;
-  right: .75rem; top: 50%;
-  transform: translateY(-50%);
-  background: none; border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: 1.1rem;
-  display: flex;
-  padding: .15rem;
-  transition: color .15s;
+  position:absolute; right:.75rem; top:50%; transform:translateY(-50%);
+  background:none; border:none; cursor:pointer; color:var(--text-muted);
+  display:flex; align-items:center; padding:.15rem;
+  transition:color .15s;
 }
-.vt-eye:hover { color: var(--cyan); }
+.vt-eye:hover { color:var(--cyan); }
 
-/* ---------- 11. Checkbox row (remember me) ---------- */
+/* ---------- 12. Checkbox row ---------- */
 .vt-check-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.4rem;
-  gap: .5rem;
-  flex-wrap: wrap;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1.4rem; gap:.5rem; flex-wrap:wrap;
 }
 .vt-check-label {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  font-size: .875rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
+  display:flex; align-items:center; gap:.5rem;
+  font-size:.875rem; color:var(--text-muted);
+  cursor:pointer; user-select:none;
 }
-.vt-check-label input[type=checkbox] {
-  width: 1rem; height: 1rem;
-  accent-color: var(--cyan);
-  cursor: pointer;
-}
-.vt-forgot {
-  font-size: .875rem;
-  color: var(--cyan);
-  white-space: nowrap;
-}
-.vt-forgot:hover { text-decoration: underline; }
+.vt-check-label input[type=checkbox] { width:1rem; height:1rem; accent-color:var(--cyan); cursor:pointer; }
+.vt-forgot { font-size:.875rem; color:var(--cyan); white-space:nowrap; transition:opacity .15s; }
+.vt-forgot:hover { opacity:.8; text-decoration:underline; }
 
-/* ---------- 12. Buttons ---------- */
+/* ---------- 13. Buttons ---------- */
 .vt-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .5rem;
-  width: 100%;
-  padding: .8rem 1.5rem;
-  border: none;
-  border-radius: .6rem;
-  font-size: .95rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: opacity .15s, transform .1s, box-shadow .2s;
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  width:100%; padding:.82rem 1.5rem; border:none; border-radius:.7rem;
+  font-size:.95rem; font-weight:600; font-family:inherit;
+  cursor:pointer; transition:opacity .18s, transform .12s, box-shadow .25s;
 }
-.vt-btn:active { transform: scale(.98); }
+.vt-btn:active { transform:scale(.98); }
+
+.vt-btn-arrow { display:flex; align-items:center; transition:transform .2s cubic-bezier(.16,1,.3,1); }
+.vt-btn:hover .vt-btn-arrow { transform:translateX(4px); }
 
 .vt-btn-primary {
-  background: linear-gradient(135deg, var(--cyan) 0%, #818cf8 100%);
-  color: #fff;
-  box-shadow: 0 4px 20px var(--cyan-dim);
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+  color:#fff;
+  box-shadow:0 4px 20px var(--cyan-dim);
 }
-.vt-btn-primary:hover { opacity: .9; box-shadow: 0 6px 28px var(--cyan-dim); }
+.vt-btn-primary:hover { opacity:.92; box-shadow:0 6px 32px rgba(6,182,212,.35); }
 
 .vt-btn-secondary {
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background:var(--surface-2); color:var(--text); border:1px solid var(--border);
 }
-.vt-btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+.vt-btn-secondary:hover { border-color:var(--cyan); color:var(--cyan); }
 
-/* ---------- 13. Alerts / messages ---------- */
+/* ---------- 14. Alerts ---------- */
 .vt-alert {
-  border-radius: .6rem;
-  padding: .75rem 1rem;
-  font-size: .875rem;
-  margin-bottom: 1.1rem;
-  border: 1px solid;
-  display: flex;
-  gap: .5rem;
-  align-items: flex-start;
+  border-radius:.7rem; padding:.75rem 1rem; font-size:.875rem;
+  margin-bottom:1.1rem; border:1px solid; display:flex; gap:.5rem; align-items:flex-start;
 }
-.vt-alert-error {
-  background: var(--error-bg);
-  border-color: var(--error-border);
-  color: var(--error-text);
-}
-.vt-alert-info {
-  background: var(--info-bg);
-  border-color: var(--info-border);
-  color: var(--cyan);
-}
-.vt-alert-success {
-  background: rgba(34,197,94,.08);
-  border-color: rgba(34,197,94,.30);
-  color: #16a34a;
-}
-[data-theme="dark"] .vt-alert-success { color: #4ade80; }
-.vt-alert-icon { flex-shrink: 0; font-size: 1rem; margin-top: .05rem; }
+.vt-alert-error   { background:var(--error-bg); border-color:var(--error-border); color:var(--error-text); }
+.vt-alert-info    { background:var(--info-bg);  border-color:var(--info-border);  color:var(--cyan); }
+.vt-alert-success { background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.28); color:#15803d; }
+[data-theme="dark"] .vt-alert-success { color:#4ade80; }
+.vt-alert-icon { flex-shrink:0; font-size:1rem; margin-top:.05rem; }
 
-/* ---------- 14. Divider ---------- */
+/* ---------- 15. Divider ---------- */
 .vt-divider {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  color: var(--text-muted);
-  font-size: .8rem;
-  margin: 1.25rem 0;
+  display:flex; align-items:center; gap:.75rem;
+  color:var(--text-muted); font-size:.8rem; margin:1.25rem 0;
 }
-.vt-divider::before, .vt-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
+.vt-divider::before, .vt-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
-/* ---------- 15. Back link ---------- */
+/* ---------- 16. Back link ---------- */
 .vt-back {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .875rem;
-  color: var(--text-muted);
-  margin-top: 1.25rem;
-  transition: color .15s;
+  display:inline-flex; align-items:center; gap:.4rem;
+  font-size:.875rem; color:var(--text-muted); margin-top:1.25rem; transition:color .15s;
 }
-.vt-back:hover { color: var(--cyan); text-decoration: none; }
+.vt-back:hover { color:var(--cyan); text-decoration:none; }
 
-/* ---------- 16. Info / success page ---------- */
+/* ---------- 17. Info / success page ---------- */
 .vt-info-icon {
-  width: 4rem; height: 4rem;
-  border-radius: 50%;
-  background: var(--info-bg);
-  border: 1px solid var(--info-border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.75rem;
-  margin: 0 auto 1.5rem;
+  width:4rem; height:4rem; border-radius:50%;
+  background:var(--info-bg); border:1px solid var(--info-border);
+  display:flex; align-items:center; justify-content:center; font-size:1.75rem;
+  margin:0 auto 1.5rem;
 }
-.vt-info-icon.success { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.30); }
+.vt-info-icon.success { background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.28); }
 
-/* ---------- 17. Field-level error ---------- */
+/* ---------- 18. Field-level error ---------- */
 .vt-field-error {
-  font-size: .78rem;
-  color: var(--error-text);
-  margin-top: .3rem;
-  display: flex;
-  align-items: center;
-  gap: .3rem;
+  font-size:.78rem; color:var(--error-text); margin-top:.3rem;
+  display:flex; align-items:center; gap:.3rem;
 }
 
-/* ---------- 18. Responsive tweaks ---------- */
+/* ---------- 19. Responsive tweaks ---------- */
 @media (max-width: 480px) {
-  .vt-card { padding: 1.75rem 1.25rem; border-radius: 1rem; }
-  .vt-card-title { font-size: 1.3rem; }
-  .vt-check-row { flex-direction: column; align-items: flex-start; }
+  .vt-card { padding:1.75rem 1.25rem; }
+  .vt-card-wrapper { border-radius:1.2rem; }
+  .vt-card-title { font-size:1.3rem; }
+  .vt-check-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* ---------- 19. Keycloak resets (override base theme injections) ---------- */
-#kc-form-wrapper,
-#kc-content,
-#kc-content-wrapper,
-.login-pf,
-.login-pf-page,
-.login-pf-body,
-.pf-v5-c-login,
-.pf-v5-c-login__container {
-  all: unset !important;
-  display: contents !important;
-}
+/* ---------- 20. Keycloak resets ---------- */
+#kc-form-wrapper, #kc-content, #kc-content-wrapper,
+.login-pf, .login-pf-page, .login-pf-body,
+.pf-v5-c-login, .pf-v5-c-login__container { all:unset !important; display:contents !important; }
+#kc-header, #kc-header-wrapper { display:none !important; }
 
-/* hide Keycloak default header/title we don't use */
-#kc-header,
-#kc-header-wrapper { display: none !important; }
-
-/* ---------- 20. Smooth transitions ---------- */
-.vt-page, .vt-card, .vt-input, .vt-btn, .vt-alert {
+/* ---------- 21. Smooth theme transitions ---------- */
+html { transition: background .25s, color .25s; }
+.vt-card, .vt-card-wrapper, .vt-input, .vt-btn, .vt-alert, .vt-brand {
   transition-property: background, border-color, color, box-shadow;
-  transition-duration: .2s;
+  transition-duration: .25s;
   transition-timing-function: ease;
 }

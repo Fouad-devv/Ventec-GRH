@@ -6,30 +6,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="robots" content="noindex, nofollow"/>
   <title>${title} – VENTEC GRH</title>
-
-  <#-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-
   <link rel="stylesheet" href="${url.resourcesPath}/css/styles.css"/>
 </head>
 <body>
 
 <div class="vt-page">
 
-  <!-- ambient orbs -->
+  <!-- Ambient orbs -->
   <div class="vt-orb vt-orb-cyan"   aria-hidden="true"></div>
   <div class="vt-orb vt-orb-purple" aria-hidden="true"></div>
   <div class="vt-orb vt-orb-cyan2"  aria-hidden="true"></div>
-
-  <!-- dot pattern -->
   <div class="vt-dots" aria-hidden="true"></div>
 
-  <!-- theme toggle -->
+  <!-- Theme toggle -->
   <button class="vt-toggle" id="themeToggle" aria-label="Toggle theme" type="button">
-    <span class="icon-sun"  aria-hidden="true">&#9728;</span>
-    <span class="icon-moon" aria-hidden="true">&#9790;</span>
+    <!-- sun icon (shown in dark mode to switch to light) -->
+    <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <!-- moon icon (shown in light mode to switch to dark) -->
+    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
   </button>
 
   <!-- ── Left branding panel ── -->
@@ -39,37 +43,88 @@
       <span class="vt-brand-name">VENTEC <span>GRH</span></span>
     </div>
 
+    <div class="vt-brand-badge">
+      <span class="vt-badge-dot"></span>
+      Plateforme RH · Application interne
+    </div>
+
     <h1 class="vt-brand-headline">
-      Simplifiez votre<br/><span>Recrutement</span><br/>avec intelligence
+      Simplifiez votre<br/>
+      <span class="vt-grad-text">Recrutement</span><br/>
+      avec intelligence
     </h1>
     <p class="vt-brand-sub">
-      Plateforme intégrée de gestion des ressources humaines — recrutement, candidats, entretiens, et bien plus.
+      Plateforme intégrée de gestion des ressources humaines — recrutement, candidats, entretiens et bien plus.
     </p>
 
     <ul class="vt-features">
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Suivi des candidatures en temps réel</li>
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Planification des entretiens</li>
-      <li class="vt-feature"><span class="vt-feature-dot"></span>Accès sécurisé et centralisé</li>
+      <li class="vt-feature">
+        <span class="vt-feature-check">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+        </span>
+        Suivi des candidatures en temps réel
+      </li>
+      <li class="vt-feature">
+        <span class="vt-feature-check">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+        </span>
+        Scoring IA automatique des CVs
+      </li>
+      <li class="vt-feature">
+        <span class="vt-feature-check">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+        </span>
+        Pipeline RH structuré en 5 étapes
+      </li>
+      <li class="vt-feature">
+        <span class="vt-feature-check">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+        </span>
+        Accès sécurisé et centralisé
+      </li>
     </ul>
 
+    <div class="vt-stats">
+      <div class="vt-stat">
+        <span class="vt-stat-value">84</span>
+        <span class="vt-stat-label">Candidats</span>
+      </div>
+      <div class="vt-stat">
+        <span class="vt-stat-value">8</span>
+        <span class="vt-stat-label">Offres actives</span>
+      </div>
+      <div class="vt-stat">
+        <span class="vt-stat-value">5</span>
+        <span class="vt-stat-label">Étapes pipeline</span>
+      </div>
+    </div>
+
     <div class="vt-trust">
-      <span class="vt-trust-dot">&#9679;</span>
+      <span class="vt-trust-dot"></span>
       Connexion sécurisée · Réseau interne VENTEC
     </div>
   </aside>
 
   <!-- ── Right form panel ── -->
   <main class="vt-form-panel">
-    <div class="vt-card">
+    <div class="vt-card-wrapper">
+      <div class="vt-card">
 
-      <!-- mobile-only logo -->
-      <div class="vt-mobile-logo">
-        <div class="vt-brand-logo-box">V</div>
-        <span class="vt-brand-name">VENTEC <span>GRH</span></span>
+        <!-- mobile-only logo -->
+        <div class="vt-mobile-logo">
+          <div class="vt-brand-logo-box">V</div>
+          <span class="vt-brand-name">VENTEC <span>GRH</span></span>
+        </div>
+
+        <!-- status badge -->
+        <div class="vt-status-badge">
+          <span class="vt-status-dot"></span>
+          Connexion sécurisée · Ventec GRH
+        </div>
+
+        <#nested/>
+
       </div>
-
-      <#nested/>
-
     </div>
   </main>
 
@@ -77,34 +132,47 @@
 
 <script>
 (function () {
-  var STORAGE_KEY = 'vt-theme';
   var html = document.documentElement;
   var btn  = document.getElementById('themeToggle');
+  var STORAGE_KEY = 'vt-theme';
 
-  function setTheme(t) {
+  function applyTheme(t) {
     html.setAttribute('data-theme', t);
     localStorage.setItem(STORAGE_KEY, t);
+    var sun  = btn && btn.querySelector('.icon-sun');
+    var moon = btn && btn.querySelector('.icon-moon');
+    if (sun)  sun.style.display  = (t === 'dark') ? '' : 'none';
+    if (moon) moon.style.display = (t === 'dark') ? 'none' : '';
   }
 
-  /* init: default dark unless saved */
-  var saved = localStorage.getItem(STORAGE_KEY);
-  setTheme(saved === 'light' ? 'light' : 'dark');
+  /* Priority:
+     1. ui_theme URL param passed by the React app via keycloak.login({ extraQueryParams })
+     2. Keycloak's own saved preference (vt-theme)
+     3. OS / system preference
+  */
+  var urlTheme  = new URLSearchParams(window.location.search).get('ui_theme');
+  var savedTheme = localStorage.getItem(STORAGE_KEY);
+  var sysTheme  = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+  applyTheme(urlTheme || savedTheme || sysTheme);
 
   btn && btn.addEventListener('click', function () {
-    setTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 
   /* password visibility toggle */
-  document.querySelectorAll('[data-eye]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var targetId = btn.getAttribute('data-eye');
+  document.querySelectorAll('[data-eye]').forEach(function (eyeBtn) {
+    eyeBtn.addEventListener('click', function () {
+      var targetId = eyeBtn.getAttribute('data-eye');
       var input    = document.getElementById(targetId);
       if (!input) return;
-      var isText = input.type === 'text';
-      input.type = isText ? 'password' : 'text';
-      btn.setAttribute('aria-label', isText ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
-      var eyeIcon = btn.querySelector('.eye-icon');
-      if (eyeIcon) eyeIcon.textContent = isText ? '\u{1F441}' : '\u{1F648}';
+      var showing  = input.type === 'text';
+      input.type   = showing ? 'password' : 'text';
+      eyeBtn.setAttribute('aria-label', showing ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+      var open = eyeBtn.querySelector('.eye-open');
+      var off  = eyeBtn.querySelector('.eye-off');
+      if (open) open.style.display = showing ? '' : 'none';
+      if (off)  off.style.display  = showing ? 'none' : '';
     });
   });
 })();
