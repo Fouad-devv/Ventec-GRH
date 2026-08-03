@@ -56,4 +56,16 @@ public class DocumentChecklistController {
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                 .body(content);
     }
+
+    @GetMapping("/candidate/{candidateId}/posting/{jobPostingId}/export/pdf")
+    public ResponseEntity<byte[]> exportPdf(
+            @PathVariable UUID candidateId,
+            @PathVariable UUID jobPostingId) {
+        byte[] content = exportService.exportDocumentsListPdf(candidateId, jobPostingId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"documents-" + candidateId + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(content);
+    }
 }

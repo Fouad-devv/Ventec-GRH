@@ -470,6 +470,12 @@ public class ExportService {
         return exportDocumentsListDocx(app.getCandidate().getId(), app.getJobPosting().getId());
     }
 
+    public byte[] exportDocumentsListPdfByApplication(UUID applicationId) {
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found: " + applicationId));
+        return exportDocumentsListPdf(app.getCandidate().getId(), app.getJobPosting().getId());
+    }
+
     public byte[] exportDocumentsListDocx(UUID candidateId, UUID jobPostingId) {
         DocumentChecklist checklist = checklistRepository
                 .findByCandidateIdAndJobPostingId(candidateId, jobPostingId)
@@ -506,34 +512,53 @@ public class ExportService {
             setCellWidth(hRow.getCell(1), 4680);
             setCellWidth(hRow.getCell(2), 2340);
 
-            // Left: logos (white bg) — vertically centered
-            setLogosInCell(doc, hRow.getCell(0));
-            hRow.getCell(0).setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+            // Left: Ventec / Ecowell text — no logos
+            XWPFTableCell leftC = hRow.getCell(0);
+            setCellBg(leftC, WHITE);
+            leftC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+            XWPFParagraph lp1 = leftC.getParagraphs().isEmpty() ? leftC.addParagraph() : leftC.getParagraphs().get(0);
+            lp1.setAlignment(ParagraphAlignment.CENTER);
+            lp1.setSpacingBefore(0); lp1.setSpacingAfter(0);
+            XWPFRun lr1 = lp1.createRun();
+            lr1.setBold(true); lr1.setFontSize(12); lr1.setFontFamily(HDR_FONT); lr1.setText("Ventec");
+            XWPFParagraph lp2 = leftC.addParagraph();
+            lp2.setAlignment(ParagraphAlignment.CENTER);
+            lp2.setSpacingBefore(0); lp2.setSpacingAfter(0);
+            XWPFRun lr2 = lp2.createRun();
+            lr2.setBold(true); lr2.setFontSize(12); lr2.setFontFamily(HDR_FONT); lr2.setText("Ecowell");
 
-            // Center: bold title — white bg, vertically centered
+            // Center: Franklin Gothic Heavy — bold, italic, large, tight spacing
             XWPFTableCell midC = hRow.getCell(1);
+            setCellBg(midC, WHITE);
             midC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-            XWPFParagraph mp1 = midC.getParagraphs().isEmpty() ? midC.addParagraph() : midC.getParagraphs().get(0);
-            mp1.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun mr1 = mp1.createRun(); mr1.setBold(true); mr1.setFontSize(12);
-            mr1.setText("LISTE DES DOCUMENTS");
-            XWPFParagraph mp2 = midC.addParagraph(); mp2.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun mr2 = mp2.createRun(); mr2.setBold(true); mr2.setFontSize(12);
-            mr2.setText("ADMINISTRATIFS A FOURNIR");
-            XWPFParagraph mp3 = midC.addParagraph(); mp3.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun mr3 = mp3.createRun(); mr3.setBold(true); mr3.setFontSize(12);
-            mr3.setText("CDI-CDD");
+            String[] centerLines = {"LISTE DES DOCUMENTS", "ADMINISTRATIFS A FOURNIR", "CDI-CDD"};
+            for (int li = 0; li < centerLines.length; li++) {
+                XWPFParagraph mp = li == 0
+                    ? (midC.getParagraphs().isEmpty() ? midC.addParagraph() : midC.getParagraphs().get(0))
+                    : midC.addParagraph();
+                mp.setAlignment(ParagraphAlignment.CENTER);
+                mp.setSpacingBefore(0); mp.setSpacingAfter(0);
+                XWPFRun mr = mp.createRun();
+                mr.setBold(true); mr.setItalic(true);
+                mr.setFontFamily("Franklin Gothic Heavy"); mr.setFontSize(14);
+                mr.setText(centerLines[li]);
+            }
 
-            // Right: Management Ressources Humaines — white bg, bold, centered, vertically centered
+            // Right: Management Ressources Humaines — orange
             XWPFTableCell rightC = hRow.getCell(2);
+            setCellBg(rightC, WHITE);
             rightC.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-            XWPFParagraph rp1 = rightC.getParagraphs().isEmpty() ? rightC.addParagraph() : rightC.getParagraphs().get(0);
-            rp1.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun rr1 = rp1.createRun(); rr1.setBold(true); rr1.setFontSize(10); rr1.setText("Management");
-            XWPFParagraph rp2 = rightC.addParagraph(); rp2.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun rr2 = rp2.createRun(); rr2.setBold(true); rr2.setFontSize(10); rr2.setText("Ressources");
-            XWPFParagraph rp3 = rightC.addParagraph(); rp3.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun rr3 = rp3.createRun(); rr3.setBold(true); rr3.setFontSize(10); rr3.setText("Humaines");
+            String[] rightLines = {"Management", "Ressources", "Humaines"};
+            for (int li = 0; li < rightLines.length; li++) {
+                XWPFParagraph rp = li == 0
+                    ? (rightC.getParagraphs().isEmpty() ? rightC.addParagraph() : rightC.getParagraphs().get(0))
+                    : rightC.addParagraph();
+                rp.setAlignment(ParagraphAlignment.CENTER);
+                rp.setSpacingBefore(0); rp.setSpacingAfter(0);
+                XWPFRun rr = rp.createRun();
+                rr.setBold(true); rr.setFontSize(10); rr.setColor("C55A11");
+                rr.setText(rightLines[li]);
+            }
 
             doc.createParagraph();
 
@@ -869,6 +894,158 @@ public class ExportService {
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la génération du PDF", e);
         }
+    }
+
+    // ── Documents list PDF export ────────────────────────────────────────────
+    public byte[] exportDocumentsListPdf(UUID candidateId, UUID jobPostingId) {
+        DocumentChecklist checklist = checklistRepository
+                .findByCandidateIdAndJobPostingId(candidateId, jobPostingId)
+                .orElseThrow(() -> new NotFoundException("Checklist not found for candidate "
+                        + candidateId + " and posting " + jobPostingId));
+
+        String candidateName = checklist.getCandidate().getFirstName() + " " + checklist.getCandidate().getLastName();
+        String postingTitle  = checklist.getJobPosting().getTitle();
+        String contractType  = checklist.getJobPosting().getContractType();
+        List<Map<String, Object>> documents = parseDocumentsListFull(checklist.getDocuments());
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document pdf = new Document(PageSize.A4, 36, 36, 40, 40);
+            PdfWriter.getInstance(pdf, out);
+            pdf.open();
+
+            Color orange   = new Color(197, 90, 17);
+            Color black    = Color.BLACK;
+            Color white    = Color.WHITE;
+            Color dgray    = new Color(217, 217, 217);
+            Color altBlue  = new Color(189, 215, 238);
+            Color borderC  = new Color(180, 180, 180);
+            Color textGray = new Color(80, 80, 80);
+
+            Font boldFont    = new Font(Font.HELVETICA, 12, Font.BOLD,   black);
+            Font titleFont   = new Font(Font.HELVETICA, 13, Font.BOLDITALIC, black);
+            Font orangeFont  = new Font(Font.HELVETICA, 10, Font.BOLD,   orange);
+            Font labelFont   = new Font(Font.HELVETICA,  9, Font.BOLD,   black);
+            Font valueFont   = new Font(Font.HELVETICA,  9, Font.NORMAL, black);
+            Font footerFont  = new Font(Font.HELVETICA,  7, Font.NORMAL, textGray);
+            Font noteFont    = new Font(Font.HELVETICA,  8, Font.ITALIC, textGray);
+
+            // ── Header 3-col ─────────────────────────────────────────────
+            PdfPTable hdrTbl = new PdfPTable(new float[]{1f, 2f, 1f});
+            hdrTbl.setWidthPercentage(100);
+            hdrTbl.setSpacingAfter(8);
+
+            // Left: Ventec / Ecowell
+            PdfPCell lcell = new PdfPCell();
+            lcell.setBackgroundColor(white); lcell.setBorderColor(borderC); lcell.setBorderWidth(0.75f);
+            lcell.setPaddingTop(8); lcell.setPaddingBottom(8);
+            lcell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            Paragraph lp = new Paragraph();
+            lp.setAlignment(Element.ALIGN_CENTER); lp.setLeading(16f);
+            lp.add(new Chunk("Ventec\n", boldFont));
+            lp.add(new Chunk("Ecowell", boldFont));
+            lcell.addElement(lp);
+            hdrTbl.addCell(lcell);
+
+            // Center: title
+            PdfPCell ccell = new PdfPCell();
+            ccell.setBackgroundColor(white); ccell.setBorderColor(borderC); ccell.setBorderWidth(0.75f);
+            ccell.setPaddingTop(8); ccell.setPaddingBottom(8);
+            ccell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            Paragraph cp = new Paragraph();
+            cp.setAlignment(Element.ALIGN_CENTER); cp.setLeading(17f);
+            cp.add(new Chunk("LISTE DES DOCUMENTS\n", titleFont));
+            cp.add(new Chunk("ADMINISTRATIFS A FOURNIR\n", titleFont));
+            cp.add(new Chunk("CDI-CDD", titleFont));
+            ccell.addElement(cp);
+            hdrTbl.addCell(ccell);
+
+            // Right: Management RH
+            PdfPCell rcell = new PdfPCell();
+            rcell.setBackgroundColor(white); rcell.setBorderColor(borderC); rcell.setBorderWidth(0.75f);
+            rcell.setPaddingTop(8); rcell.setPaddingBottom(8);
+            rcell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            Paragraph rp = new Paragraph();
+            rp.setAlignment(Element.ALIGN_CENTER); rp.setLeading(14f);
+            rp.add(new Chunk("Management\n", orangeFont));
+            rp.add(new Chunk("Ressources\n", orangeFont));
+            rp.add(new Chunk("Humaines", orangeFont));
+            rcell.addElement(rp);
+            hdrTbl.addCell(rcell);
+            pdf.add(hdrTbl);
+
+            // ── Info table ────────────────────────────────────────────────
+            PdfPTable infoTbl = new PdfPTable(new float[]{1f, 2f});
+            infoTbl.setWidthPercentage(100); infoTbl.setSpacingAfter(8);
+            addPdfInfoRow(infoTbl, "Filiale",   "Ventec",                                  labelFont, valueFont, dgray, borderC);
+            addPdfInfoRow(infoTbl, "Catégorie", contractType != null ? contractType : "CDI / CDD", labelFont, valueFont, dgray, borderC);
+            addPdfInfoRow(infoTbl, "Candidat",  candidateName,                             labelFont, valueFont, dgray, borderC);
+            pdf.add(infoTbl);
+
+            // ── Documents table ───────────────────────────────────────────
+            PdfPTable docTbl = new PdfPTable(new float[]{2.5f, 1f, 2f});
+            docTbl.setWidthPercentage(100); docTbl.setSpacingAfter(10);
+            for (String h : new String[]{"Documents", "Nombre d'exemplaires", "Observation"}) {
+                PdfPCell hc = new PdfPCell(new Phrase(h, labelFont));
+                hc.setBackgroundColor(dgray); hc.setBorderColor(borderC); hc.setBorderWidth(0.75f);
+                hc.setPadding(5); hc.setHorizontalAlignment(Element.ALIGN_CENTER);
+                docTbl.addCell(hc);
+            }
+            if (documents.isEmpty()) {
+                PdfPCell ec = new PdfPCell(new Phrase("Aucun document spécifié", valueFont));
+                ec.setColspan(3); ec.setPadding(6);
+                ec.setHorizontalAlignment(Element.ALIGN_CENTER);
+                docTbl.addCell(ec);
+            } else {
+                for (int i = 0; i < documents.size(); i++) {
+                    Map<String, Object> item = documents.get(i);
+                    Color bg = (i % 2 != 0) ? altBlue : white;
+                    addPdfDocCell(docTbl, toStr(item.get("name"),        ""), valueFont, bg, borderC, Element.ALIGN_CENTER);
+                    addPdfDocCell(docTbl, toStr(item.get("copies"),      "1"), valueFont, bg, borderC, Element.ALIGN_CENTER);
+                    addPdfDocCell(docTbl, toStr(item.get("observation"), ""), valueFont, bg, borderC, Element.ALIGN_LEFT);
+                }
+            }
+            pdf.add(docTbl);
+
+            // ── Note ─────────────────────────────────────────────────────
+            Paragraph notePara = new Paragraph("Poste : " + postingTitle, noteFont);
+            notePara.setSpacingAfter(10);
+            pdf.add(notePara);
+
+            // ── Footer ────────────────────────────────────────────────────
+            PdfPTable ftTbl = new PdfPTable(new float[]{1f, 1f});
+            ftTbl.setWidthPercentage(100);
+            PdfPCell ftL = new PdfPCell(new Phrase("Version du 01/01/2022", footerFont));
+            ftL.setBorder(Rectangle.TOP); ftL.setBorderColor(new Color(200, 200, 200)); ftL.setPadding(4);
+            ftL.setHorizontalAlignment(Element.ALIGN_LEFT);
+            PdfPCell ftR = new PdfPCell(new Phrase("Annule et remplace celle du 04/01/2021", footerFont));
+            ftR.setBorder(Rectangle.TOP); ftR.setBorderColor(new Color(200, 200, 200)); ftR.setPadding(4);
+            ftR.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            ftTbl.addCell(ftL); ftTbl.addCell(ftR);
+            pdf.add(ftTbl);
+
+            pdf.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la génération du PDF de la liste des documents", e);
+        }
+    }
+
+    private void addPdfInfoRow(PdfPTable table, String label, String value,
+                               Font labelFont, Font valueFont, Color labelBg, Color border) {
+        PdfPCell lc = new PdfPCell(new Phrase(label, labelFont));
+        lc.setBackgroundColor(labelBg); lc.setBorderColor(border); lc.setBorderWidth(0.75f); lc.setPadding(5);
+        table.addCell(lc);
+        PdfPCell vc = new PdfPCell(new Phrase(value, valueFont));
+        vc.setBorderColor(border); vc.setBorderWidth(0.75f); vc.setPadding(5);
+        table.addCell(vc);
+    }
+
+    private void addPdfDocCell(PdfPTable table, String text, Font font,
+                               Color bg, Color border, int alignment) {
+        PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "", font));
+        cell.setBackgroundColor(bg); cell.setBorderColor(border); cell.setBorderWidth(0.75f);
+        cell.setPadding(5); cell.setHorizontalAlignment(alignment);
+        table.addCell(cell);
     }
 
     // ── Logo / signature helpers ─────────────────────────────────────────────

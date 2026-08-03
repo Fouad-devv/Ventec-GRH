@@ -297,13 +297,15 @@ export const PipelinePage = () => {
     setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
   };
 
-  const downloadDocuments = async (app) => {
+  const downloadDocuments = async (app, format = 'docx') => {
     try {
-      const res = await appApi.downloadDocumentsList(app.id);
+      const res = format === 'pdf'
+        ? await appApi.downloadDocumentsListPdf(app.id)
+        : await appApi.downloadDocumentsList(app.id);
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `liste-documents-${app.candidateFirstName}-${app.candidateLastName}.docx`;
+      a.download = `liste-documents-${app.candidateFirstName}-${app.candidateLastName}.${format}`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {
@@ -390,13 +392,25 @@ export const PipelinePage = () => {
                       </div>
                     )}
                     {app.status === 'HIRED' && (
-                      <button
-                        onClick={() => downloadDocuments(app)}
-                        className="w-full flex items-center justify-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline mt-1"
-                        title="Télécharger la liste des documents à fournir"
-                      >
-                        <MdDescription className="w-3 h-3" /> Liste documents
-                      </button>
+                      <div className="flex flex-col gap-0.5 mt-1">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 text-center">Liste documents</span>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => downloadDocuments(app, 'docx')}
+                            className="flex-1 flex items-center justify-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                            title="Télécharger en Word"
+                          >
+                            <MdDescription className="w-3 h-3" /> Word
+                          </button>
+                          <button
+                            onClick={() => downloadDocuments(app, 'pdf')}
+                            className="flex-1 flex items-center justify-center gap-1 text-xs text-red-500 dark:text-red-400 hover:underline"
+                            title="Télécharger en PDF"
+                          >
+                            <MdDescription className="w-3 h-3" /> PDF
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

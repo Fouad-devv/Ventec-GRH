@@ -18,4 +18,6 @@ export const candidatesApi = (axios) => ({
   },
   downloadChecklist: (candidateId, postingId) =>
     axios.get(`/checklists/candidate/${candidateId}/posting/${postingId}/export/docx`, { responseType: 'blob' }),
+  downloadChecklistPdf: (candidateId, postingId) =>
+    axios.get(`/checklists/candidate/${candidateId}/posting/${postingId}/export/pdf`, { responseType: 'blob' }),
 });

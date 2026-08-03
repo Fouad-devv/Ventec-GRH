@@ -8,4 +8,6 @@ export const applicationsApi = (axios) => ({
   delete: (id) => axios.delete(`${BASE}/${id}`),
   downloadDocumentsList: (id) =>
     axios.get(`${BASE}/${id}/documents-list`, { responseType: 'blob' }),
+  downloadDocumentsListPdf: (id) =>
+    axios.get(`${BASE}/${id}/documents-list-pdf`, { responseType: 'blob' }),
 });

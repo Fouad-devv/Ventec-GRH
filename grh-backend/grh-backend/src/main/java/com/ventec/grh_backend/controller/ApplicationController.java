@@ -65,4 +65,14 @@ public class ApplicationController {
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                 .body(content);
     }
+
+    @GetMapping("/{id}/documents-list-pdf")
+    public ResponseEntity<byte[]> exportDocumentsListPdf(@PathVariable UUID id) {
+        byte[] content = exportService.exportDocumentsListPdfByApplication(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"liste-documents-" + id + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(content);
+    }
 }

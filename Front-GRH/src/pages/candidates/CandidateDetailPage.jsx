@@ -229,20 +229,41 @@ export const CandidateDetailPage = () => {
                         </span>
                         <ScoreBadge score={app.aiScore} />
                         {app.status === 'HIRED' && app.jobPostingId && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await api.downloadChecklist(id, app.jobPostingId);
-                                const url = URL.createObjectURL(res.data);
-                                Object.assign(document.createElement('a'), { href: url, download: `checklist-${candidate.lastName}.docx` }).click();
-                                URL.revokeObjectURL(url);
-                              } catch (e) { console.error(e); }
-                            }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
-                          >
-                            <MdDescription className="w-3.5 h-3.5" />
-                            Liste documents
-                          </button>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">Liste documents</span>
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await api.downloadChecklist(id, app.jobPostingId);
+                                    const url = URL.createObjectURL(res.data);
+                                    Object.assign(document.createElement('a'), { href: url, download: `checklist-${candidate.lastName}.docx` }).click();
+                                    URL.revokeObjectURL(url);
+                                  } catch (e) { console.error(e); }
+                                }}
+                                className="flex items-center justify-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                                title="Télécharger en Word"
+                              >
+                                <MdDescription className="w-3.5 h-3.5" />
+                                Word
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await api.downloadChecklistPdf(id, app.jobPostingId);
+                                    const url = URL.createObjectURL(res.data);
+                                    Object.assign(document.createElement('a'), { href: url, download: `checklist-${candidate.lastName}.pdf` }).click();
+                                    URL.revokeObjectURL(url);
+                                  } catch (e) { console.error(e); }
+                                }}
+                                className="flex items-center justify-center gap-1 px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                                title="Télécharger en PDF"
+                              >
+                                <MdDescription className="w-3.5 h-3.5" />
+                                PDF
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
