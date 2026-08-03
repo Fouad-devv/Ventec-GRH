@@ -86,6 +86,7 @@ export const HistoryPage = () => {
           <thead className="bg-slate-50 dark:bg-slate-800">
             <tr>
               <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Offre</th>
+              <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Créé par</th>
               <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Département</th>
               <th className="text-left px-5 py-3 font-medium text-slate-600 dark:text-slate-400">Contrat</th>
               <th className="text-center px-4 py-3 font-medium text-slate-600 dark:text-slate-400">Candidatures</th>
@@ -101,12 +102,8 @@ export const HistoryPage = () => {
                 onClick={() => navigate(`/app/postings/${h.id}`)}
                 className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
               >
-                <td className="px-5 py-3.5">
-                  <p className="font-semibold text-slate-900 dark:text-white">{h.title}</p>
-                  {h.createdByName && (
-                    <p className="text-xs text-slate-400 mt-0.5">{h.createdByName}</p>
-                  )}
-                </td>
+                <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">{h.title}</td>
+                <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-sm">{h.createdByName || '—'}</td>
                 <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{h.department || '—'}</td>
                 <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{h.contractType || '—'}</td>
                 <td className="px-4 py-3.5 text-center">
