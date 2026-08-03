@@ -122,7 +122,7 @@ export const HistoryPage = () => {
             {history.map((h) => (
               <tr
                 key={h.id}
-                onClick={() => navigate(`/app/postings/${h.id}`)}
+                onClick={() => navigate(`/app/postings/${h.id}`, { state: { from: '/app/postings/history', fromLabel: 'Historique' } })}
                 className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
               >
                 <td className="px-4 py-2.5 font-semibold text-slate-900 dark:text-white">{h.title}</td>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription, MdRefresh } from 'react-icons/md';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import { usePageActions } from '../../context/HeaderContext';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
@@ -259,6 +259,7 @@ const InterviewDetailModal = ({ application, onClose, axios }) => {
 export const PipelinePage = () => {
   const axios = useAxiosPrivate();
   const navigate = useNavigate();
+  const location = useLocation();
   const pApi = postingsApi(axios);
   const appApi = applicationsApi(axios);
 
@@ -350,7 +351,7 @@ export const PipelinePage = () => {
                   <div className="flex items-start justify-between gap-1 mb-1">
                     <p
                       className="font-medium text-slate-900 dark:text-white text-xs truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-                      onClick={() => navigate(`/app/candidates/${app.candidateId}`)}
+                      onClick={() => navigate(`/app/candidates/${app.candidateId}`, { state: { from: location.pathname, fromLabel: 'Pipeline' } })}
                     >
                       {app.candidateFirstName} {app.candidateLastName}
                     </p>

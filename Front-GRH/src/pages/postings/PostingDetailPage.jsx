@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   MdArrowBack, MdPlayArrow, MdClose, MdAutoAwesome,
   MdStar, MdRefresh, MdContentCopy, MdDownload, MdAdd, MdEdit, MdCheck,
@@ -449,15 +449,19 @@ const ImportCvsModal = ({ postingId, pApi, onClose, onSuccess }) => {
 export const PostingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const axios = useAxiosPrivate();
+
+  const backTo = location.state?.from || '/app/postings';
+  const backLabel = location.state?.fromLabel ? `Retour à "${location.state.fromLabel}"` : 'Retour aux offres';
 
   usePageBack(
     <button
-      onClick={() => navigate('/app/postings')}
+      onClick={() => navigate(backTo)}
       className="flex items-center gap-1 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
     >
       <MdArrowBack className="w-4 h-4" />
-      Retour aux offres
+      {backLabel}
     </button>
   );
   const pApi = postingsApi(axios);
