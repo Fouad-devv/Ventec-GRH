@@ -60,34 +60,20 @@ export const HistoryPage = () => {
     <div className="p-6 max-w-6xl mx-auto space-y-5">
 
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         {[
-          {
-            label: 'Offres clôturées',
-            value: history.length,
-            icon: MdHistory,
-            gradient: 'from-slate-500 to-slate-700',
-          },
-          {
-            label: 'Total candidatures',
-            value: history.reduce((s, h) => s + h.totalApplications, 0),
-            icon: MdPeople,
-            gradient: 'from-blue-500 to-blue-700',
-          },
-          {
-            label: 'Total embauchés',
-            value: history.reduce((s, h) => s + h.hiredCount, 0),
-            icon: MdCheckCircle,
-            gradient: 'from-emerald-500 to-emerald-700',
-          },
-        ].map(({ label, value, icon: Icon, gradient }) => (
-          <div key={label} className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm`}>
-              <Icon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+          { label: 'Offres clôturées',   value: history.length,                                          icon: MdHistory,     bar: 'bg-slate-400 dark:bg-slate-500',   accent: 'text-slate-400 dark:text-slate-500' },
+          { label: 'Total candidatures', value: history.reduce((s, h) => s + h.totalApplications, 0),   icon: MdPeople,      bar: 'bg-blue-500',                       accent: 'text-blue-400' },
+          { label: 'Total embauchés',    value: history.reduce((s, h) => s + h.hiredCount, 0),          icon: MdCheckCircle, bar: 'bg-emerald-500',                    accent: 'text-emerald-400' },
+        ].map(({ label, value, icon: Icon, bar, accent }) => (
+          <div key={label} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className={`h-1 ${bar}`} />
+            <div className="p-3 sm:p-4 flex items-start justify-between gap-1">
+              <div className="min-w-0">
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white leading-none">{value}</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-tight">{label}</p>
+              </div>
+              <Icon className={`w-5 h-5 sm:w-7 sm:h-7 shrink-0 mt-0.5 ${accent} opacity-30`} />
             </div>
           </div>
         ))}

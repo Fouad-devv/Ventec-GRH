@@ -49,7 +49,7 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="sticky top-0 z-30 lg:static grid grid-cols-3 items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0">
+        <header className="sticky top-0 z-30 lg:static grid grid-cols-[1fr_2fr_1fr] items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0">
           {/* Left — hamburger (mobile) + back button */}
           <div className="flex items-center gap-2">
             {!isLarge && (
@@ -65,8 +65,8 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
           </div>
 
           {/* Center — page title */}
-          <div className="flex justify-center self-center lg:self-end lg:pb-2">
-            <h1 className="text-base sm:text-lg lg:text-3xl font-semibold lg:font-extrabold lg:tracking-tight text-slate-900 dark:text-white truncate text-center">
+          <div className="overflow-hidden self-center lg:self-end lg:pb-2">
+            <h1 className="text-sm sm:text-lg lg:text-3xl font-semibold lg:font-extrabold lg:tracking-tight text-slate-900 dark:text-white truncate text-center">
               {getTitle(pathname)}
             </h1>
           </div>
