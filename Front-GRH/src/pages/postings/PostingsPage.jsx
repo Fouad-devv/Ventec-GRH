@@ -100,15 +100,15 @@ export const PostingsPage = () => {
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-xs sm:text-sm min-w-[640px]">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
-                <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Titre</th>
-                <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Département</th>
-                <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Type</th>
-                <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Statut</th>
-                <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Date limite</th>
-                <th className="px-4 py-3" />
+                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Titre</th>
+                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Département</th>
+                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Type</th>
+                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Statut</th>
+                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Date limite</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -122,14 +122,14 @@ export const PostingsPage = () => {
                   className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                   onClick={() => navigate(`/app/postings/${p.id}`)}
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{p.title}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.department || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.contractType || '—'}</td>
-                  <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-white">{p.title}</td>
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">{p.department || '—'}</td>
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">{p.contractType || '—'}</td>
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3"><StatusBadge status={p.status} /></td>
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">
                     {p.deadline ? new Date(p.deadline).toLocaleDateString('fr-FR') : '—'}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-right">
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirmDelete(p); }}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
