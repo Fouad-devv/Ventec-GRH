@@ -37,8 +37,6 @@ function App() {
         <Route path="history" element={<HistoryPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
-      {/* Legacy /home redirect */}
-      <Route path="/home" element={<Navigate to="/app/dashboard" replace />} />
     </Routes>
   );
 }

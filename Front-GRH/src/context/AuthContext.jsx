@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
   // Keycloak runs on a different origin so localStorage is not shared;
   // extraQueryParams is the only way to hand the preference across the redirect.
   const login  = () => keycloak.login({
+    redirectUri: `${window.location.origin}/app/dashboard`,
     extraQueryParams: { ui_theme: localStorage.getItem('theme') || 'dark' },
   });
   const logout = ()     => keycloak.logout({ redirectUri: window.location.origin });
