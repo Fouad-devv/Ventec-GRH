@@ -161,7 +161,7 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
             <div className="px-4 py-3">
               <button
                 onClick={logout}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl transition-all shadow-sm shadow-red-500/20"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl transition-all duration-200 shadow-sm shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/40 hover:scale-[1.03] active:scale-[0.97]"
               >
                 <MdLogout className="w-4 h-4" />
                 Déconnexion
