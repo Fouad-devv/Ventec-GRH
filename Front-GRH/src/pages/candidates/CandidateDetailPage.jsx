@@ -7,6 +7,7 @@ import {
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { applicationsApi } from '../../api/applications';
+import { interviewsApi } from '../../api/interviews';
 import { usePageBack } from '../../context/HeaderContext';
 
 const STATUS_STYLES = {
@@ -67,9 +68,11 @@ export const CandidateDetailPage = () => {
   );
   const api = candidatesApi(axios);
   const appApi = applicationsApi(axios);
+  const iApi = interviewsApi(axios);
 
   const [candidate, setCandidate] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [interviews, setInterviews] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,7 +82,20 @@ export const CandidateDetailPage = () => {
     ])
       .then(([cRes, aRes]) => {
         setCandidate(cRes.data);
-        setApplications(aRes.data || []);
+        const apps = aRes.data || [];
+        setApplications(apps);
+        Promise.allSettled(apps.map((a) => iApi.getByApplication(a.id)))
+          .then((results) => {
+            const map = {};
+            results.forEach((r, i) => {
+              if (r.status === 'fulfilled' && r.value?.data) {
+                const data = r.value.data;
+                const interview = Array.isArray(data) ? data[0] : data;
+                if (interview?.id) map[apps[i].id] = interview;
+              }
+            });
+            setInterviews(map);
+          });
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -227,6 +243,25 @@ export const CandidateDetailPage = () => {
                           {STATUS_LABELS[app.status] ?? app.status}
                         </span>
                         <ScoreBadge score={app.aiScore} />
+                        {interviews[app.id] && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await iApi.exportPdf(interviews[app.id].id);
+                                const url = URL.createObjectURL(res.data);
+                                Object.assign(document.createElement('a'), {
+                                  href: url,
+                                  download: `entretien-${candidate.lastName}.pdf`,
+                                }).click();
+                                URL.revokeObjectURL(url);
+                              } catch (e) { console.error(e); }
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                            title="Exporter le guide d'entretien en PDF"
+                          >
+                            <MdDownload className="w-3.5 h-3.5" /> Guide entretien
+                          </button>
+                        )}
                         {app.status === 'HIRED' && app.jobPostingId && (
                           <div className="flex flex-col items-end gap-1">
                             <span className="text-[10px] text-slate-400 dark:text-slate-500">Liste documents</span>
