@@ -71,8 +71,9 @@ _STUDENT_RE = re.compile(
 )
 
 # Detect highest completed diploma level in CV text (run on NFC text)
-_EDU_LEVEL_5_RE = re.compile(r'\b(?:master|bac\s*\+\s*5)\b', re.IGNORECASE | re.UNICODE)
-_EDU_LEVEL_3_RE = re.compile(r'\blicence\b|\bbac\s*\+\s*3\b', re.IGNORECASE | re.UNICODE)
+_EDU_LEVEL_5_RE = re.compile(r"\b(?:master|ing[eé]nieur\s+diplom[eé]|diplom[eé]\s+d'ing[eé]nieur|bac\s*\+\s*5)\b", re.IGNORECASE | re.UNICODE)
+_EDU_LEVEL_3_RE = re.compile(r'\b(?:licence|licence\s+professionnelle|bac\s*\+\s*3)\b', re.IGNORECASE | re.UNICODE)
+_EDU_LEVEL_2_RE = re.compile(r'\b(?:bts|brevet\s+de\s+technicien\s+sup[eé]rieur|dut|diplôme\s+universitaire\s+de\s+technologie|bac\s*\+\s*2)\b', re.IGNORECASE | re.UNICODE)
 
 # Detect school-type constraint keywords in free_filter_prompt
 _SCHOOL_CONSTRAINT_RE = re.compile(
@@ -112,6 +113,8 @@ def _candidate_bac_level(cv_text: str) -> Optional[int]:
         return 5
     if _EDU_LEVEL_3_RE.search(cv_text):
         return 3
+    if _EDU_LEVEL_2_RE.search(cv_text):
+        return 2
     return None
 
 
@@ -192,9 +195,17 @@ Aucune compétence, aucune expérience ne peut compenser un critère éliminatoi
 CRITÈRES ÉLIMINATOIRES AUTOMATIQUES :
 
 [A] NIVEAU DE DIPLÔME :
-  - Si le poste exige Bac+5 et que le candidat a seulement Bac+3 (Licence) ou Bac+4 → score = 0.
-  - "Licence" seule = Bac+3 → éliminatoire si Bac+5 requis.
-  - "Master" ou "Ingénieur diplômé" = Bac+5 → acceptable.
+  TABLEAU DES ÉQUIVALENCES (obligatoire — ne jamais ignorer) :
+    - Licence / Licence Professionnelle / LP / L3 = Bac+3
+    - BTS (Brevet de Technicien Supérieur) = Bac+2
+    - DUT (Diplôme Universitaire de Technologie) = Bac+2
+    - Master / Master Pro / Master Recherche / MBA / M2 = Bac+5
+    - Ingénieur diplômé / Diplôme d'Ingénieur = Bac+5
+  Règles d'élimination :
+  - Si le poste exige Bac+5 et que le candidat a seulement Bac+3 (Licence) ou Bac+2 (BTS/DUT) → score = 0.
+  - Si le poste exige Bac+3 et que le candidat a seulement Bac+2 (BTS/DUT) → score = 0.
+  - Un candidat ayant exactement le niveau requis (Licence pour Bac+3, Master pour Bac+5) SATISFAIT le critère.
+  - Des intitulés différents mais équivalents (ex. "Licence Professionnelle en Génie Civil" = "Bac+3 en Génie civil") SATISFONT le critère.
 
 [B] CANDIDAT ENCORE ÉTUDIANT (non diplômé) :
   - Si le CV mentionne "élève ingénieur", "en cours de formation", "en 1ère/2ème/3ème année",
@@ -286,10 +297,15 @@ async def score_candidate(
             skill_parts = []
 
             if parsed.get("required_education"):
-                # Education is always an eliminatory criterion
                 elim_parts.append(
-                    f"⛔ FORMATION ÉLIMINATOIRE : {parsed['required_education']} — "
-                    f"Tout candidat sans ce niveau exact DOIT recevoir score = 0."
+                    f"⛔ FORMATION ÉLIMINATOIRE : {parsed['required_education']}. "
+                    f"IMPORTANT : le niveau Bac+ a déjà été vérifié et VALIDÉ avant cet appel — "
+                    f"ne PAS éliminer sur le niveau Bac+. "
+                    f"Applique score = 0 uniquement si le domaine d'études est totalement sans rapport avec le poste "
+                    f"(ex. Bac+3 en Droit pour un poste de Génie Civil). "
+                    f"Rappel des équivalences : Licence/LP/L3 = Bac+3 ; BTS/DUT = Bac+2 ; "
+                    f"Master/Ingénieur diplômé = Bac+5. "
+                    f"Des intitulés différents mais de niveau équivalent SATISFONT le critère."
                 )
             if parsed.get("required_experience"):
                 elim_parts.append(f"⛔ EXPÉRIENCE ÉLIMINATOIRE : {parsed['required_experience']}")
