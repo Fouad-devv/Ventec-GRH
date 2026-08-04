@@ -33,7 +33,6 @@ export const LandingPage = () => {
     return (
       <div className='bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white h-screen flex flex-col items-center justify-center'>
         <div className='h-12 w-12 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin' />
-        <span className='mt-4 text-base font-medium text-slate-600 dark:text-slate-100'>Chargement...</span>
       </div>
     );
   }

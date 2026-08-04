@@ -14,7 +14,7 @@ export const AdminRouteProtector = ({ children }) => {
     }
   }, [isLoading, isAuthenticated, hasRole, login, navigate]);
 
-  if (isLoading)                              return <p className="p-10 text-center">Chargement...</p>;
+  if (isLoading)                              return <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><div className="h-12 w-12 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin" /></div>;
   if (!isAuthenticated || !hasRole('ADMIN')) return null;
 
   return children;
