@@ -8,8 +8,4 @@ export const adminApi = (axios) => ({
   updateUser: (id, data) => axios.put(`${BASE}/users/${id}`, data),
   deleteUser: (id) => axios.delete(`${BASE}/users/${id}`),
   deactivate: (id) => axios.put(`${BASE}/users/${id}/deactivate`),
-  getTemplates: () => axios.get(`${BASE}/templates`),
-  createTemplate: (data) => axios.post(`${BASE}/templates`, data),
-  updateTemplate: (id, data) => axios.put(`${BASE}/templates/${id}`, data),
-  deleteTemplate: (id) => axios.delete(`${BASE}/templates/${id}`),
 });
