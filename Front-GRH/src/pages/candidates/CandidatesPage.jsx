@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { MdAdd, MdSearch, MdDownload, MdDelete, MdWarning, MdRefresh, MdStar } from 'react-icons/md';
+import { MdSearch, MdDownload, MdDelete, MdWarning, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { postingsApi } from '../../api/postings';
-import { CreateCandidateModal } from './CreateCandidateModal';
 import { usePageActions } from '../../context/HeaderContext';
 
 export const CandidatesPage = () => {
@@ -16,7 +15,6 @@ export const CandidatesPage = () => {
   const [candidates, setCandidates] = useState([]);
   const [postings, setPostings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
   const [postingFilter, setPostingFilter] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -66,17 +64,10 @@ export const CandidatesPage = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5">
         <p className="text-sm text-slate-500 dark:text-slate-400">
           {candidates.length} candidat{candidates.length !== 1 ? 's' : ''}
         </p>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
-        >
-          <MdAdd className="w-5 h-5" />
-          Ajouter un candidat
-        </button>
       </div>
 
       <div className="flex gap-3 mb-5 flex-wrap">
@@ -197,14 +188,6 @@ export const CandidatesPage = () => {
           </table>
           </div>
         </div>
-      )}
-
-      {showCreate && (
-        <CreateCandidateModal
-          onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); load(); }}
-          axios={axios}
-        />
       )}
 
       {confirmDelete && (
