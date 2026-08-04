@@ -23,6 +23,11 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
   const { pathname } = useLocation();
   const { actions, backButton } = useHeaderContext();
 
+  useEffect(() => {
+    const title = getTitle(pathname);
+    document.title = title ? `${title} – Ventec GRH` : 'Ventec GRH';
+  }, [pathname]);
+
   const btnLeft = expanded ? 'left-64' : 'left-16';
 
   return (
