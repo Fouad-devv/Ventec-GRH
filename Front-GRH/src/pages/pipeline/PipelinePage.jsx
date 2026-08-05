@@ -323,7 +323,7 @@ export const PipelinePage = () => {
     setSendingEmails(true);
     try {
       const res = await appApi.sendRejectionEmails(selectedPosting);
-      setEmailResult({ sent: res.data.sent });
+      setEmailResult({ sent: res.data.sent, type: 'rejection' });
       setShowRejectionConfirm(false);
       loadApplications();
     } catch (e) {
@@ -339,7 +339,7 @@ export const PipelinePage = () => {
     try {
       const res = await appApi.sendInterviewNotifications(selectedPosting);
       const { sent, noInterview } = res.data;
-      setEmailResult({ sent, noInterview });
+      setEmailResult({ sent, noInterview, type: 'interview' });
       setShowInterviewConfirm(false);
       loadApplications();
     } catch (e) {
@@ -599,7 +599,11 @@ export const PipelinePage = () => {
           {emailResult.noInterview > 0 && emailResult.sent === 0
             ? <MdWarning className="w-5 h-5 shrink-0" />
             : <MdCheckCircle className="w-5 h-5 shrink-0" />}
-          {emailResult.sent > 0
+          {emailResult.type === 'rejection'
+            ? emailResult.sent > 0
+              ? `${emailResult.sent} email${emailResult.sent !== 1 ? 's' : ''} de refus envoyé${emailResult.sent !== 1 ? 's' : ''} avec succès.`
+              : 'Tous les candidats ont déjà été notifiés.'
+            : emailResult.sent > 0
             ? `${emailResult.sent} convocation${emailResult.sent !== 1 ? 's' : ''} envoyée${emailResult.sent !== 1 ? 's' : ''} avec succès.`
             : emailResult.noInterview > 0
             ? `${emailResult.noInterview} candidat${emailResult.noInterview !== 1 ? 's' : ''} sans entretien planifié — utilisez "Planifier" d'abord.`
