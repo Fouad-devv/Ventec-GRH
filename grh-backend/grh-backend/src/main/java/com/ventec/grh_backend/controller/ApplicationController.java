@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,14 +61,20 @@ public class ApplicationController {
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Integer>> sendRejectionEmails(
             @PathVariable UUID jobPostingId, Authentication auth) {
-        return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId, auth.getName()));
+        return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId, jwtSub(auth)));
     }
 
     @PostMapping("/posting/{jobPostingId}/send-interview-notifications")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Integer>> sendInterviewNotifications(
             @PathVariable UUID jobPostingId, Authentication auth) {
-        return ResponseEntity.ok(applicationService.sendInterviewNotifications(jobPostingId, auth.getName()));
+        return ResponseEntity.ok(applicationService.sendInterviewNotifications(jobPostingId, jwtSub(auth)));
+    }
+
+    private String jwtSub(Authentication auth) {
+        return auth instanceof JwtAuthenticationToken jwtAuth
+                ? jwtAuth.getToken().getSubject()
+                : auth.getName();
     }
 
     @GetMapping("/{id}/documents-list")

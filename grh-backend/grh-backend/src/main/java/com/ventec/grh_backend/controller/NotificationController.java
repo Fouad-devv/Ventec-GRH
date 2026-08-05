@@ -1,10 +1,8 @@
 package com.ventec.grh_backend.controller;
 
-import com.ventec.grh_backend.domain.User;
 import com.ventec.grh_backend.DTO.response.NotificationResponse;
-import com.ventec.grh_backend.exception.NotFoundException;
-import com.ventec.grh_backend.repository.UserRepository;
 import com.ventec.grh_backend.service.NotificationService;
+import com.ventec.grh_backend.service.UserContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,17 +18,17 @@ import java.util.UUID;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final UserRepository userRepository;
+    private final UserContextService userContextService;
 
     @GetMapping("/me")
     public ResponseEntity<List<NotificationResponse>> getMyNotifications(Authentication auth) {
-        UUID userId = resolveUserId(auth);
+        UUID userId = userContextService.resolveUser(auth).getId();
         return ResponseEntity.ok(notificationService.getNotificationsForUser(userId));
     }
 
     @GetMapping("/me/unread-count")
     public ResponseEntity<Map<String, Long>> countUnread(Authentication auth) {
-        UUID userId = resolveUserId(auth);
+        UUID userId = userContextService.resolveUser(auth).getId();
         return ResponseEntity.ok(Map.of("count", notificationService.countUnread(userId)));
     }
 
@@ -41,14 +39,8 @@ public class NotificationController {
 
     @PutMapping("/me/read-all")
     public ResponseEntity<Void> markAllRead(Authentication auth) {
-        UUID userId = resolveUserId(auth);
+        UUID userId = userContextService.resolveUser(auth).getId();
         notificationService.markAllRead(userId);
         return ResponseEntity.ok().build();
-    }
-
-    private UUID resolveUserId(Authentication auth) {
-        User user = userRepository.findByKeycloakId(auth.getName())
-                .orElseThrow(() -> new NotFoundException("User not found: " + auth.getName()));
-        return user.getId();
     }
 }
