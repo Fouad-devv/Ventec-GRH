@@ -42,4 +42,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     @Query("SELECT a.jobPosting.title FROM Application a WHERE a.candidate.id = :candidateId")
     List<String> findJobPostingTitlesByCandidateId(@Param("candidateId") UUID candidateId);
+
+    @Query("SELECT a FROM Application a JOIN FETCH a.candidate WHERE a.jobPosting.id = :postingId AND a.status = 'REJECTED' AND a.rejectionEmailSentAt IS NULL")
+    List<Application> findUnnotifiedRejectedByPostingId(@Param("postingId") UUID postingId);
 }

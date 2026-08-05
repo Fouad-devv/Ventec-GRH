@@ -17,5 +17,6 @@ public record ApplicationResponse(
         String aiSummary,
         String notes,
         OffsetDateTime appliedAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        OffsetDateTime rejectionEmailSentAt
 ) {}

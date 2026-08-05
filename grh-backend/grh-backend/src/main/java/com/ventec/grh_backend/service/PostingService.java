@@ -299,7 +299,8 @@ public class PostingService {
                         app.getAiSummary(),
                         app.getNotes(),
                         app.getAppliedAt(),
-                        app.getUpdatedAt()
+                        app.getUpdatedAt(),
+                        app.getRejectionEmailSentAt()
                 ));
             } catch (Exception e) {
                 log.error("Failed to import CV {}: {}", file.getOriginalFilename(), e.getMessage());

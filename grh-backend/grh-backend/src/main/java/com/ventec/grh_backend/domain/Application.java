@@ -42,6 +42,9 @@ public class Application {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "rejection_email_sent_at")
+    private OffsetDateTime rejectionEmailSentAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
     private User updatedBy;

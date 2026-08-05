@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription, MdRefresh } from 'react-icons/md';
+import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription, MdRefresh, MdMail, MdWarning, MdCheckCircle } from 'react-icons/md';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import { usePageActions } from '../../context/HeaderContext';
@@ -269,6 +269,9 @@ export const PipelinePage = () => {
   const [loading, setLoading] = useState(false);
   const [scheduleApp, setScheduleApp] = useState(null);
   const [detailApp, setDetailApp] = useState(null);
+  const [showRejectionConfirm, setShowRejectionConfirm] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState(false);
+  const [emailResult, setEmailResult] = useState(null);
 
   useEffect(() => {
     pApi.getAll({ status: 'PUBLISHED', size: 100 })
@@ -314,6 +317,21 @@ export const PipelinePage = () => {
     }
   };
 
+  const handleSendRejectionEmails = async () => {
+    if (!selectedPosting) return;
+    setSendingEmails(true);
+    try {
+      const res = await appApi.sendRejectionEmails(selectedPosting);
+      setEmailResult(res.data.sent);
+      setShowRejectionConfirm(false);
+      loadApplications();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingEmails(false);
+    }
+  };
+
   const byStatus = (status) => applications.filter((a) => a.status === status);
 
   return (
@@ -346,6 +364,20 @@ export const PipelinePage = () => {
                 <StatusBadge status={status} />
                 <span className="text-xs text-slate-400">{byStatus(status).length}</span>
               </div>
+              {status === 'REJECTED' && byStatus('REJECTED').length > 0 && (() => {
+                const unnotified = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt).length;
+                return (
+                  <button
+                    onClick={() => { setEmailResult(null); setShowRejectionConfirm(true); }}
+                    disabled={unnotified === 0}
+                    title={unnotified === 0 ? 'Tous les candidats ont déjà été notifiés' : `Notifier ${unnotified} candidat(s)`}
+                    className="flex items-center justify-center gap-1 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950 border border-red-200 dark:border-red-900"
+                  >
+                    <MdMail className="w-3.5 h-3.5 shrink-0" />
+                    {unnotified > 0 ? `Notifier (${unnotified})` : 'Tous notifiés'}
+                  </button>
+                );
+              })()}
               {byStatus(status).map((app) => (
                 <div key={app.id} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 text-sm shadow-sm">
                   <div className="flex items-start justify-between gap-1 mb-1">
@@ -436,6 +468,61 @@ export const PipelinePage = () => {
           axios={axios}
           onClose={() => setDetailApp(null)}
         />
+      )}
+
+      {/* Rejection email confirmation modal */}
+      {showRejectionConfirm && (() => {
+        const unnotified = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt).length;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 shrink-0 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                  <MdWarning className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Envoyer les emails de refus</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{unnotified} candidat{unnotified !== 1 ? 's' : ''}</span> recevront un email de refus professionnel.
+                    Les candidats déjà notifiés seront ignorés.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => setShowRejectionConfirm(false)}
+                  disabled={sendingEmails}
+                  className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSendRejectionEmails}
+                  disabled={sendingEmails}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {sendingEmails ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <MdMail className="w-4 h-4" />
+                  )}
+                  {sendingEmails ? 'Envoi…' : 'Envoyer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Success toast */}
+      {emailResult !== null && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-emerald-600 text-white rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4">
+          <MdCheckCircle className="w-5 h-5 shrink-0" />
+          {emailResult === 0 ? 'Aucun email envoyé (tous déjà notifiés).' : `${emailResult} email${emailResult !== 1 ? 's' : ''} envoyé${emailResult !== 1 ? 's' : ''} avec succès.`}
+          <button onClick={() => setEmailResult(null)} className="ml-2 opacity-75 hover:opacity-100">
+            <MdClose className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );

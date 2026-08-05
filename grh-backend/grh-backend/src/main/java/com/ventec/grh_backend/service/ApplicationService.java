@@ -143,6 +143,77 @@ public class ApplicationService {
         }
     }
 
+    public Map<String, Integer> sendRejectionEmails(UUID jobPostingId) {
+        List<Application> toNotify = applicationRepository.findUnnotifiedRejectedByPostingId(jobPostingId);
+        int sent = 0;
+        for (Application app : toNotify) {
+            var candidate = app.getCandidate();
+            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) continue;
+            String postingTitle = app.getJobPosting().getTitle();
+            String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
+            String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
+            mailService.sendHtml(candidate.getEmail(),
+                    "Réponse à votre candidature — " + postingTitle,
+                    buildRejectionEmailHtml(firstName, lastName, postingTitle));
+            app.setRejectionEmailSentAt(java.time.OffsetDateTime.now());
+            applicationRepository.save(app);
+            sent++;
+        }
+        return Map.of("sent", sent);
+    }
+
+    private String buildRejectionEmailHtml(String firstName, String lastName, String postingTitle) {
+        return """
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head><meta charset="UTF-8"></head>
+            <body style="margin:0;padding:0;background-color:#f4f6f9;font-family:Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+                <tr><td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                    <tr>
+                      <td style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px 40px;">
+                        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Ventec</h1>
+                        <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Ressources Humaines</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:36px 40px;">
+                        <p style="margin:0 0 16px;font-size:15px;color:#1e293b;">Bonjour <strong>%s %s</strong>,</p>
+                        <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
+                          Nous avons bien reçu votre candidature pour le poste de
+                          <strong style="color:#1e293b;">%s</strong> au sein de <strong style="color:#1e293b;">Ventec</strong>.
+                        </p>
+                        <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
+                          Après examen attentif de votre dossier, nous avons le regret de vous informer que
+                          votre candidature n'a pas été retenue pour la suite du processus de sélection.
+                        </p>
+                        <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
+                          Cette décision ne remet pas en cause vos compétences et votre expérience,
+                          mais s'est portée sur un profil correspondant plus précisément à nos besoins actuels.
+                        </p>
+                        <p style="margin:0 0 28px;font-size:15px;color:#475569;line-height:1.6;">
+                          Nous vous remercions sincèrement de l'intérêt que vous portez à notre entreprise
+                          et vous souhaitons plein succès dans vos prochaines démarches professionnelles.
+                        </p>
+                        <hr style="border:none;border-top:1px solid #e2e8f0;margin-bottom:24px;">
+                        <p style="margin:0;font-size:14px;color:#64748b;">Cordialement,</p>
+                        <p style="margin:4px 0 0;font-size:14px;font-weight:700;color:#1e293b;">L'équipe Ressources Humaines — Ventec</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="background-color:#f8fafc;padding:16px 40px;text-align:center;">
+                        <p style="margin:0;font-size:12px;color:#94a3b8;">Ce message est envoyé automatiquement, merci de ne pas y répondre.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(firstName, lastName, postingTitle);
+    }
+
     public ApplicationResponse toResponse(Application a) {
         return new ApplicationResponse(
                 a.getId(),
@@ -157,7 +228,8 @@ public class ApplicationService {
                 a.getAiSummary(),
                 a.getNotes(),
                 a.getAppliedAt(),
-                a.getUpdatedAt()
+                a.getUpdatedAt(),
+                a.getRejectionEmailSentAt()
         );
     }
 }

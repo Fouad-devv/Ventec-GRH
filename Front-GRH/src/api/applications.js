@@ -10,4 +10,6 @@ export const applicationsApi = (axios) => ({
     axios.get(`${BASE}/${id}/documents-list`, { responseType: 'blob' }),
   downloadDocumentsListPdf: (id) =>
     axios.get(`${BASE}/${id}/documents-list-pdf`, { responseType: 'blob' }),
+  sendRejectionEmails: (jobPostingId) =>
+    axios.post(`${BASE}/posting/${jobPostingId}/send-rejection-emails`),
 });

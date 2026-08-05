@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -53,6 +54,12 @@ public class ApplicationController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         applicationService.deleteApplication(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/posting/{jobPostingId}/send-rejection-emails")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Integer>> sendRejectionEmails(@PathVariable UUID jobPostingId) {
+        return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId));
     }
 
     @GetMapping("/{id}/documents-list")
