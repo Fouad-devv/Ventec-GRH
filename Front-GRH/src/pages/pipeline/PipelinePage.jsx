@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestionAnswer, MdDescription, MdRefresh, MdMail, MdWarning, MdCheckCircle } from 'react-icons/md';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -314,8 +314,12 @@ export const PipelinePage = () => {
 
   useEffect(() => { loadApplications(); }, [selectedPosting]);
 
+  // useRef keeps the button in usePageActions (which only mounts once) always calling the latest loadApplications
+  const loadRef = useRef();
+  loadRef.current = loadApplications;
+
   usePageActions(
-    <button onClick={loadApplications} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+    <button onClick={() => loadRef.current()} className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
       <MdRefresh className="w-4 h-4" /><span className="hidden sm:inline">Actualiser</span>
     </button>
   );
@@ -527,7 +531,7 @@ export const PipelinePage = () => {
           application={scheduleApp}
           axios={axios}
           onClose={() => setScheduleApp(null)}
-          onScheduled={() => setScheduleApp(null)}
+          onScheduled={() => { setScheduleApp(null); loadApplications(); }}
         />
       )}
 
