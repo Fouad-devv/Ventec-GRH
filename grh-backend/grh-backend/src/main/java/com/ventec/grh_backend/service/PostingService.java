@@ -246,11 +246,38 @@ public class PostingService {
 
                 String firstName = data != null ? (String) data.get("first_name") : null;
                 String lastName  = data != null ? (String) data.get("last_name")  : null;
-                if (firstName == null || firstName.isBlank()) firstName = "Candidat";
-                if (lastName  == null || lastName.isBlank()) {
+                if (firstName == null || firstName.isBlank()) firstName = null;
+                if (lastName  == null || lastName.isBlank())  lastName  = null;
+
+                // Fallback: parse filename when LLM couldn't extract names
+                // Handles patterns: CV_LASTNAME_Firstname.pdf, Firstname_LASTNAME.pdf, etc.
+                if (firstName == null || lastName == null) {
                     String fname = file.getOriginalFilename();
-                    lastName = fname != null ? fname.replaceFirst("[.][^.]+$", "") : "Inconnu";
+                    if (fname != null) {
+                        String base = fname.replaceFirst("[.][^.]+$", ""); // strip extension
+                        // Remove common prefixes: CV_, cv_, Cv_
+                        if (base.toUpperCase().startsWith("CV_")) base = base.substring(3);
+                        String[] parts = base.split("[_\\s]+");
+                        if (parts.length >= 2) {
+                            if (firstName == null && lastName == null) {
+                                // CV_LASTNAME_Firstname → parts[0]=LASTNAME, parts[1]=Firstname
+                                lastName  = capitalize(parts[0]);
+                                firstName = capitalize(parts[1]);
+                            } else if (lastName == null) {
+                                // firstName already extracted — filename part[0] is LASTNAME
+                                lastName = capitalize(parts[0]);
+                            } else {
+                                // lastName already extracted — filename last part is Firstname
+                                firstName = capitalize(parts[parts.length - 1]);
+                            }
+                        } else if (parts.length == 1) {
+                            if (lastName  == null) lastName  = capitalize(parts[0]);
+                            if (firstName == null) firstName = "Candidat";
+                        }
+                    }
                 }
+                if (firstName == null || firstName.isBlank()) firstName = "Candidat";
+                if (lastName  == null || lastName.isBlank())  lastName  = "Inconnu";
 
                 String skillsJson = null;
                 if (data != null && data.get("skills") instanceof List<?> skillsList) {
@@ -324,5 +351,11 @@ public class PostingService {
                 p.getDeadline(), p.getCreatedAt(), p.getUpdatedAt(),
                 p.getFicheFonctionPath()
         );
+    }
+
+    private String capitalize(String s) {
+        if (s == null || s.isBlank()) return s;
+        String lower = s.toLowerCase();
+        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
     }
 }
