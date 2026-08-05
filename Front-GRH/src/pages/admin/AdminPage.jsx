@@ -147,7 +147,7 @@ const AddUserModal = ({ onSave, onClose }) => {
       await onSave(payload);
       onClose();
     } catch (err) {
-      setError("Erreur lors de l'ajout. Vérifiez que l'email n'est pas déjà utilisé.");
+      setError(err?.response?.data?.message || "Erreur lors de l'ajout de l'utilisateur.");
     } finally {
       setSaving(false);
     }

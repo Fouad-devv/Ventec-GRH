@@ -5,6 +5,7 @@ import com.ventec.grh_backend.DTO.request.CreateUserRequest;
 import com.ventec.grh_backend.DTO.request.SyncUserRequest;
 import com.ventec.grh_backend.DTO.request.UpdateUserRequest;
 import com.ventec.grh_backend.DTO.response.UserResponse;
+import com.ventec.grh_backend.exception.BadRequestException;
 import com.ventec.grh_backend.exception.NotFoundException;
 import com.ventec.grh_backend.repository.UserRepository;
 import jakarta.ws.rs.core.Response;
@@ -51,9 +52,15 @@ public class AdminService {
         userRep.setCredentials(List.of(cred));
 
         try (Response response = keycloakAdmin.realm(keycloakRealm).users().create(userRep)) {
+            if (response.getStatus() == 409) {
+                throw new BadRequestException("Un utilisateur avec cet email existe déjà.");
+            }
             if (response.getStatus() != 201) {
                 String body = response.hasEntity() ? response.readEntity(String.class) : "";
-                throw new RuntimeException("Keycloak user creation failed (" + response.getStatus() + "): " + body);
+                if (body.toLowerCase().contains("password")) {
+                    throw new BadRequestException("Le mot de passe ne respecte pas la politique de sécurité (longueur, complexité…).");
+                }
+                throw new BadRequestException("Erreur Keycloak (" + response.getStatus() + "): " + body);
             }
             String keycloakId = CreatedResponseUtil.getCreatedId(response);
             assignRealmRole(keycloakId, req.role());
