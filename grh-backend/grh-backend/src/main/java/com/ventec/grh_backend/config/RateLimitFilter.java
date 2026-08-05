@@ -26,14 +26,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // AI scoring: 100 requests/minute per user
     private Bucket newAiBucket() {
         return Bucket.builder()
-                .addLimit(Bandwidth.builder().capacity(100).refillGreedily(100, Duration.ofMinutes(1)).build())
+                .addLimit(Bandwidth.builder().capacity(100).refillGreedy(100, Duration.ofMinutes(1)).build())
                 .build();
     }
 
     // Regular endpoints: 1 000 requests/minute — comfortable for active HR use
     private Bucket newDefaultBucket() {
         return Bucket.builder()
-                .addLimit(Bandwidth.builder().capacity(1000).refillGreedily(1000, Duration.ofMinutes(1)).build())
+                .addLimit(Bandwidth.builder().capacity(1000).refillGreedy(1000, Duration.ofMinutes(1)).build())
                 .build();
     }
 
