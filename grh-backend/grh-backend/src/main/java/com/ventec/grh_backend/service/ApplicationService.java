@@ -42,6 +42,7 @@ public class ApplicationService {
     private final ObjectMapper objectMapper;
     private final InterviewRepository interviewRepository;
     private final InterviewService interviewService;
+    private final NotificationService notificationService;
 
     private byte[] logoBytes;
 
@@ -161,13 +162,14 @@ public class ApplicationService {
         }
     }
 
-    public Map<String, Integer> sendRejectionEmails(UUID jobPostingId) {
+    public Map<String, Integer> sendRejectionEmails(UUID jobPostingId, String keycloakId) {
         List<Application> toNotify = applicationRepository.findUnnotifiedRejectedByPostingId(jobPostingId);
         int sent = 0;
+        String postingTitle = null;
         for (Application app : toNotify) {
             var candidate = app.getCandidate();
             if (candidate.getEmail() == null || candidate.getEmail().isBlank()) continue;
-            String postingTitle = app.getJobPosting().getTitle();
+            postingTitle = app.getJobPosting().getTitle();
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
             String html = buildRejectionEmailHtml(firstName, lastName, postingTitle);
@@ -182,6 +184,18 @@ public class ApplicationService {
             app.setRejectionEmailSentAt(java.time.OffsetDateTime.now());
             applicationRepository.save(app);
             sent++;
+        }
+        if (sent > 0) {
+            try {
+                User actor = userRepository.findByKeycloakId(keycloakId).orElse(null);
+                if (actor != null) {
+                    String title = sent + " email" + (sent > 1 ? "s" : "") + " de refus envoyé" + (sent > 1 ? "s" : "");
+                    notificationService.createInternal(actor, "EMAIL_SENT", title,
+                            "Offre : " + postingTitle, "JOB_POSTING", jobPostingId);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to create rejection notification: {}", e.getMessage());
+            }
         }
         return Map.of("sent", sent);
     }
@@ -236,10 +250,11 @@ public class ApplicationService {
             """.formatted(logoHtml, firstName, lastName, postingTitle);
     }
 
-    public Map<String, Integer> sendInterviewNotifications(UUID jobPostingId) {
+    public Map<String, Integer> sendInterviewNotifications(UUID jobPostingId, String keycloakId) {
         List<Application> toNotify = applicationRepository.findUnnotifiedInterviewByPostingId(jobPostingId);
         int sent = 0;
         int noInterview = 0;
+        String postingTitle = null;
         for (Application app : toNotify) {
             var candidate = app.getCandidate();
             if (candidate.getEmail() == null || candidate.getEmail().isBlank()) continue;
@@ -251,13 +266,25 @@ public class ApplicationService {
                 noInterview++;
                 continue;
             }
-            String postingTitle = app.getJobPosting().getTitle();
+            postingTitle = app.getJobPosting().getTitle();
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
             interviewService.sendConvocationEmail(candidate.getEmail(), firstName, lastName, postingTitle, interview);
             app.setInterviewNotifiedAt(java.time.OffsetDateTime.now());
             applicationRepository.save(app);
             sent++;
+        }
+        if (sent > 0) {
+            try {
+                User actor = userRepository.findByKeycloakId(keycloakId).orElse(null);
+                if (actor != null) {
+                    String title = sent + " convocation" + (sent > 1 ? "s" : "") + " envoyée" + (sent > 1 ? "s" : "");
+                    notificationService.createInternal(actor, "EMAIL_SENT", title,
+                            "Offre : " + postingTitle, "JOB_POSTING", jobPostingId);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to create interview notification: {}", e.getMessage());
+            }
         }
         return Map.of("sent", sent, "noInterview", noInterview);
     }

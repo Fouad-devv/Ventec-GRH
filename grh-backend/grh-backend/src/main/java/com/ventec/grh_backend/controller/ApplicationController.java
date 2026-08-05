@@ -58,14 +58,16 @@ public class ApplicationController {
 
     @PostMapping("/posting/{jobPostingId}/send-rejection-emails")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Integer>> sendRejectionEmails(@PathVariable UUID jobPostingId) {
-        return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId));
+    public ResponseEntity<Map<String, Integer>> sendRejectionEmails(
+            @PathVariable UUID jobPostingId, Authentication auth) {
+        return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId, auth.getName()));
     }
 
     @PostMapping("/posting/{jobPostingId}/send-interview-notifications")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Integer>> sendInterviewNotifications(@PathVariable UUID jobPostingId) {
-        return ResponseEntity.ok(applicationService.sendInterviewNotifications(jobPostingId));
+    public ResponseEntity<Map<String, Integer>> sendInterviewNotifications(
+            @PathVariable UUID jobPostingId, Authentication auth) {
+        return ResponseEntity.ok(applicationService.sendInterviewNotifications(jobPostingId, auth.getName()));
     }
 
     @GetMapping("/{id}/documents-list")
