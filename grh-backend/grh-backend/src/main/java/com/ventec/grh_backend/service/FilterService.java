@@ -41,7 +41,9 @@ public class FilterService {
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + jobPostingId));
 
         var requestedBy = userRepository.findByKeycloakId(keycloakId).orElse(null);
-        List<UUID> candidateIds = applicationRepository.findCandidateIdsByJobPostingId(jobPostingId);
+
+        // Only score candidates that have never been evaluated — preserve manually set statuses
+        List<UUID> candidateIds = applicationRepository.findCandidateIdsWithoutAiScoreByJobPostingId(jobPostingId);
 
         FilterJob filterJob = FilterJob.builder()
                 .jobPosting(posting)
@@ -49,6 +51,14 @@ public class FilterService {
                 .requestedBy(requestedBy)
                 .build();
         filterJob = filterJobRepository.save(filterJob);
+
+        if (candidateIds.isEmpty()) {
+            filterJob.setStatus("DONE");
+            filterJob.setCompletedAt(OffsetDateTime.now());
+            filterJob.setErrorMessage("Aucun nouveau candidat à évaluer. Les candidats déjà filtrés sont conservés.");
+            filterJobRepository.save(filterJob);
+            return toResponse(filterJob);
+        }
 
         filterJob.setStatus("RUNNING");
         filterJob = filterJobRepository.save(filterJob);
@@ -103,6 +113,9 @@ public class FilterService {
                             .orElse(null);
 
                     if (app != null) {
+                        // Safety guard: never overwrite a candidate already evaluated
+                        if (app.getAiScore() != null) continue;
+
                         if (scoreNum != null) {
                             app.setAiScore(new BigDecimal(scoreNum.toString()));
                         }
