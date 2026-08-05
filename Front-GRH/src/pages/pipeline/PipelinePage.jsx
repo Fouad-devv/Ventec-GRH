@@ -433,7 +433,11 @@ export const PipelinePage = () => {
                 );
               })()}
               {byStatus(status).map((app) => (
-                <div key={app.id} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 text-sm shadow-sm">
+                <div key={app.id} className={`bg-white dark:bg-slate-900 rounded-lg border p-3 text-sm shadow-sm ${
+                  app.status === 'INTERVIEW' && !app.scheduledInterviewId
+                    ? 'border-amber-300 dark:border-amber-700'
+                    : 'border-slate-200 dark:border-slate-800'
+                }`}>
                   <div className="flex items-start justify-between gap-1 mb-1">
                     <p
                       className="font-medium text-slate-900 dark:text-white text-xs truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
@@ -443,6 +447,11 @@ export const PipelinePage = () => {
                     </p>
                     <ScoreBadge score={app.aiScore} />
                   </div>
+                  {app.status === 'INTERVIEW' && !app.scheduledInterviewId && (
+                    <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                      <MdWarning className="w-2.5 h-2.5" /> Non planifié
+                    </span>
+                  )}
                   <div className="mt-2 space-y-1">
                     <select
                       value={app.status}
