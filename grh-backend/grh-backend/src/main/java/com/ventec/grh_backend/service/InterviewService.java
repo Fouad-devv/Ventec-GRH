@@ -88,12 +88,14 @@ public class InterviewService {
     public InterviewResponse updateInterview(UUID id, UpdateInterviewRequest req) {
         Interview interview = interviewRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
-        if (req.scheduledAt() != null) interview.setScheduledAt(req.scheduledAt());
-        if (req.durationMinutes() != null) interview.setDurationMinutes(req.durationMinutes());
-        if (req.type() != null) interview.setType(req.type());
-        if (req.locationOrLink() != null) interview.setLocationOrLink(req.locationOrLink());
+
+        boolean scheduleChanged = false;
+        if (req.scheduledAt() != null)     { interview.setScheduledAt(req.scheduledAt());         scheduleChanged = true; }
+        if (req.durationMinutes() != null) { interview.setDurationMinutes(req.durationMinutes()); scheduleChanged = true; }
+        if (req.type() != null)            { interview.setType(req.type());                       scheduleChanged = true; }
+        if (req.locationOrLink() != null)  { interview.setLocationOrLink(req.locationOrLink());   scheduleChanged = true; }
         if (req.status() != null) interview.setStatus(req.status());
-        if (req.notes() != null) interview.setNotes(req.notes());
+        if (req.notes() != null)  interview.setNotes(req.notes());
         if (req.interviewerIds() != null) {
             try {
                 interview.setInterviewerIds(objectMapper.writeValueAsString(req.interviewerIds()));
@@ -101,7 +103,20 @@ public class InterviewService {
                 log.warn("Failed to serialize interviewer IDs: {}", e.getMessage());
             }
         }
-        return toResponse(interviewRepository.save(interview));
+
+        InterviewResponse response = toResponse(interviewRepository.save(interview));
+
+        // When scheduling details change, clear the notification stamp so the recruiter
+        // must re-send the convocation with the updated information
+        if (scheduleChanged) {
+            Application app = interview.getApplication();
+            if (app != null) {
+                app.setInterviewNotifiedAt(null);
+                applicationRepository.save(app);
+            }
+        }
+
+        return response;
     }
 
     @Transactional(readOnly = true)
