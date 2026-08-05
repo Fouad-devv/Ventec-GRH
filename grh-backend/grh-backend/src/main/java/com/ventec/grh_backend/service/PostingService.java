@@ -301,7 +301,8 @@ public class PostingService {
                         app.getAppliedAt(),
                         app.getUpdatedAt(),
                         app.getRejectionEmailSentAt(),
-                        app.getInterviewNotifiedAt()
+                        app.getInterviewNotifiedAt(),
+                        null
                 ));
             } catch (Exception e) {
                 log.error("Failed to import CV {}: {}", file.getOriginalFilename(), e.getMessage());

@@ -263,6 +263,12 @@ public class ApplicationService {
     }
 
     public ApplicationResponse toResponse(Application a) {
+        UUID scheduledInterviewId = interviewRepository.findByApplicationId(a.getId())
+                .stream()
+                .filter(i -> !"CANCELLED".equals(i.getStatus()))
+                .findFirst()
+                .map(i -> i.getId())
+                .orElse(null);
         return new ApplicationResponse(
                 a.getId(),
                 a.getCandidate().getId(),
@@ -278,7 +284,8 @@ public class ApplicationService {
                 a.getAppliedAt(),
                 a.getUpdatedAt(),
                 a.getRejectionEmailSentAt(),
-                a.getInterviewNotifiedAt()
+                a.getInterviewNotifiedAt(),
+                scheduledInterviewId
         );
     }
 }

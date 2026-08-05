@@ -27,14 +27,35 @@ const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'HIRED', 'REJE
 
 const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) => {
   const api = interviewsApi(axios);
+  const interviewId = application.scheduledInterviewId ?? null;
+  const isEdit = !!interviewId;
   const [form, setForm] = useState({ scheduledAt: '', durationMinutes: 60, type: 'VIDEO', locationOrLink: '', notes: '' });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!interviewId) return;
+    api.get(interviewId).then((r) => {
+      const iv = r.data;
+      setForm({
+        scheduledAt: iv.scheduledAt ? new Date(iv.scheduledAt).toISOString().slice(0, 16) : '',
+        durationMinutes: iv.durationMinutes ?? 60,
+        type: iv.type ?? 'VIDEO',
+        locationOrLink: iv.locationOrLink ?? '',
+        notes: iv.notes ?? '',
+      });
+    }).catch(console.error);
+  }, [interviewId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.schedule({ applicationId: application.id, ...form, scheduledAt: new Date(form.scheduledAt).toISOString() });
+      const payload = { ...form, scheduledAt: new Date(form.scheduledAt).toISOString() };
+      if (isEdit) {
+        await api.update(interviewId, payload);
+      } else {
+        await api.schedule({ applicationId: application.id, ...payload });
+      }
       onScheduled();
     } catch (err) {
       console.error(err);
@@ -48,7 +69,9 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md mx-4 shadow-xl p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Planifier un entretien</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          {isEdit ? "Modifier l'entretien" : "Planifier un entretien"}
+        </h2>
         <p className="text-sm text-slate-500 mb-4">
           {application.candidateFirstName} {application.candidateLastName} — {application.jobPostingTitle}
         </p>
@@ -69,8 +92,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">Annuler</button>
             <button type="submit" disabled={saving}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50">
-              {saving ? 'Planification...' : 'Planifier'}
+              className={`flex-1 px-4 py-2 text-white rounded-lg text-sm disabled:opacity-50 ${isEdit ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+              {saving ? (isEdit ? 'Modification...' : 'Planification...') : (isEdit ? 'Modifier' : 'Planifier')}
             </button>
           </div>
         </form>
@@ -382,12 +405,12 @@ export const PipelinePage = () => {
                 <span className="text-xs text-slate-400">{byStatus(status).length}</span>
               </div>
               {status === 'INTERVIEW' && byStatus('INTERVIEW').length > 0 && (() => {
-                const unnotified = byStatus('INTERVIEW').filter((a) => !a.interviewNotifiedAt).length;
+                const unnotified = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt).length;
                 return (
                   <button
                     onClick={() => { setEmailResult(null); setShowInterviewConfirm(true); }}
                     disabled={unnotified === 0}
-                    title={unnotified === 0 ? 'Tous les candidats ont déjà reçu leur convocation' : `Envoyer la convocation à ${unnotified} candidat(s)`}
+                    title={unnotified === 0 ? 'Tous les entretiens planifiés ont déjà été convoqués' : `Envoyer la convocation à ${unnotified} candidat(s)`}
                     className="flex items-center justify-center gap-1 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-950 border border-cyan-200 dark:border-cyan-900"
                   >
                     <MdMail className="w-3.5 h-3.5 shrink-0" />
@@ -443,9 +466,10 @@ export const PipelinePage = () => {
                       <div className="flex gap-1">
                         <button
                           onClick={() => setScheduleApp(app)}
-                          className="flex-1 flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          className={`flex-1 flex items-center justify-center gap-1 text-xs hover:underline ${app.scheduledInterviewId ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}
                         >
-                          <MdCalendarMonth className="w-3 h-3" /> Planifier
+                          <MdCalendarMonth className="w-3 h-3" />
+                          {app.scheduledInterviewId ? 'Modifier' : 'Planifier'}
                         </button>
                         <button
                           onClick={() => setDetailApp(app)}
@@ -503,7 +527,7 @@ export const PipelinePage = () => {
 
       {/* Interview convocation confirmation modal */}
       {showInterviewConfirm && (() => {
-        const unnotified = byStatus('INTERVIEW').filter((a) => !a.interviewNotifiedAt).length;
+        const unnotified = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt).length;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
