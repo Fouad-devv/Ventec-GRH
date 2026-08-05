@@ -40,7 +40,7 @@ public class AdminService {
         CredentialRepresentation cred = new CredentialRepresentation();
         cred.setType(CredentialRepresentation.PASSWORD);
         cred.setValue(req.password());
-        cred.setTemporary(false);
+        cred.setTemporary(true);
 
         UserRepresentation userRep = new UserRepresentation();
         userRep.setUsername(req.email());
