@@ -223,6 +223,16 @@ CRITÈRES ÉLIMINATOIRES AUTOMATIQUES :
   - Si le candidat ne satisfait pas l'un d'eux → score = 0 immédiatement.
   - Exemples : école requise (ENSA, ENSAM…), secteur requis, certification obligatoire, etc.
 
+  RÈGLE ABSOLUE — ÉCOLE D'INGÉNIEUR :
+  Un "Diplôme d'Ingénieur d'État" ou "Ingénieur d'État" est délivré EXCLUSIVEMENT par des écoles
+  d'ingénieur accréditées. Si un candidat possède ce diplôme (peu importe la formulation exacte
+  dans le CV), il satisfait AUTOMATIQUEMENT tout critère demandant une "école d'ingénieur".
+  Écoles d'ingénieur marocaines reconnues (liste non exhaustive) :
+    ENSA (toutes villes), ENSAM, EMI, EHTP, INSA, et tout établissement dont le nom contient
+    "École Nationale Supérieure" ou "École Nationale des Sciences Appliquées".
+  NE JAMAIS rejeter un candidat ayant un "Diplôme d'Ingénieur d'État" d'une de ces écoles
+  sous prétexte que le terme "école d'ingénieur" n'est pas écrit mot pour mot dans le CV.
+
 ══════════════════════════════════════════════════════
 ÉTAPE 2 — ÉVALUATION DES COMPÉTENCES (seulement si étape 1 est 100% passée)
 ══════════════════════════════════════════════════════
