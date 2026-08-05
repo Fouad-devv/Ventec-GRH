@@ -452,6 +452,11 @@ export const PipelinePage = () => {
                       <MdWarning className="w-2.5 h-2.5" /> Non planifié
                     </span>
                   )}
+                  {app.status === 'INTERVIEW' && app.interviewNotifiedAt && (
+                    <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                      <MdCheckCircle className="w-2.5 h-2.5" /> Convoqué
+                    </span>
+                  )}
                   <div className="mt-2 space-y-1">
                     <select
                       value={app.status}
