@@ -18,5 +18,6 @@ public record ApplicationResponse(
         String notes,
         OffsetDateTime appliedAt,
         OffsetDateTime updatedAt,
-        OffsetDateTime rejectionEmailSentAt
+        OffsetDateTime rejectionEmailSentAt,
+        OffsetDateTime interviewNotifiedAt
 ) {}

@@ -270,6 +270,7 @@ export const PipelinePage = () => {
   const [scheduleApp, setScheduleApp] = useState(null);
   const [detailApp, setDetailApp] = useState(null);
   const [showRejectionConfirm, setShowRejectionConfirm] = useState(false);
+  const [showInterviewConfirm, setShowInterviewConfirm] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
   const [emailResult, setEmailResult] = useState(null);
 
@@ -322,8 +323,24 @@ export const PipelinePage = () => {
     setSendingEmails(true);
     try {
       const res = await appApi.sendRejectionEmails(selectedPosting);
-      setEmailResult(res.data.sent);
+      setEmailResult({ sent: res.data.sent });
       setShowRejectionConfirm(false);
+      loadApplications();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingEmails(false);
+    }
+  };
+
+  const handleSendInterviewNotifications = async () => {
+    if (!selectedPosting) return;
+    setSendingEmails(true);
+    try {
+      const res = await appApi.sendInterviewNotifications(selectedPosting);
+      const { sent, noInterview } = res.data;
+      setEmailResult({ sent, noInterview });
+      setShowInterviewConfirm(false);
       loadApplications();
     } catch (e) {
       console.error(e);
@@ -364,6 +381,20 @@ export const PipelinePage = () => {
                 <StatusBadge status={status} />
                 <span className="text-xs text-slate-400">{byStatus(status).length}</span>
               </div>
+              {status === 'INTERVIEW' && byStatus('INTERVIEW').length > 0 && (() => {
+                const unnotified = byStatus('INTERVIEW').filter((a) => !a.interviewNotifiedAt).length;
+                return (
+                  <button
+                    onClick={() => { setEmailResult(null); setShowInterviewConfirm(true); }}
+                    disabled={unnotified === 0}
+                    title={unnotified === 0 ? 'Tous les candidats ont déjà reçu leur convocation' : `Envoyer la convocation à ${unnotified} candidat(s)`}
+                    className="flex items-center justify-center gap-1 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-950 border border-cyan-200 dark:border-cyan-900"
+                  >
+                    <MdMail className="w-3.5 h-3.5 shrink-0" />
+                    {unnotified > 0 ? `Convoquer (${unnotified})` : 'Tous convoqués'}
+                  </button>
+                );
+              })()}
               {status === 'REJECTED' && byStatus('REJECTED').length > 0 && (() => {
                 const unnotified = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt).length;
                 return (
@@ -470,6 +501,50 @@ export const PipelinePage = () => {
         />
       )}
 
+      {/* Interview convocation confirmation modal */}
+      {showInterviewConfirm && (() => {
+        const unnotified = byStatus('INTERVIEW').filter((a) => !a.interviewNotifiedAt).length;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 shrink-0 rounded-full bg-cyan-100 dark:bg-cyan-950 flex items-center justify-center">
+                  <MdMail className="w-5 h-5 text-cyan-600" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Envoyer les convocations</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{unnotified} candidat{unnotified !== 1 ? 's' : ''}</span> recevront la convocation à leur entretien planifié.
+                    Les candidats sans entretien planifié ou déjà convoqués seront ignorés.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => setShowInterviewConfirm(false)}
+                  disabled={sendingEmails}
+                  className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSendInterviewNotifications}
+                  disabled={sendingEmails}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 disabled:opacity-50 transition-colors"
+                >
+                  {sendingEmails ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <MdMail className="w-4 h-4" />
+                  )}
+                  {sendingEmails ? 'Envoi…' : 'Envoyer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Rejection email confirmation modal */}
       {showRejectionConfirm && (() => {
         const unnotified = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt).length;
@@ -514,11 +589,21 @@ export const PipelinePage = () => {
         );
       })()}
 
-      {/* Success toast */}
+      {/* Toast */}
       {emailResult !== null && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-emerald-600 text-white rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4">
-          <MdCheckCircle className="w-5 h-5 shrink-0" />
-          {emailResult === 0 ? 'Aucun email envoyé (tous déjà notifiés).' : `${emailResult} email${emailResult !== 1 ? 's' : ''} envoyé${emailResult !== 1 ? 's' : ''} avec succès.`}
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 ${
+          emailResult.noInterview > 0 && emailResult.sent === 0
+            ? 'bg-amber-500 text-white'
+            : 'bg-emerald-600 text-white'
+        }`}>
+          {emailResult.noInterview > 0 && emailResult.sent === 0
+            ? <MdWarning className="w-5 h-5 shrink-0" />
+            : <MdCheckCircle className="w-5 h-5 shrink-0" />}
+          {emailResult.sent > 0
+            ? `${emailResult.sent} convocation${emailResult.sent !== 1 ? 's' : ''} envoyée${emailResult.sent !== 1 ? 's' : ''} avec succès.`
+            : emailResult.noInterview > 0
+            ? `${emailResult.noInterview} candidat${emailResult.noInterview !== 1 ? 's' : ''} sans entretien planifié — utilisez "Planifier" d'abord.`
+            : 'Tous les candidats ont déjà été convoqués.'}
           <button onClick={() => setEmailResult(null)} className="ml-2 opacity-75 hover:opacity-100">
             <MdClose className="w-4 h-4" />
           </button>

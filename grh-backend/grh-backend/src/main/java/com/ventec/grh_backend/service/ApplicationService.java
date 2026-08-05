@@ -7,13 +7,18 @@ import com.ventec.grh_backend.domain.User;
 import com.ventec.grh_backend.DTO.request.UpdateApplicationStatusRequest;
 import com.ventec.grh_backend.DTO.response.ApplicationResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
+import com.ventec.grh_backend.domain.Interview;
 import com.ventec.grh_backend.repository.ApplicationRepository;
 import com.ventec.grh_backend.repository.CandidateRepository;
 import com.ventec.grh_backend.repository.DocumentChecklistRepository;
+import com.ventec.grh_backend.repository.InterviewRepository;
 import com.ventec.grh_backend.repository.JobPostingRepository;
 import com.ventec.grh_backend.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +40,19 @@ public class ApplicationService {
     private final AiServiceClient aiServiceClient;
     private final MailService mailService;
     private final ObjectMapper objectMapper;
+    private final InterviewRepository interviewRepository;
+    private final InterviewService interviewService;
+
+    private byte[] logoBytes;
+
+    @PostConstruct
+    void initLogo() {
+        try {
+            logoBytes = new ClassPathResource("images/ventec-logo.jpeg").getInputStream().readAllBytes();
+        } catch (Exception e) {
+            log.warn("Could not load Ventec logo: {}", e.getMessage());
+        }
+    }
 
     @Transactional(readOnly = true)
     public ApplicationResponse getApplication(UUID id) {
@@ -152,9 +170,15 @@ public class ApplicationService {
             String postingTitle = app.getJobPosting().getTitle();
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
-            mailService.sendHtml(candidate.getEmail(),
-                    "Réponse à votre candidature — " + postingTitle,
-                    buildRejectionEmailHtml(firstName, lastName, postingTitle));
+            String html = buildRejectionEmailHtml(firstName, lastName, postingTitle);
+            if (logoBytes != null) {
+                mailService.sendHtmlWithInline(candidate.getEmail(),
+                        "Réponse à votre candidature — " + postingTitle,
+                        html, "ventec-logo", logoBytes, "image/jpeg");
+            } else {
+                mailService.sendHtml(candidate.getEmail(),
+                        "Réponse à votre candidature — " + postingTitle, html);
+            }
             app.setRejectionEmailSentAt(java.time.OffsetDateTime.now());
             applicationRepository.save(app);
             sent++;
@@ -163,6 +187,9 @@ public class ApplicationService {
     }
 
     private String buildRejectionEmailHtml(String firstName, String lastName, String postingTitle) {
+        String logoHtml = logoBytes != null
+                ? "<img src=\"cid:ventec-logo\" alt=\"Ventec\" style=\"height:48px;display:block;margin-bottom:8px;\">"
+                : "<span style=\"font-size:20px;font-weight:700;color:#ffffff;\">Ventec</span>";
         return """
             <!DOCTYPE html>
             <html lang="fr">
@@ -173,7 +200,7 @@ public class ApplicationService {
                   <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
                     <tr>
                       <td style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px 40px;">
-                        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Ventec</h1>
+                        %s
                         <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Ressources Humaines</p>
                       </td>
                     </tr>
@@ -201,17 +228,38 @@ public class ApplicationService {
                         <p style="margin:4px 0 0;font-size:14px;font-weight:700;color:#1e293b;">L'équipe Ressources Humaines — Ventec</p>
                       </td>
                     </tr>
-                    <tr>
-                      <td style="background-color:#f8fafc;padding:16px 40px;text-align:center;">
-                        <p style="margin:0;font-size:12px;color:#94a3b8;">Ce message est envoyé automatiquement, merci de ne pas y répondre.</p>
-                      </td>
-                    </tr>
                   </table>
                 </td></tr>
               </table>
             </body>
             </html>
-            """.formatted(firstName, lastName, postingTitle);
+            """.formatted(logoHtml, firstName, lastName, postingTitle);
+    }
+
+    public Map<String, Integer> sendInterviewNotifications(UUID jobPostingId) {
+        List<Application> toNotify = applicationRepository.findUnnotifiedInterviewByPostingId(jobPostingId);
+        int sent = 0;
+        int noInterview = 0;
+        for (Application app : toNotify) {
+            var candidate = app.getCandidate();
+            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) continue;
+            Interview interview = interviewRepository.findByApplicationId(app.getId())
+                    .stream()
+                    .filter(i -> !"CANCELLED".equals(i.getStatus()))
+                    .findFirst().orElse(null);
+            if (interview == null) {
+                noInterview++;
+                continue;
+            }
+            String postingTitle = app.getJobPosting().getTitle();
+            String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
+            String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
+            interviewService.sendConvocationEmail(candidate.getEmail(), firstName, lastName, postingTitle, interview);
+            app.setInterviewNotifiedAt(java.time.OffsetDateTime.now());
+            applicationRepository.save(app);
+            sent++;
+        }
+        return Map.of("sent", sent, "noInterview", noInterview);
     }
 
     public ApplicationResponse toResponse(Application a) {
@@ -229,7 +277,8 @@ public class ApplicationService {
                 a.getNotes(),
                 a.getAppliedAt(),
                 a.getUpdatedAt(),
-                a.getRejectionEmailSentAt()
+                a.getRejectionEmailSentAt(),
+                a.getInterviewNotifiedAt()
         );
     }
 }

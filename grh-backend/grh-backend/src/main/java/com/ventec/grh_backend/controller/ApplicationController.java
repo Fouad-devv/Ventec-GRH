@@ -62,6 +62,12 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId));
     }
 
+    @PostMapping("/posting/{jobPostingId}/send-interview-notifications")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Integer>> sendInterviewNotifications(@PathVariable UUID jobPostingId) {
+        return ResponseEntity.ok(applicationService.sendInterviewNotifications(jobPostingId));
+    }
+
     @GetMapping("/{id}/documents-list")
     public ResponseEntity<byte[]> exportDocumentsList(@PathVariable UUID id) {
         byte[] content = exportService.exportDocumentsListDocxByApplication(id);

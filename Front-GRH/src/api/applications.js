@@ -12,4 +12,6 @@ export const applicationsApi = (axios) => ({
     axios.get(`${BASE}/${id}/documents-list-pdf`, { responseType: 'blob' }),
   sendRejectionEmails: (jobPostingId) =>
     axios.post(`${BASE}/posting/${jobPostingId}/send-rejection-emails`),
+  sendInterviewNotifications: (jobPostingId) =>
+    axios.post(`${BASE}/posting/${jobPostingId}/send-interview-notifications`),
 });

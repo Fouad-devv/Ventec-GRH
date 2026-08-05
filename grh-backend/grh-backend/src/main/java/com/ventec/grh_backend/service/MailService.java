@@ -1,6 +1,12 @@
 package com.ventec.grh_backend.service;
 
+import jakarta.activation.DataHandler;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +52,41 @@ public class MailService {
             mailSender.send(msg);
         } catch (Exception e) {
             log.error("Failed to send HTML email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    /**
+     * Sends an HTML email with one inline image using a proper multipart/related structure.
+     * The HTML must reference the image via <img src="cid:{cid}">.
+     * multipart/related ensures the image is truly inline — not shown as an attachment.
+     */
+    @Async
+    public void sendHtmlWithInline(String to, String subject, String html,
+                                   String cid, byte[] imageBytes, String contentType) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            msg.setFrom(new InternetAddress(from));
+            msg.setRecipient(RecipientType.TO, new InternetAddress(to));
+            msg.setSubject(subject, "UTF-8");
+
+            // multipart/related keeps HTML and its inline images together as one unit —
+            // no separate attachment, correct rendering in Gmail and Outlook
+            MimeMultipart related = new MimeMultipart("related");
+
+            MimeBodyPart htmlPart = new MimeBodyPart();
+            htmlPart.setContent(html, "text/html; charset=UTF-8");
+            related.addBodyPart(htmlPart);
+
+            MimeBodyPart imgPart = new MimeBodyPart();
+            imgPart.setDataHandler(new DataHandler(new ByteArrayDataSource(imageBytes, contentType)));
+            imgPart.setContentID("<" + cid + ">");
+            imgPart.setHeader("Content-Disposition", "inline; filename=\"logo.jpeg\"");
+            related.addBodyPart(imgPart);
+
+            msg.setContent(related);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            log.error("Failed to send HTML email with inline image to {}: {}", to, e.getMessage());
         }
     }
 }
