@@ -25,6 +25,26 @@ const ScoreBadge = ({ score }) => {
 
 const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'HIRED', 'REJECTED'];
 
+// Converts any ISO/UTC date string to the YYYY-MM-DDTHH:mm format a datetime-local input expects,
+// using the browser's local time — so "18:53Z" shows as "20:53" in a UTC+2 browser.
+const toLocalDatetimeInput = (iso) => {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// Converts a datetime-local input value (local time) to an ISO string that carries the
+// browser's UTC offset — e.g. "2024-08-05T20:53:00+02:00" — so the backend stores the
+// correct OffsetDateTime and the email template formats it in the right timezone.
+const toISOWithLocalOffset = (localStr) => {
+  const d = new Date(localStr);
+  const pad = (n) => String(n).padStart(2, '0');
+  const offset = -d.getTimezoneOffset(); // minutes east of UTC (positive for UTC+2)
+  const sign = offset >= 0 ? '+' : '-';
+  const absOffset = Math.abs(offset);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
+};
+
 const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) => {
   const api = interviewsApi(axios);
   const interviewId = application.scheduledInterviewId ?? null;
@@ -37,7 +57,7 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
     api.get(interviewId).then((r) => {
       const iv = r.data;
       setForm({
-        scheduledAt: iv.scheduledAt ? new Date(iv.scheduledAt).toISOString().slice(0, 16) : '',
+        scheduledAt: iv.scheduledAt ? toLocalDatetimeInput(iv.scheduledAt) : '',
         durationMinutes: iv.durationMinutes ?? 60,
         type: iv.type ?? 'VIDEO',
         locationOrLink: iv.locationOrLink ?? '',
@@ -50,7 +70,7 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, scheduledAt: new Date(form.scheduledAt).toISOString() };
+      const payload = { ...form, scheduledAt: toISOWithLocalOffset(form.scheduledAt) };
       if (isEdit) {
         await api.update(interviewId, payload);
       } else {

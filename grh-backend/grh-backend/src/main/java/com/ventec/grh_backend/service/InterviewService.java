@@ -16,11 +16,11 @@ import com.ventec.grh_backend.service.AiServiceClient;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -189,7 +189,7 @@ public class InterviewService {
         };
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy 'à' HH'h'mm", java.util.Locale.FRENCH);
         String dateStr = interview.getScheduledAt() != null
-                ? interview.getScheduledAt().format(fmt)
+                ? interview.getScheduledAt().atZoneSameInstant(ZoneId.systemDefault()).format(fmt)
                 : "—";
         String location = interview.getLocationOrLink() != null && !interview.getLocationOrLink().isBlank()
                 ? interview.getLocationOrLink() : "À préciser";
