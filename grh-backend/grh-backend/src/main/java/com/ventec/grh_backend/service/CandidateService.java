@@ -69,10 +69,18 @@ public class CandidateService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CandidateResponse> getAllCandidates(UUID postingId, Pageable pageable) {
-        Page<Candidate> page = postingId != null
-                ? candidateRepository.findByJobPostingId(postingId, pageable)
-                : candidateRepository.findAll(pageable);
+    public Page<CandidateResponse> getAllCandidates(UUID postingId, String search, Pageable pageable) {
+        boolean hasSearch = search != null && !search.isBlank();
+        Page<Candidate> page;
+        if (postingId != null) {
+            page = hasSearch
+                    ? candidateRepository.findByJobPostingIdAndSearch(postingId, search, pageable)
+                    : candidateRepository.findByJobPostingId(postingId, pageable);
+        } else {
+            page = hasSearch
+                    ? candidateRepository.findBySearch(search, pageable)
+                    : candidateRepository.findAll(pageable);
+        }
         List<UUID> ids = page.stream().map(Candidate::getId).toList();
         Map<UUID, List<String>> titlesMap = new HashMap<>();
         Map<UUID, Double> scoreMap = new HashMap<>();

@@ -33,8 +33,9 @@ public class CandidateController {
     @GetMapping
     public ResponseEntity<Page<CandidateResponse>> getAll(
             @RequestParam(required = false) UUID postingId,
+            @RequestParam(required = false) String search,
             Pageable pageable) {
-        return ResponseEntity.ok(candidateService.getAllCandidates(postingId, pageable));
+        return ResponseEntity.ok(candidateService.getAllCandidates(postingId, search, pageable));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

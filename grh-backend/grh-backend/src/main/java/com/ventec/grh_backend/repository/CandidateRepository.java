@@ -23,4 +23,26 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
         countQuery = "SELECT COUNT(DISTINCT c) FROM Application a JOIN a.candidate c WHERE a.jobPosting.id = :postingId"
     )
     Page<Candidate> findByJobPostingId(@Param("postingId") UUID postingId, Pageable pageable);
+
+    @Query(
+        value = "SELECT DISTINCT c FROM Application a JOIN a.candidate c WHERE a.jobPosting.id = :postingId " +
+                "AND (LOWER(c.firstName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.email) LIKE LOWER(CONCAT('%', :search, '%')))",
+        countQuery = "SELECT COUNT(DISTINCT c) FROM Application a JOIN a.candidate c WHERE a.jobPosting.id = :postingId " +
+                "AND (LOWER(c.firstName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.email) LIKE LOWER(CONCAT('%', :search, '%')))"
+    )
+    Page<Candidate> findByJobPostingIdAndSearch(@Param("postingId") UUID postingId, @Param("search") String search, Pageable pageable);
+
+    @Query(
+        value = "SELECT c FROM Candidate c WHERE LOWER(c.firstName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.email) LIKE LOWER(CONCAT('%', :search, '%'))",
+        countQuery = "SELECT COUNT(c) FROM Candidate c WHERE LOWER(c.firstName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                "OR LOWER(c.email) LIKE LOWER(CONCAT('%', :search, '%'))"
+    )
+    Page<Candidate> findBySearch(@Param("search") String search, Pageable pageable);
 }
