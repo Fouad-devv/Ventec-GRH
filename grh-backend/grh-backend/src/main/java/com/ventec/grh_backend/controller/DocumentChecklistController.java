@@ -18,7 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/checklists")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('RH') or hasRole('MANAGER') or hasRole('ADMIN')")
+@PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
 public class DocumentChecklistController {
 
     private final DocumentChecklistService checklistService;

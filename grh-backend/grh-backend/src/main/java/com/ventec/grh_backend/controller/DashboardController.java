@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/dashboard")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('RH') or hasRole('MANAGER') or hasRole('ADMIN')")
+@PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
 public class DashboardController {
 
     private final DashboardService dashboardService;

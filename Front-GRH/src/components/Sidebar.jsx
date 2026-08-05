@@ -33,7 +33,7 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
   const { logout, userInfo, hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
   const initial = userInfo?.given_name?.[0] || userInfo?.preferred_username?.[0] || '?';
-  const displayRole = hasRole('ADMIN') ? 'Admin' : hasRole('MANAGER') ? 'Manager' : 'RH';
+  const displayRole = hasRole('ADMIN') ? 'Admin' : 'RH';
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [tooltip, setTooltip] = useState(null);
@@ -197,8 +197,6 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
             <span className={`mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-md ${
               hasRole('ADMIN')
                 ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
-                : hasRole('MANAGER')
-                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
                 : 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300'
             }`}>
               {displayRole}

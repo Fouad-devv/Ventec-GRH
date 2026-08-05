@@ -4,12 +4,11 @@ import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { adminApi } from '../../api/admin';
 import { usePageActions } from '../../context/HeaderContext';
 
-const ROLES = ['RH', 'MANAGER', 'ADMIN'];
+const ROLES = ['RH', 'ADMIN'];
 
 const ROLE_COLORS = {
-  RH:      'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  MANAGER: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-  ADMIN:   'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  RH:    'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  ADMIN: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
 };
 
 /* ── Edit user modal ────────────────────────────────────── */

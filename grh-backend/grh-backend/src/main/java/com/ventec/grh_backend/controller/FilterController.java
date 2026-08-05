@@ -27,13 +27,13 @@ public class FilterController {
     }
 
     @GetMapping("/{filterJobId}")
-    @PreAuthorize("hasRole('RH') or hasRole('MANAGER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<FilterJobResponse> getFilterJob(@PathVariable UUID filterJobId) {
         return ResponseEntity.ok(filterService.getFilterJob(filterJobId));
     }
 
     @GetMapping("/posting/{jobPostingId}")
-    @PreAuthorize("hasRole('RH') or hasRole('MANAGER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<List<FilterJobResponse>> getFilterJobsForPosting(@PathVariable UUID jobPostingId) {
         return ResponseEntity.ok(filterService.getFilterJobsForPosting(jobPostingId));
     }

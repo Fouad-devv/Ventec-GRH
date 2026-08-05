@@ -20,7 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/interviews")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('RH') or hasRole('MANAGER') or hasRole('ADMIN')")
+@PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
 public class InterviewController {
 
     private final InterviewService interviewService;
