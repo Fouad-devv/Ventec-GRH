@@ -110,10 +110,11 @@ export const DashboardPage = () => {
   if (loading) return <Spinner />;
 
   const funnelData = [
-    { name: 'Candidatures', value: stats?.totalApplications   ?? 0, fill: '#6366f1' },
-    { name: 'En attente',   value: stats?.pendingApplications ?? 0, fill: '#f59e0b' },
-    { name: 'Entretiens',   value: stats?.interviewsThisWeek  ?? 0, fill: '#3b82f6' },
-    { name: 'Embauchés',    value: stats?.hiredThisMonth      ?? 0, fill: '#10b981' },
+    { name: 'Candidatures', value: stats?.totalApplications       ?? 0, fill: '#6366f1' },
+    { name: 'En attente',   value: stats?.pendingApplications     ?? 0, fill: '#f59e0b' },
+    { name: 'Sélectionnés', value: stats?.shortlistedApplications ?? 0, fill: '#8b5cf6' },
+    { name: 'Entretiens',   value: stats?.interviewApplications   ?? 0, fill: '#3b82f6' },
+    { name: 'Embauchés',    value: stats?.hiredApplications       ?? 0, fill: '#10b981' },
   ];
 
   const statusData = [
