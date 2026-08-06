@@ -1151,7 +1151,8 @@ public class ExportService {
 
         XWPFParagraph p1 = cell.getParagraphs().isEmpty() ? cell.addParagraph() : cell.getParagraphs().get(0);
         p1.setAlignment(ParagraphAlignment.CENTER);
-        p1.setSpacingAfter(160); // ~8pt gap below Ventec logo
+        p1.setSpacingBefore(120); // ~6pt — push Ventec logo down from cell top
+        p1.setSpacingAfter(1700); // ~85pt — push Ecowell logo toward bottom of cell
         if (ventec != null) {
             try {
                 // Ventec: very wide logo (aspect ~3.75:1) → 105pt × 28pt
