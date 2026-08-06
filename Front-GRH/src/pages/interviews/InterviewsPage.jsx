@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   MdClose, MdRefresh, MdSearch, MdDownload, MdAutoAwesome,
+  MdEventNote, MdSchedule, MdCheckCircle, MdCancel,
 } from 'react-icons/md';
 import { StatusBadge } from '../../components/StatusBadge';
 import { usePageActions } from '../../context/HeaderContext';
@@ -179,10 +180,21 @@ const InterviewDetailModal = ({ interview, onClose, axios }) => {
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 
-const StatCard = ({ label, value, colorCls, bgCls, borderCls }) => (
-  <div className={`${bgCls} rounded-xl border ${borderCls} px-5 py-4`}>
-    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-    <p className={`text-3xl font-extrabold ${colorCls}`}>{value}</p>
+const StatCard = ({ icon: Icon, label, value, gradient, numGradient }) => (
+  <div className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 cursor-default">
+    <div className={`absolute inset-x-0 top-0 h-[3px] group-hover:h-[5px] bg-gradient-to-r ${gradient} transition-all duration-300`} />
+    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-[0.05] dark:group-hover:opacity-[0.1] transition-opacity duration-300`} />
+    <div className="relative flex items-start justify-between gap-3 pt-1">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">{label}</p>
+        <p className={`text-3xl font-extrabold mt-1.5 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
+          {value ?? '—'}
+        </p>
+      </div>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+    </div>
   </div>
 );
 
@@ -224,10 +236,10 @@ export const InterviewsPage = () => {
 
   // Stats
   const stats = [
-    { label: 'Total',     value: interviews.length,                                            colorCls: 'text-slate-800 dark:text-slate-100',    bgCls: 'bg-white dark:bg-slate-900',       borderCls: 'border-slate-200 dark:border-slate-700' },
-    { label: 'Planifiés', value: interviews.filter(i => i.status === 'SCHEDULED').length,      colorCls: 'text-blue-700 dark:text-blue-300',       bgCls: 'bg-blue-50 dark:bg-blue-950/50',   borderCls: 'border-blue-200 dark:border-blue-900' },
-    { label: 'Terminés',  value: interviews.filter(i => i.status === 'COMPLETED').length,      colorCls: 'text-emerald-700 dark:text-emerald-300', bgCls: 'bg-emerald-50 dark:bg-emerald-950/50', borderCls: 'border-emerald-200 dark:border-emerald-900' },
-    { label: 'Annulés',   value: interviews.filter(i => i.status === 'CANCELLED').length,      colorCls: 'text-red-700 dark:text-red-300',         bgCls: 'bg-red-50 dark:bg-red-950/50',     borderCls: 'border-red-200 dark:border-red-900' },
+    { icon: MdEventNote,   label: 'Total',     value: interviews.length,                                       gradient: 'from-slate-500 to-slate-700',    numGradient: 'from-slate-900 to-slate-600 dark:from-slate-200 dark:to-slate-400' },
+    { icon: MdSchedule,    label: 'Planifiés', value: interviews.filter(i => i.status === 'SCHEDULED').length, gradient: 'from-blue-500 to-blue-700',       numGradient: 'from-blue-900 to-blue-600' },
+    { icon: MdCheckCircle, label: 'Terminés',  value: interviews.filter(i => i.status === 'COMPLETED').length, gradient: 'from-emerald-500 to-emerald-700', numGradient: 'from-emerald-900 to-emerald-600' },
+    { icon: MdCancel,      label: 'Annulés',   value: interviews.filter(i => i.status === 'CANCELLED').length, gradient: 'from-red-500 to-red-700',         numGradient: 'from-red-900 to-red-600' },
   ];
 
   // Filter
