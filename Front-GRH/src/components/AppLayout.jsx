@@ -10,6 +10,7 @@ const getTitle = (pathname) => {
   if (pathname.startsWith('/app/postings'))      return "Offres d'emploi";
   if (pathname.startsWith('/app/candidates'))    return 'Candidats';
   if (pathname.startsWith('/app/pipeline'))      return 'Pipeline';
+  if (pathname.startsWith('/app/interviews'))    return 'Entretiens';
   if (pathname.startsWith('/app/documents'))     return 'Documents';
   if (pathname.startsWith('/app/notifications')) return 'Notifications';
   if (pathname.startsWith('/app/history'))        return 'Offres clôturées';

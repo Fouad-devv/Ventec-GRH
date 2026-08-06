@@ -12,6 +12,7 @@ import {
   MdClose,
   MdKeyboardArrowDown,
   MdHistory,
+  MdEventNote,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/app/history', icon: MdHistory, label: 'Offres clôturées' },
   { to: '/app/candidates', icon: MdPeople, label: 'Candidats' },
   { to: '/app/pipeline', icon: MdAccountTree, label: 'Pipeline' },
+  { to: '/app/interviews', icon: MdEventNote, label: 'Entretiens' },
   { to: '/app/documents', icon: MdFolder, label: 'Documents' },
   { to: '/app/notifications', icon: MdNotifications, label: 'Notifications' },
 ];

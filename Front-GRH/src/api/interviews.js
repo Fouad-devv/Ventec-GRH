@@ -1,6 +1,7 @@
 const BASE = '/interviews';
 
 export const interviewsApi = (axios) => ({
+  getAll: () => axios.get(BASE),
   schedule: (data) => axios.post(BASE, data),
   get: (id) => axios.get(`${BASE}/${id}`),
   getByApplication: (applicationId) => axios.get(`${BASE}/application/${applicationId}`),

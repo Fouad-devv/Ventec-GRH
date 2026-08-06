@@ -258,10 +258,19 @@ public class InterviewService {
                 dateStr, interview.getDurationMinutes(), typeLabel, locationRow);
     }
 
+    @Transactional(readOnly = true)
+    public List<InterviewResponse> getAllInterviews() {
+        return interviewRepository.findAllByOrderByScheduledAtDesc()
+                .stream().map(this::toResponse).toList();
+    }
+
     public InterviewResponse toResponse(Interview i) {
+        var app       = i.getApplication();
+        var candidate = app != null ? app.getCandidate()   : null;
+        var posting   = app != null ? app.getJobPosting()  : null;
         return new InterviewResponse(
                 i.getId(),
-                i.getApplication() != null ? i.getApplication().getId() : null,
+                app != null ? app.getId() : null,
                 i.getScheduledAt(),
                 i.getDurationMinutes(),
                 i.getType(),
@@ -272,7 +281,11 @@ public class InterviewService {
                 i.getQuestions(),
                 i.getCreatedAt(),
                 i.getResponsableNom(),
-                i.getResponsableEmail()
+                i.getResponsableEmail(),
+                candidate != null ? candidate.getFirstName() : null,
+                candidate != null ? candidate.getLastName()  : null,
+                posting   != null ? posting.getTitle()        : null,
+                posting   != null ? posting.getId()           : null
         );
     }
 }

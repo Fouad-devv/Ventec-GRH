@@ -16,5 +16,9 @@ public record InterviewResponse(
         String questions,
         OffsetDateTime createdAt,
         String responsableNom,
-        String responsableEmail
+        String responsableEmail,
+        String candidateFirstName,
+        String candidateLastName,
+        String jobPostingTitle,
+        UUID jobPostingId
 ) {}

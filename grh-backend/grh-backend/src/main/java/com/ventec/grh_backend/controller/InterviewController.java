@@ -33,6 +33,12 @@ public class InterviewController {
     private final InterviewService interviewService;
     private final ExportService exportService;
 
+    @Operation(summary = "Liste tous les entretiens", description = "Retourne tous les entretiens triés par date décroissante")
+    @GetMapping
+    public ResponseEntity<List<InterviewResponse>> getAll() {
+        return ResponseEntity.ok(interviewService.getAllInterviews());
+    }
+
     @Operation(summary = "Planifier un entretien", description = "Crée un entretien pour une candidature avec date, heure et interviewers")
     @PostMapping
     public ResponseEntity<InterviewResponse> schedule(
