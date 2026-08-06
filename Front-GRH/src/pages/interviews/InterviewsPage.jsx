@@ -355,7 +355,7 @@ export const InterviewsPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
-                  {['Date & Heure', 'Candidat', "Offre d'emploi", 'Format', 'Durée', 'Responsable', 'Statut', ''].map((h) => (
+                  {['Date & Heure', 'Candidat', "Offre d'emploi", 'Format', 'Durée', 'Responsable', 'Statut'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
@@ -402,12 +402,6 @@ export const InterviewsPage = () => {
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <button onClick={(e) => { e.stopPropagation(); setSelected(iv); }}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                        Détails →
-                      </button>
                     </td>
                   </tr>
                 ))}
