@@ -75,7 +75,7 @@ public class ApplicationController {
     @Operation(summary = "Envoyer emails de refus", description = "Envoie un email de refus à tous les candidats REJECTED de l'offre")
     @PostMapping("/posting/{jobPostingId}/send-rejection-emails")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Integer>> sendRejectionEmails(
+    public ResponseEntity<Map<String, Object>> sendRejectionEmails(
             @Parameter(description = "ID de l'offre") @PathVariable UUID jobPostingId, Authentication auth) {
         return ResponseEntity.ok(applicationService.sendRejectionEmails(jobPostingId, jwtSub(auth)));
     }
@@ -83,7 +83,7 @@ public class ApplicationController {
     @Operation(summary = "Envoyer convocations d'entretien", description = "Envoie les convocations par email aux candidats SHORTLISTED")
     @PostMapping("/posting/{jobPostingId}/send-interview-notifications")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Integer>> sendInterviewNotifications(
+    public ResponseEntity<Map<String, Object>> sendInterviewNotifications(
             @Parameter(description = "ID de l'offre") @PathVariable UUID jobPostingId, Authentication auth) {
         return ResponseEntity.ok(applicationService.sendInterviewNotifications(jobPostingId, jwtSub(auth)));
     }

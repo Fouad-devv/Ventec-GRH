@@ -370,7 +370,7 @@ export const PipelinePage = () => {
     setSendingEmails(true);
     try {
       const res = await appApi.sendRejectionEmails(selectedPosting);
-      setEmailResult({ sent: res.data.sent, type: 'rejection' });
+      setEmailResult({ sent: res.data.sent, noEmail: res.data.noEmail || [], type: 'rejection' });
       setShowRejectionConfirm(false);
       loadApplications();
     } catch (e) {
@@ -385,8 +385,8 @@ export const PipelinePage = () => {
     setSendingEmails(true);
     try {
       const res = await appApi.sendInterviewNotifications(selectedPosting);
-      const { sent, noInterview } = res.data;
-      setEmailResult({ sent, noInterview, type: 'interview' });
+      const { sent, noInterview, noEmail } = res.data;
+      setEmailResult({ sent, noInterview, noEmail: noEmail || [], type: 'interview' });
       setShowInterviewConfirm(false);
       loadApplications();
     } catch (e) {
@@ -653,26 +653,60 @@ export const PipelinePage = () => {
 
       {/* Toast */}
       {emailResult !== null && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 ${
-          emailResult.noInterview > 0 && emailResult.sent === 0
-            ? 'bg-amber-500 text-white'
-            : 'bg-emerald-600 text-white'
-        }`}>
-          {emailResult.noInterview > 0 && emailResult.sent === 0
-            ? <MdWarning className="w-5 h-5 shrink-0" />
-            : <MdCheckCircle className="w-5 h-5 shrink-0" />}
-          {emailResult.type === 'rejection'
-            ? emailResult.sent > 0
-              ? `${emailResult.sent} email${emailResult.sent !== 1 ? 's' : ''} de refus envoyé${emailResult.sent !== 1 ? 's' : ''} avec succès.`
-              : 'Tous les candidats ont déjà été notifiés.'
-            : emailResult.sent > 0
-            ? `${emailResult.sent} convocation${emailResult.sent !== 1 ? 's' : ''} envoyée${emailResult.sent !== 1 ? 's' : ''} avec succès.`
-            : emailResult.noInterview > 0
-            ? `${emailResult.noInterview} candidat${emailResult.noInterview !== 1 ? 's' : ''} sans entretien planifié — utilisez "Planifier" d'abord.`
-            : 'Tous les candidats ont déjà été convoqués.'}
-          <button onClick={() => setEmailResult(null)} className="ml-2 opacity-75 hover:opacity-100">
-            <MdClose className="w-4 h-4" />
-          </button>
+        <div className="fixed bottom-6 right-6 z-50 max-w-xs w-full rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 overflow-hidden">
+          {/* Success row */}
+          {emailResult.sent > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-emerald-600 text-white">
+              <MdCheckCircle className="w-5 h-5 shrink-0" />
+              <span className="flex-1">
+                {emailResult.type === 'interview'
+                  ? `${emailResult.sent} convocation${emailResult.sent !== 1 ? 's' : ''} envoyée${emailResult.sent !== 1 ? 's' : ''} avec succès.`
+                  : `${emailResult.sent} email${emailResult.sent !== 1 ? 's' : ''} de refus envoyé${emailResult.sent !== 1 ? 's' : ''} avec succès.`}
+              </span>
+              {!emailResult.noEmail?.length && (
+                <button onClick={() => setEmailResult(null)} className="opacity-75 hover:opacity-100 shrink-0">
+                  <MdClose className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {/* No email warning — one entry per candidate */}
+          {emailResult.noEmail?.length > 0 && (
+            <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-semibold text-xs">
+                  <MdWarning className="w-4 h-4 shrink-0" />
+                  Pas d'email pour :
+                </div>
+                <button onClick={() => setEmailResult(null)} className="text-amber-500 opacity-75 hover:opacity-100 shrink-0">
+                  <MdClose className="w-4 h-4" />
+                </button>
+              </div>
+              <ul className="space-y-1 ml-5">
+                {emailResult.noEmail.map((name, i) => (
+                  <li key={i} className="text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                    • {name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* Nothing to send */}
+          {emailResult.sent === 0 && !emailResult.noEmail?.length && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-500 text-white">
+              <MdWarning className="w-5 h-5 shrink-0" />
+              <span className="flex-1">
+                {emailResult.type === 'interview'
+                  ? emailResult.noInterview > 0
+                    ? `${emailResult.noInterview} candidat${emailResult.noInterview !== 1 ? 's' : ''} sans entretien planifié — utilisez "Planifier" d'abord.`
+                    : 'Tous les candidats ont déjà été convoqués.'
+                  : 'Tous les candidats ont déjà été notifiés.'}
+              </span>
+              <button onClick={() => setEmailResult(null)} className="opacity-75 hover:opacity-100 shrink-0">
+                <MdClose className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

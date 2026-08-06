@@ -22,6 +22,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -162,13 +163,17 @@ public class ApplicationService {
         }
     }
 
-    public Map<String, Integer> sendRejectionEmails(UUID jobPostingId, String keycloakId) {
+    public Map<String, Object> sendRejectionEmails(UUID jobPostingId, String keycloakId) {
         List<Application> toNotify = applicationRepository.findUnnotifiedRejectedByPostingId(jobPostingId);
         int sent = 0;
+        List<String> noEmailCandidates = new ArrayList<>();
         String postingTitle = null;
         for (Application app : toNotify) {
             var candidate = app.getCandidate();
-            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) continue;
+            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) {
+                noEmailCandidates.add(candidate.getFirstName() + " " + candidate.getLastName());
+                continue;
+            }
             postingTitle = app.getJobPosting().getTitle();
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
@@ -197,7 +202,10 @@ public class ApplicationService {
                 log.warn("Failed to create rejection notification: {}", e.getMessage());
             }
         }
-        return Map.of("sent", sent);
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("sent", sent);
+        result.put("noEmail", noEmailCandidates);
+        return result;
     }
 
     private String buildRejectionEmailHtml(String firstName, String lastName, String postingTitle) {
@@ -250,14 +258,18 @@ public class ApplicationService {
             """.formatted(logoHtml, firstName, lastName, postingTitle);
     }
 
-    public Map<String, Integer> sendInterviewNotifications(UUID jobPostingId, String keycloakId) {
+    public Map<String, Object> sendInterviewNotifications(UUID jobPostingId, String keycloakId) {
         List<Application> toNotify = applicationRepository.findUnnotifiedInterviewByPostingId(jobPostingId);
         int sent = 0;
         int noInterview = 0;
+        List<String> noEmailCandidates = new ArrayList<>();
         String postingTitle = null;
         for (Application app : toNotify) {
             var candidate = app.getCandidate();
-            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) continue;
+            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) {
+                noEmailCandidates.add(candidate.getFirstName() + " " + candidate.getLastName());
+                continue;
+            }
             Interview interview = interviewRepository.findByApplicationId(app.getId())
                     .stream()
                     .filter(i -> !"CANCELLED".equals(i.getStatus()))
@@ -286,7 +298,11 @@ public class ApplicationService {
                 log.warn("Failed to create interview notification: {}", e.getMessage());
             }
         }
-        return Map.of("sent", sent, "noInterview", noInterview);
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("sent", sent);
+        result.put("noInterview", noInterview);
+        result.put("noEmail", noEmailCandidates);
+        return result;
     }
 
     public ApplicationResponse toResponse(Application a) {
