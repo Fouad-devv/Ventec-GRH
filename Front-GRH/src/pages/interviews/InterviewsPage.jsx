@@ -22,10 +22,9 @@ const TypeBadge = ({ type }) => {
 
 const formatDate = (iso) => {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('fr-FR', {
-    weekday: 'short', day: '2-digit', month: 'short',
-    year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} - ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 // ─── Detail Modal ────────────────────────────────────────────────────────────
