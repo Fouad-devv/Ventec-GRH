@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext';
 const navItems = [
   { to: '/app/dashboard', icon: MdDashboard, label: 'Tableau de bord' },
   { to: '/app/postings', icon: MdWork, label: "Offres d'emploi" },
-  { to: '/app/history', icon: MdHistory, label: 'Historique' },
+  { to: '/app/history', icon: MdHistory, label: 'Offres clôturées' },
   { to: '/app/candidates', icon: MdPeople, label: 'Candidats' },
   { to: '/app/pipeline', icon: MdAccountTree, label: 'Pipeline' },
   { to: '/app/documents', icon: MdFolder, label: 'Documents' },
