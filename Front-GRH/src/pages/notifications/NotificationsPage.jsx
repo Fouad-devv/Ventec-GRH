@@ -162,11 +162,6 @@ export const NotificationsPage = () => {
     <div className="p-6 max-w-3xl mx-auto">
       <PageHeader
         title="Notifications"
-        subtitle={
-          unread > 0
-            ? `${unread} non lue${unread > 1 ? 's' : ''} · ${notifications.length} au total`
-            : `${notifications.length} notification${notifications.length > 1 ? 's' : ''}`
-        }
         action={
           unread > 0 && (
             <button onClick={markAll}
