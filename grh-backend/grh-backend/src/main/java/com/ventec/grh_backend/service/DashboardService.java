@@ -52,8 +52,12 @@ public class DashboardService {
 
         OffsetDateTime now = OffsetDateTime.now();
         List<UpcomingInterviewDto> upcoming = interviewRepository
-                .findByStatusAndScheduledAtBetween("SCHEDULED", now, now.plusDays(7))
+                .findByStatusAndScheduledAtBefore("SCHEDULED", now.plusDays(7))
                 .stream()
+                .filter(i -> {
+                    int dur = i.getDurationMinutes() != null ? i.getDurationMinutes() : 60;
+                    return i.getScheduledAt().plusMinutes(dur).isAfter(now);
+                })
                 .sorted((a, b) -> a.getScheduledAt().compareTo(b.getScheduledAt()))
                 .limit(10)
                 .map(this::toUpcomingDto)
