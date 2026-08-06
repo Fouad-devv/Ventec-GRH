@@ -458,7 +458,9 @@ export const PipelinePage = () => {
               })()}
               {byStatus(status).map((app) => (
                 <div key={app.id} className={`bg-white dark:bg-slate-900 rounded-lg border p-3 text-sm shadow-sm ${
-                  app.status === 'INTERVIEW' && !app.scheduledInterviewId
+                  !app.candidateEmail
+                    ? 'border-red-300 dark:border-red-700'
+                    : app.status === 'INTERVIEW' && !app.scheduledInterviewId
                     ? 'border-amber-300 dark:border-amber-700'
                     : 'border-slate-200 dark:border-slate-800'
                 }`}>
