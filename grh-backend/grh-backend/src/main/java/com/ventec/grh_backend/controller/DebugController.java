@@ -1,5 +1,8 @@
 package com.ventec.grh_backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -9,10 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+@Tag(name = "Debug")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/debug")
 public class DebugController {
 
+    @Operation(summary = "Inspecter le token JWT courant", description = "Retourne les claims du token JWT (sub, rôles, realm_access, resource_access) pour diagnostiquer les problèmes d'authentification")
     @GetMapping("/me")
     public Map<String, Object> me(Authentication auth) {
         if (auth instanceof JwtAuthenticationToken jwtAuth) {

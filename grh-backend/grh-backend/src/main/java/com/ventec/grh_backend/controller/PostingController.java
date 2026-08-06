@@ -10,6 +10,11 @@ import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
 import com.ventec.grh_backend.service.AiServiceClient;
 import com.ventec.grh_backend.service.ExportService;
 import com.ventec.grh_backend.service.PostingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import jakarta.validation.Valid;
@@ -26,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Tag(name = "Offres d'emploi")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/postings")
 @RequiredArgsConstructor
@@ -35,18 +42,22 @@ public class PostingController {
     private final AiServiceClient aiServiceClient;
     private final ExportService exportService;
 
+    @Operation(summary = "Historique des offres", description = "Liste toutes les offres avec leur historique de statut")
     @GetMapping("/history")
     public ResponseEntity<List<PostingHistoryResponse>> getHistory() {
         return ResponseEntity.ok(postingService.getHistory());
     }
 
+    @Operation(summary = "Lister les offres", description = "Retourne une page d'offres, filtrable par statut (DRAFT, OPEN, CLOSED)")
     @GetMapping
     public ResponseEntity<Page<JobPostingResponse>> getAll(
-            @RequestParam(required = false) String status,
+            @Parameter(description = "Filtrer par statut : DRAFT, OPEN, CLOSED") @RequestParam(required = false) String status,
             Pageable pageable) {
         return ResponseEntity.ok(postingService.getAllPostings(status, pageable));
     }
 
+    @Operation(summary = "Créer une offre", description = "Crée une nouvelle offre de recrutement (DRAFT par défaut)")
+    @ApiResponse(responseCode = "200", description = "Offre créée")
     @PostMapping
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<JobPostingResponse> create(
@@ -55,40 +66,52 @@ public class PostingController {
         return ResponseEntity.ok(postingService.createPosting(req, auth));
     }
 
+    @Operation(summary = "Détail d'une offre",
+               description = "Retourne le détail complet : titre, description du poste, exigences, contraintes d'âge, statut, fiche de fonction attachée et prompt libre IA utilisé pour le filtrage")
+    @ApiResponse(responseCode = "404", description = "Offre introuvable")
     @GetMapping("/{id}")
-    public ResponseEntity<JobPostingResponse> get(@PathVariable UUID id) {
+    public ResponseEntity<JobPostingResponse> get(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         return ResponseEntity.ok(postingService.getPosting(id));
     }
 
+    @Operation(summary = "Modifier une offre",
+               description = "Met à jour les champs de l'offre (titre, description, exigences, âge min/max, prompt IA libre, etc.). Seuls les champs fournis dans le body sont modifiés")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<JobPostingResponse> update(
-            @PathVariable UUID id,
+            @Parameter(description = "ID de l'offre") @PathVariable UUID id,
             @RequestBody UpdateJobPostingRequest req) {
         return ResponseEntity.ok(postingService.updatePosting(id, req));
     }
 
+    @Operation(summary = "Publier une offre", description = "Passe le statut de DRAFT à OPEN")
     @PutMapping("/{id}/publish")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<JobPostingResponse> publish(@PathVariable UUID id) {
+    public ResponseEntity<JobPostingResponse> publish(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         return ResponseEntity.ok(postingService.publishPosting(id));
     }
 
+    @Operation(summary = "Clôturer une offre", description = "Passe le statut à CLOSED")
     @PutMapping("/{id}/close")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<JobPostingResponse> close(@PathVariable UUID id) {
+    public ResponseEntity<JobPostingResponse> close(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         return ResponseEntity.ok(postingService.closePosting(id));
     }
 
+    @Operation(summary = "Supprimer une offre",
+               description = "Supprime définitivement l'offre ainsi que toutes les candidatures et FilterJobs associés. Action irréversible")
+    @ApiResponse(responseCode = "204", description = "Offre supprimée")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         postingService.deletePosting(id);
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Exporter l'offre en DOCX", description = "Télécharge la fiche de poste au format Word")
+    @ApiResponse(responseCode = "200", description = "Fichier DOCX généré")
     @GetMapping("/{id}/export/docx")
-    public ResponseEntity<byte[]> exportDocx(@PathVariable UUID id) {
+    public ResponseEntity<byte[]> exportDocx(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         byte[] content = exportService.exportPostingToDocx(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"offre-" + id + ".docx\"")
@@ -96,16 +119,19 @@ public class PostingController {
                 .body(content);
     }
 
+    @Operation(summary = "Dupliquer une offre", description = "Crée une copie DRAFT de l'offre")
     @PostMapping("/{id}/duplicate")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<JobPostingResponse> duplicate(
-            @PathVariable UUID id,
+            @Parameter(description = "ID de l'offre") @PathVariable UUID id,
             Authentication auth) {
         return ResponseEntity.ok(postingService.duplicatePosting(id, auth));
     }
 
+    @Operation(summary = "Exporter la fiche de fonction en DOCX",
+               description = "Télécharge la fiche de fonction générée par l'IA ou uploadée manuellement au format Word. Requiert qu'une fiche soit déjà attachée à l'offre")
     @GetMapping("/{id}/export/fiche-fonction")
-    public ResponseEntity<byte[]> exportFicheFonction(@PathVariable UUID id) {
+    public ResponseEntity<byte[]> exportFicheFonction(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         byte[] content = exportService.exportFicheFonctionDocx(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -115,28 +141,32 @@ public class PostingController {
                 .body(content);
     }
 
+    @Operation(summary = "Uploader une fiche de fonction (PDF)", description = "Attache un PDF de fiche de fonction à l'offre")
     @PostMapping("/{id}/fiche-fonction")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<JobPostingResponse> uploadFicheFonction(
-            @PathVariable UUID id,
+            @Parameter(description = "ID de l'offre") @PathVariable UUID id,
             @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(postingService.uploadFicheFonction(id, file));
     }
 
+    @Operation(summary = "Générer la fiche de fonction par IA", description = "Génère automatiquement la fiche de fonction via l'IA et la stocke")
     @PostMapping("/{id}/generate-fiche-fonction")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<JobPostingResponse> generateFicheFonction(@PathVariable UUID id) {
+    public ResponseEntity<JobPostingResponse> generateFicheFonction(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
         return ResponseEntity.ok(postingService.generateAndStoreFicheFonction(id));
     }
 
+    @Operation(summary = "Importer des CVs", description = "Importe plusieurs CVs PDF et crée les candidatures associées à l'offre")
     @PostMapping("/{id}/import-cvs")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<List<ApplicationResponse>> importCvs(
-            @PathVariable UUID id,
+            @Parameter(description = "ID de l'offre") @PathVariable UUID id,
             @RequestParam("files") List<MultipartFile> files) {
         return ResponseEntity.ok(postingService.importCvs(id, files));
     }
 
+    @Operation(summary = "Générer description & exigences par IA", description = "Génère automatiquement la description et les exigences du poste via l'IA")
     @PostMapping("/generate-description")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
     public ResponseEntity<GenerateDescriptionResponse> generateDescription(
