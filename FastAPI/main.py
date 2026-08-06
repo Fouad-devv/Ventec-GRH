@@ -10,6 +10,7 @@ Handles:
 import asyncio
 import json as _json
 import logging
+import re
 
 import httpx
 from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
@@ -157,6 +158,18 @@ def _require_groq():
     return _groq_client
 
 
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+def _clean_email(value) -> str | None:
+    """Return the value only if it is a real email address — reject URLs, LinkedIn links, etc."""
+    if not value or not isinstance(value, str):
+        return None
+    value = value.strip()
+    if _EMAIL_RE.match(value):
+        return value
+    return None
+
+
 async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResponse:
     """
     Extract structured CV data using Groq (Llama).
@@ -288,15 +301,15 @@ Retourne UNIQUEMENT un objet JSON valide :
 {{
   "first_name": "<prénom ou null>",
   "last_name": "<nom de famille ou null>",
-  "email": "<email ou null>",
-  "phone": "<téléphone ou null>",
+  "email": "<adresse email valide contenant @ ou null — NE JAMAIS mettre un lien LinkedIn, URL ou numéro de téléphone>",
+  "phone": "<numéro de téléphone ou null>",
   "skills": ["compétence1", "compétence2"],
   "experience_years": <entier ou null>,
   "education": "<diplôme le plus élevé ou null>",
   "current_position": "<dernier poste occupé ou null>",
   "location": "<ville/pays ou null>"
 }}
-Règles : skills max 15, sans doublons. Retourne QUE le JSON.
+Règles : skills max 15, sans doublons. Le champ email doit obligatoirement contenir un "@" — sinon retourne null. Retourne QUE le JSON.
 
 CV :
 {text[:8000]}
@@ -314,7 +327,7 @@ CV :
     return {
         "first_name": data.get("first_name"),
         "last_name": data.get("last_name"),
-        "email": data.get("email"),
+        "email": _clean_email(data.get("email")),
         "phone": data.get("phone"),
         "skills": skills[:15],
         "experience_years": data.get("experience_years"),
