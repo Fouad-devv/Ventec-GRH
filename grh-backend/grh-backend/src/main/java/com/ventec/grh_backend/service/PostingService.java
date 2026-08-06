@@ -329,6 +329,7 @@ public class PostingService {
                         app.getUpdatedAt(),
                         app.getRejectionEmailSentAt(),
                         app.getInterviewNotifiedAt(),
+                        null,
                         null
                 ));
             } catch (Exception e) {

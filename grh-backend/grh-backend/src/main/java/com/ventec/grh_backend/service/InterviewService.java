@@ -91,12 +91,14 @@ public class InterviewService {
         Interview interview = interviewRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
 
+        String previousStatus = interview.getStatus();
+
         boolean scheduleChanged = false;
         if (req.scheduledAt() != null)     { interview.setScheduledAt(req.scheduledAt());         scheduleChanged = true; }
         if (req.durationMinutes() != null) { interview.setDurationMinutes(req.durationMinutes()); scheduleChanged = true; }
         if (req.type() != null)            { interview.setType(req.type());                       scheduleChanged = true; }
         if (req.locationOrLink() != null)  { interview.setLocationOrLink(req.locationOrLink());   scheduleChanged = true; }
-        if (req.status() != null)         interview.setStatus(req.status());
+        if (req.status() != null)          interview.setStatus(req.status());
         if (req.notes() != null)           interview.setNotes(req.notes());
         if (req.responsableNom() != null)   interview.setResponsableNom(req.responsableNom());
         if (req.responsableEmail() != null) interview.setResponsableEmail(req.responsableEmail());
@@ -110,12 +112,23 @@ public class InterviewService {
 
         InterviewResponse response = toResponse(interviewRepository.save(interview));
 
-        // When scheduling details change, clear the notification stamp so the recruiter
-        // must re-send the convocation with the updated information
-        if (scheduleChanged) {
-            Application app = interview.getApplication();
-            if (app != null) {
+        Application app = interview.getApplication();
+        if (app != null) {
+            // When scheduling details change, force the recruiter to re-send the convocation
+            if (scheduleChanged && "SCHEDULED".equals(interview.getStatus())) {
                 app.setInterviewNotifiedAt(null);
+                applicationRepository.save(app);
+            }
+
+            // When interview is marked COMPLETED: lock convocation so it cannot be resent
+            if ("COMPLETED".equals(req.status()) && !"COMPLETED".equals(previousStatus)) {
+                app.setInterviewNotifiedAt(java.time.OffsetDateTime.now());
+                applicationRepository.save(app);
+            }
+
+            // When interview is CANCELLED: reject the candidate
+            if ("CANCELLED".equals(req.status()) && !"CANCELLED".equals(previousStatus)) {
+                app.setStatus("REJECTED");
                 applicationRepository.save(app);
             }
         }

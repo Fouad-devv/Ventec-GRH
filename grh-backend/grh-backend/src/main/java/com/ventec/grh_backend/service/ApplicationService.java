@@ -102,6 +102,20 @@ public class ApplicationService {
             notifyManagerShortlist(app);
         }
 
+        // Complete any scheduled interview when candidate is rejected
+        if ("REJECTED".equals(req.status()) && !"REJECTED".equals(previousStatus)) {
+            try {
+                interviewRepository.findByApplicationId(app.getId()).stream()
+                        .filter(i -> "SCHEDULED".equals(i.getStatus()))
+                        .forEach(i -> {
+                            i.setStatus("COMPLETED");
+                            interviewRepository.save(i);
+                        });
+            } catch (Exception e) {
+                log.warn("Failed to complete interview for rejected application {}: {}", id, e.getMessage());
+            }
+        }
+
         return saved;
     }
 
@@ -306,11 +320,10 @@ public class ApplicationService {
     }
 
     public ApplicationResponse toResponse(Application a) {
-        UUID scheduledInterviewId = interviewRepository.findByApplicationId(a.getId())
+        Interview activeInterview = interviewRepository.findByApplicationId(a.getId())
                 .stream()
                 .filter(i -> !"CANCELLED".equals(i.getStatus()))
                 .findFirst()
-                .map(i -> i.getId())
                 .orElse(null);
         return new ApplicationResponse(
                 a.getId(),
@@ -328,7 +341,8 @@ public class ApplicationService {
                 a.getUpdatedAt(),
                 a.getRejectionEmailSentAt(),
                 a.getInterviewNotifiedAt(),
-                scheduledInterviewId
+                activeInterview != null ? activeInterview.getId()     : null,
+                activeInterview != null ? activeInterview.getStatus() : null
         );
     }
 }
