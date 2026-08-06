@@ -256,6 +256,15 @@ export const InterviewsPage = () => {
     return true;
   });
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <div className="w-10 h-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+        <p className="text-sm text-slate-400">Chargement des entretiens…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
 
@@ -302,9 +311,7 @@ export const InterviewsPage = () => {
       </div>
 
       {/* Table */}
-      {loading ? (
-        <div className="text-center py-24 text-slate-400 text-sm">Chargement…</div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-24 text-slate-400 text-sm">
           {interviews.length === 0 ? 'Aucun entretien planifié' : 'Aucun résultat pour cette recherche'}
         </div>
