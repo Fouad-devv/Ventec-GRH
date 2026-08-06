@@ -260,7 +260,7 @@ public class InterviewService {
 
     @Transactional(readOnly = true)
     public List<InterviewResponse> getAllInterviews() {
-        return interviewRepository.findAllByOrderByScheduledAtDesc()
+        return interviewRepository.findAllByOrderByScheduledAtAsc()
                 .stream().map(this::toResponse).toList();
     }
 

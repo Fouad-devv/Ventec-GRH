@@ -11,7 +11,7 @@ public interface InterviewRepository extends JpaRepository<Interview, UUID> {
 
     List<Interview> findByApplicationId(UUID applicationId);
 
-    List<Interview> findAllByOrderByScheduledAtDesc();
+    List<Interview> findAllByOrderByScheduledAtAsc();
 
     List<Interview> findByStatusAndScheduledAtBetween(String status, OffsetDateTime from, OffsetDateTime to);
 }
