@@ -35,13 +35,32 @@ const StatCard = ({ icon: Icon, label, value, gradient, numGradient, sub }) => (
 );
 
 /* ── Alert banner ──────────────────────────────────────── */
-const Alert = ({ type, message }) => {
+const Alert = ({ type, message, count, onNavigate }) => {
   const styles = {
     info:    'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
     warning: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
     success: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
+    overdue: 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300',
   };
-  const Icon = { info: MdInfo, warning: MdWarning, success: MdCheckCircle }[type];
+  const Icon = { info: MdInfo, warning: MdWarning, success: MdCheckCircle, overdue: MdWarning }[type];
+
+  if (type === 'overdue') {
+    return (
+      <button
+        onClick={onNavigate}
+        className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border ${styles.overdue} hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors text-left`}
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-semibold">
+            {count} entretien{count > 1 ? 's' : ''} passé{count > 1 ? 's' : ''} sans statut — action requise
+          </p>
+        </div>
+        <span className="text-xs font-semibold underline shrink-0">Voir →</span>
+      </button>
+    );
+  }
+
   return (
     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${styles[type]}`}>
       <Icon className="w-5 h-5 shrink-0" />
@@ -125,7 +144,11 @@ export const DashboardPage = () => {
     { name: 'Rejeté',      value: stats?.rejectedApplications    ?? 0, color: '#ef4444' },
   ].filter((d) => d.value > 0);
 
+  const overdueCount = stats?.overdueInterviews?.length ?? 0;
+
   const alerts = [];
+  if (overdueCount > 0)
+    alerts.push({ type: 'overdue', count: overdueCount });
   if ((stats?.pendingApplications ?? 0) > 5)
     alerts.push({ type: 'warning', message: `${stats.pendingApplications} candidatures en attente de traitement` });
   if ((stats?.interviewsThisWeek ?? 0) > 0)
@@ -329,7 +352,7 @@ export const DashboardPage = () => {
                 </div>
               </div>
               <div className="p-4 space-y-2">
-                {alerts.map((a, i) => <Alert key={i} {...a} />)}
+                {alerts.map((a, i) => <Alert key={i} {...a} onNavigate={() => navigate('/app/interviews')} />)}
               </div>
             </div>
           )}

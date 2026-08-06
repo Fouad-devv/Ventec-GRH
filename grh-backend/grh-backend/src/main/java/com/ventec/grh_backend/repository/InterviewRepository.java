@@ -13,5 +13,7 @@ public interface InterviewRepository extends JpaRepository<Interview, UUID> {
 
     List<Interview> findAllByOrderByScheduledAtAsc();
 
+    List<Interview> findByStatusAndScheduledAtBefore(String status, OffsetDateTime cutoff);
+
     List<Interview> findByStatusAndScheduledAtBetween(String status, OffsetDateTime from, OffsetDateTime to);
 }

@@ -10,6 +10,10 @@ import { interviewsApi } from '../../api/interviews';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+const isOverdue = (iv) =>
+  iv.status === 'SCHEDULED' &&
+  new Date(iv.scheduledAt).getTime() + (iv.durationMinutes || 60) * 60000 < Date.now();
+
 const TYPE_MAP = {
   VIDEO:   { label: 'Visio',      cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
   PHONE:   { label: 'Téléphone',  cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
@@ -44,10 +48,20 @@ const InfoRow = ({ label, value, isLink }) => (
   </div>
 );
 
-const InterviewDetailModal = ({ interview, onClose, axios }) => {
+const InterviewDetailModal = ({ interview, onClose, onStatusUpdated, axios }) => {
   const iApi = interviewsApi(axios);
   const [questions, setQuestions] = useState([]);
   const [generating, setGenerating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const updateStatus = async (status) => {
+    setUpdatingStatus(true);
+    try {
+      const res = await iApi.update(interview.id, { status });
+      onStatusUpdated(res.data);
+    } catch (e) { console.error(e); }
+    finally { setUpdatingStatus(false); }
+  };
 
   useEffect(() => {
     try { setQuestions(JSON.parse(interview.questions || '[]')); }
@@ -163,15 +177,35 @@ const InterviewDetailModal = ({ interview, onClose, axios }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-5 border-t border-slate-100 dark:border-slate-800 shrink-0">
+        <div className="flex items-center justify-between gap-3 p-5 border-t border-slate-100 dark:border-slate-800 shrink-0 flex-wrap">
           <button onClick={exportPdf}
             className="flex items-center gap-1.5 text-sm px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             <MdDownload className="w-4 h-4" /> Exporter PDF
           </button>
-          <button onClick={onClose}
-            className="px-5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            Fermer
-          </button>
+          <div className="flex items-center gap-2">
+            {interview.status === 'SCHEDULED' && (
+              <>
+                <button
+                  onClick={() => updateStatus('COMPLETED')}
+                  disabled={updatingStatus}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  {updatingStatus ? '…' : 'Marquer terminé'}
+                </button>
+                <button
+                  onClick={() => updateStatus('CANCELLED')}
+                  disabled={updatingStatus}
+                  className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {updatingStatus ? '…' : 'Annuler'}
+                </button>
+              </>
+            )}
+            <button onClick={onClose}
+              className="px-5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              Fermer
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -331,7 +365,11 @@ export const InterviewsPage = () => {
               <tbody>
                 {filtered.map((iv) => (
                   <tr key={iv.id} onClick={() => setSelected(iv)}
-                    className="border-b border-slate-50 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors group">
+                    className={`border-b last:border-0 cursor-pointer transition-colors group ${
+                      isOverdue(iv)
+                        ? 'border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50'
+                        : 'border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    }`}>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="font-medium text-slate-700 dark:text-slate-300">{formatDate(iv.scheduledAt)}</span>
                     </td>
@@ -356,7 +394,14 @@ export const InterviewsPage = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <StatusBadge status={iv.status} />
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <StatusBadge status={iv.status} />
+                        {isOverdue(iv) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                            En retard
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <button onClick={(e) => { e.stopPropagation(); setSelected(iv); }}
@@ -378,7 +423,15 @@ export const InterviewsPage = () => {
 
       {/* Detail modal */}
       {selected && (
-        <InterviewDetailModal interview={selected} onClose={() => setSelected(null)} axios={axios} />
+        <InterviewDetailModal
+          interview={selected}
+          onClose={() => setSelected(null)}
+          axios={axios}
+          onStatusUpdated={(updated) => {
+            setSelected(updated);
+            setInterviews((prev) => prev.map((iv) => iv.id === updated.id ? updated : iv));
+          }}
+        />
       )}
     </div>
   );

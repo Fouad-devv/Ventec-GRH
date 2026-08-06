@@ -59,6 +59,16 @@ public class DashboardService {
                 .map(this::toUpcomingDto)
                 .toList();
 
+        List<UpcomingInterviewDto> overdue = interviewRepository
+                .findByStatusAndScheduledAtBefore("SCHEDULED", now)
+                .stream()
+                .filter(i -> {
+                    int dur = i.getDurationMinutes() != null ? i.getDurationMinutes() : 60;
+                    return i.getScheduledAt().plusMinutes(dur).isBefore(now);
+                })
+                .map(this::toUpcomingDto)
+                .toList();
+
         return new DashboardStatsResponse(
                 jobPostingRepository.count(),
                 jobPostingRepository.countByStatus("PUBLISHED"),
@@ -71,7 +81,8 @@ public class DashboardService {
                 applicationRepository.countByStatus("REJECTED"),
                 interviewsThisWeek,
                 applicationRepository.countByStatus("HIRED"),
-                upcoming
+                upcoming,
+                overdue
         );
     }
 }

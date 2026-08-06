@@ -14,5 +14,6 @@ public record DashboardStatsResponse(
         long rejectedApplications,
         long interviewsThisWeek,
         long hiredThisMonth,
-        List<UpcomingInterviewDto> upcomingInterviews
+        List<UpcomingInterviewDto> upcomingInterviews,
+        List<UpcomingInterviewDto> overdueInterviews
 ) {}
