@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Rate limiting strategy:
  *
  *  Authenticated users (JWT) — very permissive, HR must not be blocked:
- *    - Email sending    : 50 / hour   (prevents accidental or malicious email bombing)
+ *    - Email sending    : 100 / min   (prevents accidental or malicious email bombing)
  *    - Export / PDF     : 200 / hour  (document generation is CPU-heavy)
  *    - Everything else  : 2 000 / min (effectively unlimited for normal HR use)
  *
@@ -41,13 +41,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     // ── bucket factories ───────────────────────────────────────────────────
 
-    /** Email sending — 100 per hour, burst 20 */
+    /** Email sending — 100 per minute, burst 20 */
     private Bucket newEmailBucket() {
         return Bucket.builder()
                 .addLimit(Bandwidth.builder().capacity(20)
-                        .refillGreedy(20, Duration.ofMinutes(10)).build())
+                        .refillGreedy(20, Duration.ofSeconds(10)).build())
                 .addLimit(Bandwidth.builder().capacity(100)
-                        .refillGreedy(100, Duration.ofHours(1)).build())
+                        .refillGreedy(100, Duration.ofMinutes(1)).build())
                 .build();
     }
 
