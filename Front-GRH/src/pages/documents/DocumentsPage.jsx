@@ -1,125 +1,228 @@
 import { useEffect, useState } from 'react';
-import { MdAdd, MdCheck, MdClose } from 'react-icons/md';
+import { MdAdd, MdCheck, MdClose, MdDownload, MdCheckCircle } from 'react-icons/md';
 import { PageHeader } from '../../components/PageHeader';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
-import { candidatesApi } from '../../api/candidates';
 import { postingsApi } from '../../api/postings';
+import { applicationsApi } from '../../api/applications';
 import { checklistsApi } from '../../api/checklists';
-
-const DEFAULT_DOCS = [
-  { name: 'CV', required: true, received: false },
-  { name: 'Lettre de motivation', required: false, received: false },
-  { name: 'Diplôme', required: true, received: false },
-  { name: 'Pièce d\'identité', required: true, received: false },
-];
 
 export const DocumentsPage = () => {
   const axios = useAxiosPrivate();
-  const cApi = candidatesApi(axios);
   const pApi = postingsApi(axios);
+  const appApi = applicationsApi(axios);
   const clApi = checklistsApi(axios);
 
-  const [candidates, setCandidates] = useState([]);
   const [postings, setPostings] = useState([]);
-  const [selectedCandidate, setSelectedCandidate] = useState('');
-  const [selectedPosting, setSelectedPosting] = useState('');
-  const [checklist, setChecklist] = useState(null);
+  const [selectedPostingId, setSelectedPostingId] = useState('');
+  const [hiredApps, setHiredApps] = useState([]);
+  const [loadingApps, setLoadingApps] = useState(false);
+
+  const [selectedApp, setSelectedApp] = useState(null);
   const [docs, setDocs] = useState([]);
+  const [savedDocs, setSavedDocs] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const isDirty = JSON.stringify(docs) !== JSON.stringify(savedDocs);
 
   useEffect(() => {
-    Promise.all([
-      cApi.getAll({ size: 200 }),
-      pApi.getAll({ size: 200 }),
-    ]).then(([c, p]) => {
-      setCandidates(c.data.content || []);
-      setPostings(p.data.content || []);
-    }).catch(console.error);
+    pApi.getAll({ size: 200 }).then((r) => setPostings(r.data.content || [])).catch(console.error);
   }, []);
 
   useEffect(() => {
-    if (!selectedCandidate || !selectedPosting) { setChecklist(null); setDocs([]); return; }
-    clApi.getOrCreate(selectedCandidate, selectedPosting)
-      .then((r) => {
-        setChecklist(r.data);
-        try { setDocs(JSON.parse(r.data.documents || '[]')); }
-        catch { setDocs(DEFAULT_DOCS); }
-      }).catch(console.error);
-  }, [selectedCandidate, selectedPosting]);
+    if (!selectedPostingId) { setHiredApps([]); setSelectedApp(null); return; }
+    setLoadingApps(true);
+    setSelectedApp(null);
+    setDocs([]);
+    appApi.getByPosting(selectedPostingId)
+      .then((r) => setHiredApps((r.data || []).filter((a) => a.status === 'HIRED')))
+      .catch(console.error)
+      .finally(() => setLoadingApps(false));
+  }, [selectedPostingId]);
 
-  const toggleReceived = (idx) => {
-    setDocs((prev) => prev.map((d, i) => i === idx ? { ...d, received: !d.received } : d));
-  };
+  useEffect(() => {
+    if (!selectedApp) { setDocs([]); setSavedDocs([]); return; }
+    setLoadingDocs(true);
+    clApi.getOrCreate(selectedApp.candidateId, selectedApp.jobPostingId)
+      .then((r) => {
+        let parsed = [];
+        try { parsed = JSON.parse(r.data.documents || '[]'); } catch { parsed = []; }
+        setDocs(parsed);
+        setSavedDocs(parsed);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingDocs(false));
+  }, [selectedApp]);
 
   const save = async () => {
+    if (!selectedApp) return;
     setSaving(true);
     try {
-      await clApi.update(selectedCandidate, selectedPosting, { documents: JSON.stringify(docs) });
+      await clApi.update(selectedApp.candidateId, selectedApp.jobPostingId, { documents: JSON.stringify(docs) });
+      setSavedDocs(docs);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
   };
 
-  const addDoc = () => setDocs((prev) => [...prev, { name: '', required: false, received: false }]);
+  const download = (type) => {
+    const call = type === 'pdf'
+      ? appApi.downloadDocumentsListPdf(selectedApp.id)
+      : appApi.downloadDocumentsList(selectedApp.id);
+    call.then((r) => {
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `liste-documents-${selectedApp.candidateLastName}.${type}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(console.error);
+  };
 
   return (
     <div className="p-6">
-      <PageHeader title="Dossiers candidats" subtitle="Suivi des documents reçus" />
+      <PageHeader title="Dossiers candidats" subtitle="Suivi des documents des candidats embauchés" />
 
-      <div className="flex gap-3 mb-6">
-        <select value={selectedCandidate} onChange={(e) => setSelectedCandidate(e.target.value)}
-          className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white min-w-[220px]">
-          <option value="">— Candidat —</option>
-          {candidates.map((c) => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
-        </select>
-        <select value={selectedPosting} onChange={(e) => setSelectedPosting(e.target.value)}
-          className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white min-w-[220px]">
-          <option value="">— Offre —</option>
+      <div className="mb-6">
+        <select
+          value={selectedPostingId}
+          onChange={(e) => setSelectedPostingId(e.target.value)}
+          className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full sm:w-auto sm:min-w-[320px]"
+        >
+          <option value="">— Sélectionner une offre d'emploi —</option>
           {postings.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
       </div>
 
-      {!selectedCandidate || !selectedPosting ? (
-        <div className="text-center py-20 text-slate-400">Sélectionnez un candidat et une offre</div>
+      {!selectedPostingId ? (
+        <div className="text-center py-24 text-slate-400 text-sm">
+          Sélectionnez une offre pour voir les candidats embauchés
+        </div>
+      ) : loadingApps ? (
+        <div className="text-center py-24 text-slate-400 text-sm">Chargement...</div>
+      ) : hiredApps.length === 0 ? (
+        <div className="text-center py-24 text-slate-400 text-sm">
+          Aucun candidat embauché pour cette offre
+        </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 max-w-2xl">
-          <div className="space-y-3 mb-6">
-            {docs.map((doc, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <button
-                  onClick={() => toggleReceived(idx)}
-                  className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-colors flex-shrink-0 ${
-                    doc.received
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'border-slate-300 dark:border-slate-600 text-transparent'
-                  }`}
-                >
-                  <MdCheck className="w-4 h-4" />
-                </button>
-                <input
-                  value={doc.name}
-                  onChange={(e) => setDocs((prev) => prev.map((d, i) => i === idx ? { ...d, name: e.target.value } : d))}
-                  className="flex-1 text-sm bg-transparent border-b border-slate-200 dark:border-slate-700 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
-                />
-                <span className="text-xs text-slate-400">{doc.required ? 'Requis' : 'Optionnel'}</span>
-                <button onClick={() => setDocs((prev) => prev.filter((_, i) => i !== idx))}
-                  className="p-1 text-slate-400 hover:text-red-500">
-                  <MdClose className="w-4 h-4" />
-                </button>
-              </div>
+        <div className="flex gap-5">
+          {/* Candidate list */}
+          <div className="w-60 flex-shrink-0 space-y-2">
+            {hiredApps.map((app) => (
+              <button
+                key={app.id}
+                onClick={() => setSelectedApp(app)}
+                className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                  selectedApp?.id === app.id
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:border-blue-300 dark:hover:border-blue-700'
+                }`}
+              >
+                <div className="font-medium text-sm truncate">
+                  {app.candidateFirstName} {app.candidateLastName}
+                </div>
+                {app.candidateEmail && (
+                  <div className="text-xs text-slate-400 truncate mt-0.5">{app.candidateEmail}</div>
+                )}
+              </button>
             ))}
           </div>
 
-          <div className="flex gap-3">
-            <button onClick={addDoc}
-              className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline">
-              <MdAdd className="w-4 h-4" /> Ajouter un document
-            </button>
-            <div className="flex-1" />
-            <button onClick={save} disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-          </div>
+          {/* Checklist panel */}
+          {!selectedApp ? (
+            <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+              Sélectionnez un candidat pour voir sa checklist
+            </div>
+          ) : loadingDocs ? (
+            <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+              Chargement...
+            </div>
+          ) : (
+            <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-semibold text-slate-900 dark:text-white">
+                  {selectedApp.candidateFirstName} {selectedApp.candidateLastName}
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => download('docx')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <MdDownload className="w-3.5 h-3.5" /> DOCX
+                  </button>
+                  <button
+                    onClick={() => download('pdf')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <MdDownload className="w-3.5 h-3.5" /> PDF
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {docs.length === 0 && (
+                  <p className="text-sm text-slate-400">Aucun document dans la checklist.</p>
+                )}
+                {docs.map((doc, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <button
+                      onClick={() => setDocs((prev) => prev.map((d, i) => i === idx ? { ...d, received: !d.received } : d))}
+                      className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-colors flex-shrink-0 ${
+                        doc.received
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'border-slate-300 dark:border-slate-600 text-transparent'
+                      }`}
+                    >
+                      <MdCheck className="w-4 h-4" />
+                    </button>
+                    <input
+                      value={doc.name}
+                      onChange={(e) => setDocs((prev) => prev.map((d, i) => i === idx ? { ...d, name: e.target.value } : d))}
+                      className="flex-1 text-sm bg-transparent border-b border-slate-200 dark:border-slate-700 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-xs text-slate-400 w-16 text-right">
+                      {doc.required ? 'Requis' : 'Optionnel'}
+                    </span>
+                    <button
+                      onClick={() => setDocs((prev) => prev.filter((_, i) => i !== idx))}
+                      className="p-1 text-slate-400 hover:text-red-500"
+                    >
+                      <MdClose className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setDocs((prev) => [...prev, { name: '', required: false, received: false }])}
+                  className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <MdAdd className="w-4 h-4" /> Ajouter un document
+                </button>
+                <div className="flex-1" />
+                <button
+                  onClick={save}
+                  disabled={saving || !isDirty}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {/* Success toast */}
+      {saved && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-emerald-600 text-white text-sm font-medium rounded-xl shadow-xl animate-in fade-in slide-in-from-bottom-4">
+          <MdCheckCircle className="w-5 h-5 shrink-0" />
+          <span>Checklist enregistrée avec succès.</span>
+          <button onClick={() => setSaved(false)} className="opacity-75 hover:opacity-100">
+            <MdClose className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>
