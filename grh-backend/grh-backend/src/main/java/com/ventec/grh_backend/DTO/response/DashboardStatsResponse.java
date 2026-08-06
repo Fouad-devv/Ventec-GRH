@@ -13,7 +13,13 @@ public record DashboardStatsResponse(
         long hiredApplications,
         long rejectedApplications,
         long interviewsThisWeek,
+        long totalInterviews,
         long hiredThisMonth,
         List<UpcomingInterviewDto> upcomingInterviews,
-        List<UpcomingInterviewDto> overdueInterviews
+        List<UpcomingInterviewDto> overdueInterviews,
+        long pendingThisYear,
+        long shortlistedThisYear,
+        long interviewsThisYear,
+        long hiredThisYear,
+        long rejectedThisYear
 ) {}

@@ -23,6 +23,8 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     long countByStatus(String status);
 
+    long countByStatusAndAppliedAtBetween(String status, java.time.OffsetDateTime from, java.time.OffsetDateTime to);
+
     List<Application> findByJobPostingIdAndStatusOrderByAiScoreDesc(UUID jobPostingId, String status);
 
     @Query("SELECT AVG(a.aiScore) FROM Application a WHERE a.jobPosting.id = :postingId AND a.aiScore IS NOT NULL")

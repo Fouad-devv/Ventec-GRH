@@ -2,6 +2,7 @@ package com.ventec.grh_backend.service;
 
 import com.ventec.grh_backend.DTO.response.DashboardStatsResponse;
 import com.ventec.grh_backend.DTO.response.UpcomingInterviewDto;
+import com.ventec.grh_backend.DTO.response.YearBreakdownResponse;
 import com.ventec.grh_backend.domain.Interview;
 import com.ventec.grh_backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,19 @@ public class DashboardService {
     private final ApplicationRepository applicationRepository;
     private final InterviewRepository interviewRepository;
 
+    public YearBreakdownResponse getYearBreakdown(int year) {
+        OffsetDateTime start = OffsetDateTime.now().withYear(year).withDayOfYear(1).truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime end   = start.plusYears(1);
+        return new YearBreakdownResponse(
+                applicationRepository.countByStatusAndAppliedAtBetween("NEW", start, end)
+                        + applicationRepository.countByStatusAndAppliedAtBetween("SCREENING", start, end),
+                applicationRepository.countByStatusAndAppliedAtBetween("SHORTLISTED", start, end),
+                interviewRepository.countByScheduledAtBetween(start, end),
+                applicationRepository.countByStatusAndAppliedAtBetween("HIRED", start, end),
+                applicationRepository.countByStatusAndAppliedAtBetween("REJECTED", start, end)
+        );
+    }
+
     private UpcomingInterviewDto toUpcomingDto(Interview i) {
         var app = i.getApplication();
         var candidate = app != null ? app.getCandidate() : null;
@@ -41,16 +55,17 @@ public class DashboardService {
     }
 
     public DashboardStatsResponse getStats() {
-        OffsetDateTime startOfWeek = OffsetDateTime.now()
-                .with(DayOfWeek.MONDAY)
-                .truncatedTo(ChronoUnit.DAYS);
-        OffsetDateTime endOfWeek = startOfWeek.plusDays(7);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        OffsetDateTime startOfWeek = now.with(DayOfWeek.MONDAY).truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime endOfWeek   = startOfWeek.plusDays(7);
+
+        OffsetDateTime startOfYear = now.withDayOfYear(1).truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime endOfYear   = startOfYear.plusYears(1);
 
         long interviewsThisWeek = interviewRepository
-                .findByStatusAndScheduledAtBetween("SCHEDULED", startOfWeek, endOfWeek)
-                .size();
+                .countByStatusNotAndScheduledAtBetween("CANCELLED", startOfWeek, endOfWeek);
 
-        OffsetDateTime now = OffsetDateTime.now();
         List<UpcomingInterviewDto> upcoming = interviewRepository
                 .findByStatusAndScheduledAtBefore("SCHEDULED", now.plusDays(7))
                 .stream()
@@ -84,9 +99,16 @@ public class DashboardService {
                 applicationRepository.countByStatus("HIRED"),
                 applicationRepository.countByStatus("REJECTED"),
                 interviewsThisWeek,
+                interviewRepository.count(),
                 applicationRepository.countByStatus("HIRED"),
                 upcoming,
-                overdue
+                overdue,
+                applicationRepository.countByStatusAndAppliedAtBetween("NEW", startOfYear, endOfYear)
+                        + applicationRepository.countByStatusAndAppliedAtBetween("SCREENING", startOfYear, endOfYear),
+                applicationRepository.countByStatusAndAppliedAtBetween("SHORTLISTED", startOfYear, endOfYear),
+                interviewRepository.countByScheduledAtBetween(startOfYear, endOfYear),
+                applicationRepository.countByStatusAndAppliedAtBetween("HIRED", startOfYear, endOfYear),
+                applicationRepository.countByStatusAndAppliedAtBetween("REJECTED", startOfYear, endOfYear)
         );
     }
 }

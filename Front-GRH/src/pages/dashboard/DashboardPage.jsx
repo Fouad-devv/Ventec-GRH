@@ -100,22 +100,46 @@ const Spinner = () => (
 );
 
 /* ── Page ──────────────────────────────────────────────── */
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
+
 export const DashboardPage = () => {
   const axios = useAxiosPrivate();
   const api = dashboardApi(axios);
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+  const [yearData, setYearData] = useState(null);
+  const [yearLoading, setYearLoading] = useState(false);
 
   const load = () => {
     setLoading(true);
     api.getStats()
-      .then((r) => setStats(r.data))
+      .then((r) => {
+        setStats(r.data);
+        setYearData({
+          pending: r.data.pendingThisYear,
+          shortlisted: r.data.shortlistedThisYear,
+          interviews: r.data.interviewsThisYear,
+          hired: r.data.hiredThisYear,
+          rejected: r.data.rejectedThisYear,
+        });
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (selectedYear === CURRENT_YEAR) return;
+    setYearLoading(true);
+    api.getYearBreakdown(selectedYear)
+      .then((r) => setYearData(r.data))
+      .catch(console.error)
+      .finally(() => setYearLoading(false));
+  }, [selectedYear]);
 
   usePageActions(
     <button
@@ -137,11 +161,11 @@ export const DashboardPage = () => {
   ];
 
   const statusData = [
-    { name: 'En attente',  value: stats?.pendingApplications    ?? 0, color: '#f59e0b' },
-    { name: 'Sélectionné', value: stats?.shortlistedApplications ?? 0, color: '#6366f1' },
-    { name: 'Entretien',   value: stats?.interviewApplications   ?? 0, color: '#3b82f6' },
-    { name: 'Embauché',    value: stats?.hiredApplications       ?? 0, color: '#10b981' },
-    { name: 'Rejeté',      value: stats?.rejectedApplications    ?? 0, color: '#ef4444' },
+    { name: 'En attente',  value: yearData?.pending     ?? 0, color: '#f59e0b' },
+    { name: 'Sélectionné', value: yearData?.shortlisted ?? 0, color: '#6366f1' },
+    { name: 'Entretiens',  value: yearData?.interviews  ?? 0, color: '#3b82f6' },
+    { name: 'Embauché',    value: yearData?.hired       ?? 0, color: '#10b981' },
+    { name: 'Rejeté',      value: yearData?.rejected    ?? 0, color: '#ef4444' },
   ].filter((d) => d.value > 0);
 
   const overdueCount = stats?.overdueInterviews?.length ?? 0;
@@ -229,11 +253,26 @@ export const DashboardPage = () => {
           {/* Donut chart */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
             <div className="mb-5">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Statut des candidatures</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Répartition actuelle</p>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Activité de recrutement</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Répartition annuelle</p>
+                </div>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
             </div>
-            {statusData.length === 0 ? (
-              <div className="flex items-center justify-center h-[230px] text-slate-400 text-sm">Aucune candidature</div>
+            {yearLoading ? (
+              <div className="flex items-center justify-center h-[230px]">
+                <div className="w-8 h-8 rounded-full border-4 border-blue-100 dark:border-blue-900 border-t-blue-500 animate-spin" />
+              </div>
+            ) : statusData.length === 0 ? (
+              <div className="flex items-center justify-center h-[230px] text-slate-400 text-sm">Aucune donnée pour {selectedYear}</div>
             ) : (
               <ResponsiveContainer width="100%" height={230}>
                 <PieChart>
