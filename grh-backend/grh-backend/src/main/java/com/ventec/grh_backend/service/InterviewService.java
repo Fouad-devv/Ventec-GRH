@@ -72,6 +72,8 @@ public class InterviewService {
                 .locationOrLink(req.locationOrLink())
                 .interviewerIds(interviewerIdsJson)
                 .notes(req.notes())
+                .responsableNom(req.responsableNom())
+                .responsableEmail(req.responsableEmail())
                 .status("SCHEDULED")
                 .createdBy(createdBy)
                 .build();
@@ -94,8 +96,10 @@ public class InterviewService {
         if (req.durationMinutes() != null) { interview.setDurationMinutes(req.durationMinutes()); scheduleChanged = true; }
         if (req.type() != null)            { interview.setType(req.type());                       scheduleChanged = true; }
         if (req.locationOrLink() != null)  { interview.setLocationOrLink(req.locationOrLink());   scheduleChanged = true; }
-        if (req.status() != null) interview.setStatus(req.status());
-        if (req.notes() != null)  interview.setNotes(req.notes());
+        if (req.status() != null)         interview.setStatus(req.status());
+        if (req.notes() != null)           interview.setNotes(req.notes());
+        if (req.responsableNom() != null)   interview.setResponsableNom(req.responsableNom());
+        if (req.responsableEmail() != null) interview.setResponsableEmail(req.responsableEmail());
         if (req.interviewerIds() != null) {
             try {
                 interview.setInterviewerIds(objectMapper.writeValueAsString(req.interviewerIds()));
@@ -266,7 +270,9 @@ public class InterviewService {
                 i.getStatus(),
                 i.getNotes(),
                 i.getQuestions(),
-                i.getCreatedAt()
+                i.getCreatedAt(),
+                i.getResponsableNom(),
+                i.getResponsableEmail()
         );
     }
 }

@@ -13,5 +13,7 @@ public record ScheduleInterviewRequest(
         String type,
         String locationOrLink,
         List<UUID> interviewerIds,
-        String notes
+        String notes,
+        String responsableNom,
+        String responsableEmail
 ) {}

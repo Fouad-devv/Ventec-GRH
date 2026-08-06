@@ -14,5 +14,7 @@ public record InterviewResponse(
         String status,
         String notes,
         String questions,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String responsableNom,
+        String responsableEmail
 ) {}

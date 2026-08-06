@@ -49,7 +49,7 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
   const api = interviewsApi(axios);
   const interviewId = application.scheduledInterviewId ?? null;
   const isEdit = !!interviewId;
-  const [form, setForm] = useState({ scheduledAt: '', durationMinutes: 60, type: 'VIDEO', locationOrLink: '', notes: '' });
+  const [form, setForm] = useState({ scheduledAt: '', durationMinutes: 60, type: 'VIDEO', locationOrLink: '', notes: '', responsableNom: '', responsableEmail: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -62,6 +62,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
         type: iv.type ?? 'VIDEO',
         locationOrLink: iv.locationOrLink ?? '',
         notes: iv.notes ?? '',
+        responsableNom: iv.responsableNom ?? '',
+        responsableEmail: iv.responsableEmail ?? '',
       });
     }).catch(console.error);
   }, [interviewId]);
@@ -108,6 +110,13 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
           </div>
           <input value={form.locationOrLink} onChange={set('locationOrLink')} placeholder="Lien ou lieu"
             className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Responsable</p>
+            <input value={form.responsableNom} onChange={set('responsableNom')} placeholder="Nom complet du responsable"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+            <input type="email" value={form.responsableEmail} onChange={set('responsableEmail')} placeholder="Email du responsable"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+          </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">Annuler</button>

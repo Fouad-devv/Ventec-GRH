@@ -11,5 +11,7 @@ public record UpdateInterviewRequest(
         String locationOrLink,
         List<UUID> interviewerIds,
         String status,
-        String notes
+        String notes,
+        String responsableNom,
+        String responsableEmail
 ) {}

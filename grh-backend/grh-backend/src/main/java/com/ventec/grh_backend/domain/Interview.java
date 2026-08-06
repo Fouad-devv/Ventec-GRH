@@ -46,6 +46,12 @@ public class Interview {
     @Column(columnDefinition = "jsonb")
     private String questions;
 
+    @Column(name = "responsable_nom")
+    private String responsableNom;
+
+    @Column(name = "responsable_email")
+    private String responsableEmail;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;
