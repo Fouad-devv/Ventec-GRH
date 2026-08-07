@@ -2,7 +2,25 @@ import { useRef, useState } from 'react';
 import { MdClose, MdUploadFile, MdInsertDriveFile, MdCheck } from 'react-icons/md';
 import { postingsApi } from '../../api/postings';
 
-const CONTRACT_TYPES = ['CDI', 'CDD', 'STAGE', 'FREELANCE'];
+const CONTRACT_TYPES = ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'INTERIME'];
+
+const DEPARTMENTS = [
+  'Informatique',
+  'Ressources humaines',
+  'Finance & Comptabilité',
+  'Commercial',
+  'Marketing',
+  'Technique / Ingénierie',
+  'Logistique',
+  'Production',
+  'Administration',
+  'Chantier / Terrain',
+  'Direction',
+];
+
+const LOCATIONS = ['Sur site', 'À distance', 'Chantier'];
+
+const SELECT_CLS = 'w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500';
 
 export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
   const api = postingsApi(axios);
@@ -108,15 +126,26 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
           {inp('title', 'Titre', 'ex : Ingénieur développement logiciel', true)}
 
           <div className="grid grid-cols-2 gap-3">
-            {inp('department', 'Département', 'ex : IT, Finance…')}
-            {inp('location', 'Localisation', 'ex : Alger, Télétravail…')}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Département</label>
+              <select value={form.department} onChange={set('department')} className={SELECT_CLS}>
+                <option value="">-- Sélectionner --</option>
+                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Localisation</label>
+              <select value={form.location} onChange={set('location')} className={SELECT_CLS}>
+                <option value="">-- Sélectionner --</option>
+                {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type de contrat</label>
-              <select value={form.contractType} onChange={set('contractType')}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+              <select value={form.contractType} onChange={set('contractType')} className={SELECT_CLS}>
                 {CONTRACT_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
