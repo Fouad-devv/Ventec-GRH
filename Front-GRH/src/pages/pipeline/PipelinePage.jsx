@@ -25,6 +25,14 @@ const ScoreBadge = ({ score }) => {
 
 const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'HIRED', 'REJECTED'];
 
+const VENTEC_OFFICES = [
+  { label: 'Siège Casablanca', mapsUrl: 'https://maps.google.com/?cid=9982332426923818859' },
+  { label: 'Agence Tanger',    mapsUrl: 'https://maps.google.com/?cid=11718189488849865390' },
+  { label: 'Agence Oujda',     mapsUrl: 'https://maps.google.com/?cid=11562274598378832981' },
+  { label: 'Agence Agadir',    mapsUrl: 'https://maps.google.com/?cid=6755927573515155458' },
+  { label: 'Agence Marrakech', mapsUrl: 'https://maps.google.com/?cid=11071060659319015769' },
+];
+
 // Converts any ISO/UTC date string to the YYYY-MM-DDTHH:mm format a datetime-local input expects,
 // using the browser's local time — so "18:53Z" shows as "20:53" in a UTC+2 browser.
 const toLocalDatetimeInput = (iso) => {
@@ -87,6 +95,7 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
   };
 
   const set = (f) => (e) => setForm((p) => ({ ...p, [f]: e.target.value }));
+  const fieldCls = 'w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -99,17 +108,34 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="datetime-local" required value={form.scheduledAt} onChange={set('scheduledAt')}
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+            className={fieldCls} />
           <div className="grid grid-cols-2 gap-3">
-            <select value={form.type} onChange={set('type')}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
-              <option value="VIDEO">Visio</option><option value="PHONE">Téléphone</option><option value="ON_SITE">Présentiel</option>
+            <select value={form.type}
+              onChange={(e) => setForm((p) => ({ ...p, type: e.target.value, locationOrLink: '' }))}
+              className={fieldCls}>
+              <option value="VIDEO">Visio</option>
+              <option value="PHONE">Téléphone</option>
+              <option value="ON_SITE">Présentiel</option>
             </select>
             <input type="number" min={15} value={form.durationMinutes} onChange={set('durationMinutes')}
-              placeholder="Durée (min)" className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              placeholder="Durée (min)" className={fieldCls} />
           </div>
-          <input value={form.locationOrLink} onChange={set('locationOrLink')} placeholder="Lien ou lieu"
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+
+          {form.type === 'ON_SITE' ? (
+            <select value={form.locationOrLink} onChange={set('locationOrLink')} className={fieldCls}>
+              <option value="">-- Sélectionner un site Ventec --</option>
+              {VENTEC_OFFICES.map((o) => (
+                <option key={o.label} value={o.label}>{o.label}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              value={form.locationOrLink}
+              onChange={set('locationOrLink')}
+              placeholder={form.type === 'VIDEO' ? 'Lien de la réunion (Teams, Meet…)' : 'Numéro de téléphone ou lien'}
+              className={fieldCls}
+            />
+          )}
           <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Responsable</p>
             <input value={form.responsableNom} onChange={set('responsableNom')} placeholder="Nom complet du responsable"

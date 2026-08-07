@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,15 @@ public class InterviewService {
     private final MailService mailService;
     private final AiServiceClient aiServiceClient;
     private final ObjectMapper objectMapper;
+
+    private static final Map<String, String> OFFICE_MAPS = new HashMap<>();
+    static {
+        OFFICE_MAPS.put("Siège Casablanca", "https://maps.google.com/?cid=9982332426923818859");
+        OFFICE_MAPS.put("Agence Tanger",    "https://maps.google.com/?cid=11718189488849865390");
+        OFFICE_MAPS.put("Agence Oujda",     "https://maps.google.com/?cid=11562274598378832981");
+        OFFICE_MAPS.put("Agence Agadir",    "https://maps.google.com/?cid=6755927573515155458");
+        OFFICE_MAPS.put("Agence Marrakech", "https://maps.google.com/?cid=11071060659319015769");
+    }
 
     private byte[] logoBytes;
 
@@ -211,10 +221,22 @@ public class InterviewService {
         String location = interview.getLocationOrLink() != null && !interview.getLocationOrLink().isBlank()
                 ? interview.getLocationOrLink() : "À préciser";
         boolean isLink = location.startsWith("http");
+        String officeMapsUrl = OFFICE_MAPS.get(location);
 
-        String locationRow = isLink
-                ? "<tr><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;width:40%%'>Lien de connexion</td><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;'><a href='%s' style='color:#4f46e5;font-weight:600;'>Rejoindre l'entretien</a></td></tr>".formatted(location)
-                : "<tr><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;width:40%%'>Lieu</td><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;'>%s</td></tr>".formatted(location);
+        String locationRows;
+        if (isLink) {
+            // Video / phone meeting link — no maps row
+            locationRows = "<tr><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;width:40%%'>Lien de connexion</td><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;'><a href='%s' style='color:#4f46e5;font-weight:600;'>Rejoindre l'entretien</a></td></tr>"
+                    .formatted(location);
+        } else if (officeMapsUrl != null) {
+            // Known Ventec office — show name + its specific Google Maps link
+            locationRows = "<tr><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;width:40%%'>Lieu</td><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;'>%s</td></tr><tr><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;'>Localisation</td><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;'><a href='%s' style='color:#4f46e5;font-weight:600;'>Voir sur Google Maps</a></td></tr>"
+                    .formatted(location, officeMapsUrl);
+        } else {
+            // Free-text location — no maps row
+            locationRows = "<tr><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;width:40%%'>Lieu</td><td style='padding:10px 0;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;'>%s</td></tr>"
+                    .formatted(location);
+        }
 
         String logoHtml = logoBytes != null
                 ? "<img src=\"cid:ventec-logo\" alt=\"Ventec\" style=\"height:48px;display:block;margin-bottom:8px;\">"
@@ -249,7 +271,6 @@ public class InterviewService {
                             <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;">Durée</td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;">%d minutes</td></tr>
                             <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:14px;">Format</td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;">%s</td></tr>
                             %s
-                            <tr><td style="padding:10px 0;color:#64748b;font-size:14px;">Localisation du siège</td><td style="padding:10px 0;"><a href="https://maps.app.goo.gl/VoZT6bFXngyZgyXP9" style="color:#4f46e5;font-weight:600;">Voir sur Google Maps</a></td></tr>
                           </table>
                         </div>
 
@@ -268,7 +289,7 @@ public class InterviewService {
             </body>
             </html>
             """.formatted(logoHtml, firstName, lastName, postingTitle,
-                dateStr, interview.getDurationMinutes(), typeLabel, locationRow);
+                dateStr, interview.getDurationMinutes(), typeLabel, locationRows);
     }
 
     @Transactional(readOnly = true)
