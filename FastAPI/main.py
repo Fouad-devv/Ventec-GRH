@@ -353,6 +353,31 @@ CV :
     }
 
 
+def _is_rate_limit_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return "429" in str(e) or "rate_limit" in msg or "too many requests" in msg or "rate limit" in msg
+
+
+async def _extract_full_with_retry(text: str, source: str, filename: str, max_retries: int = 3) -> dict:
+    """Calls _run_cv_extraction_full with exponential backoff on Groq rate limit (429)."""
+    last_error: Exception = Exception("unknown")
+    for attempt in range(max_retries):
+        try:
+            return await _run_cv_extraction_full(text, source)
+        except Exception as e:
+            last_error = e
+            if _is_rate_limit_error(e):
+                wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
+                logger.warning(
+                    "Groq rate limit on '%s' — retrying in %ds (attempt %d/%d)",
+                    filename, wait, attempt + 1, max_retries,
+                )
+                await asyncio.sleep(wait)
+            else:
+                raise  # non-rate-limit error: fail immediately
+    raise last_error
+
+
 @app.post("/extract-cv-full")
 async def extract_cv_full(file: UploadFile = File(...)):
     """
@@ -370,7 +395,7 @@ async def extract_cv_full(file: UploadFile = File(...)):
         logger.info("Full CV extraction '%s' via %s — %d chars", filename, method, len(text))
         if not text.strip():
             raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du CV.")
-        structured = await _run_cv_extraction_full(text, source=method)
+        structured = await _extract_full_with_retry(text, method, filename)
         return {"cv_text": text[:50_000], **structured}
     except HTTPException:
         raise

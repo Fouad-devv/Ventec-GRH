@@ -245,13 +245,15 @@ public class PostingService {
                     data = aiServiceClient.extractCvFull(file).block();
                 } catch (Exception e) {
                     log.warn("AI extraction failed for {}: {}", fileName, e.getMessage());
-                    String msg = e.getMessage() != null ? e.getMessage() : "";
-                    if (msg.contains("429") || msg.toLowerCase().contains("rate limit") || msg.toLowerCase().contains("too many requests")) {
-                        aiError = "Limite de requêtes IA atteinte — les données du CV n'ont pas pu être extraites automatiquement. Veuillez compléter le profil manuellement.";
-                    } else if (msg.contains("503") || msg.contains("502") || msg.toLowerCase().contains("service unavailable") || msg.toLowerCase().contains("connection")) {
-                        aiError = "Le service IA est temporairement indisponible — les données du CV n'ont pas pu être extraites. Réessayez dans quelques instants.";
+                    String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                    if (msg.contains("429") || msg.contains("rate limit") || msg.contains("too many requests")) {
+                        aiError = "Limite de requêtes IA atteinte — extraction échouée après 3 tentatives. Complétez le profil manuellement ou réimportez ce CV dans quelques minutes.";
+                    } else if (msg.contains("503") || msg.contains("502") || msg.contains("service unavailable") || msg.contains("connection refused")) {
+                        aiError = "Service IA indisponible — les données du CV n'ont pas pu être extraites. Réessayez dans quelques instants.";
+                    } else if (msg.contains("422") || msg.contains("texte du cv est vide")) {
+                        aiError = "Impossible de lire le contenu de ce PDF — il est peut-être protégé, corrompu ou scanné sans OCR. Essayez un autre format.";
                     } else {
-                        aiError = "Erreur lors de l'extraction IA du CV — les données n'ont pas pu être lues automatiquement. Veuillez compléter le profil manuellement.";
+                        aiError = "Extraction IA échouée pour ce CV — le candidat a été importé sans données extraites. Complétez le profil manuellement.";
                     }
                 }
 

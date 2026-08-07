@@ -60,12 +60,15 @@ def _nfc(text: str) -> str:
 # Matched against NFC-normalized text so `é/è` always precomposed before comparison.
 _STUDENT_RE = re.compile(
     r'(?:'
-    r'(?:eleve|élève)\s*[-]?\s*ing[eé]nieure?'        # "élève ingénieur" / "eleve ingenieur"
+    r'(?:eleve|élève)\s*[-]?\s*ing[eé]nieure?'
     r'|en\s+cours\s+de\s+(?:formation|cycle|scolarit[eé]|[eé]tudes)'
     r'|\d\s*(?:[eè]re?|[eè]me)\s+ann[eé]e\s+(?:en\s+)?(?:cycle|ing[eé]nieur|master|bac)'
     r'|(?:premi[eè]re?|deuxi[eè]me?|troisi[eè]me?|quatri[eè]me?|cinqui[eè]me?)'
       r'\s+ann[eé]e\s+(?:en\s+)?(?:cycle|ing[eé]nieur|master)'
-    r'|(?:en\s+)?(?:deuxi[eè]me?|premi[eè]re?|troisi[eè]me?)\s+ann[eé]e\s+en\s+cycle'  # "en deuxième année en cycle"
+    r'|(?:en\s+)?(?:deuxi[eè]me?|premi[eè]re?|troisi[eè]me?)\s+ann[eé]e\s+en\s+cycle'
+    r'|[eé]tudiant[e]?\s+en\s+(?:master|licence|bac|cycle|ing[eé]nieur|informatique|gestion|droit)'
+    r'|(?:master|licence|bac\s*\+\s*\d)\s+(?:en\s+cours|non\s+termin[eé]|en\s+pr[eé]paration)'
+    r'|(?:en\s+)?(?:master|licence)\s+\d[eè]re?\s+ann[eé]e'
     r')',
     re.IGNORECASE | re.UNICODE,
 )
@@ -409,18 +412,45 @@ CONTENU DU CV (informations personnelles supprimées) :
 
         if experience_cap is not None:
             if score <= 0.0:
-                # LLM wrongly eliminated for experience — rebuild summary and use cap
-                score = float(experience_cap)
-                summary = (
-                    f"{summary.strip()} "
-                    f"[Correction automatique : l'expérience insuffisante n'est pas éliminatoire. "
-                    f"Score ajusté à {experience_cap}/100 — "
-                    f"{experience_years} an(s) d'expérience, {min_experience} an(s) requis, "
-                    f"écart de {experience_gap} an(s).]"
-                )
+                # Only override if the LLM wrongly treated experience as eliminatory.
+                # Legitimate eliminations (wrong domain, still enrolled, wrong field,
+                # HR-specific criteria) must stay at 0 — never convert them to penalty score.
+                summary_lower = summary.lower()
+                genuine_elimination = any(kw in summary_lower for kw in [
+                    # Domain / field mismatch
+                    "domaine de formation", "domaine d'études", "domaine non pertinent",
+                    "domaine ne correspond", "spécialité non pertinente",
+                    "spécialité incompatible", "n'est pas pertinent", "non pertinent",
+                    "sans rapport avec", "incompatible avec", "ne correspond pas",
+                    # Formation-related eliminatory criterion (LLM phrasing variants)
+                    "critère éliminatoire de formation", "ne satisfait pas le critère éliminatoire",
+                    "critère éliminatoire non satisfait", "critères éliminatoires",
+                    "formation requise", "formation exigée", "diplôme requis",
+                    "et non en informatique", "et non en génie",
+                    # Still a student (safety net if _STUDENT_RE missed it)
+                    "encore étudiant", "non diplômé", "en cours de formation",
+                    "en cours de cycle", "encore en cours",
+                    # Education level (safety net if deterministic check missed it)
+                    "niveau de formation insuffisant", "niveau insuffisant",
+                    "diplôme insuffisant", "formation insuffisante",
+                    # HR-specific eliminatory criteria
+                    "critères du responsable",
+                    # School type (safety net)
+                    "école d'ingénieur", "faculté",
+                ])
+                if not genuine_elimination:
+                    # LLM wrongly eliminated for experience → apply penalty cap instead
+                    score = float(experience_cap)
+                    summary = (
+                        f"{summary.strip()} "
+                        f"[Correction automatique : l'expérience insuffisante n'est pas éliminatoire. "
+                        f"Score ajusté à {experience_cap}/100 — "
+                        f"{experience_years} an(s) d'expérience, {min_experience} an(s) requis, "
+                        f"écart de {experience_gap} an(s).]"
+                    )
+                # else: genuine elimination — keep score = 0
             else:
                 score = min(score, experience_cap)
-                # Append factual note if gap not already correctly stated
                 fact = (
                     f" Expérience : {experience_years} an(s) / {min_experience} an(s) requis "
                     f"(écart de {experience_gap} an(s)) — score plafonné à {experience_cap}/100."
