@@ -205,7 +205,7 @@ Format attendu :
 
 Règles strictes :
 - skills : compétences techniques (langages, frameworks, outils, certifications) ET soft skills — maximum 15, sans doublons
-- experience_years : somme totale des années d'expérience professionnelle (entier, pas de décimale) ; si non précisé dans le CV, déduis-le des dates de début/fin des postes
+- experience_years : UNIQUEMENT les années d'expérience professionnelle rémunérée (CDI, CDD, freelance, emploi permanent). NE PAS compter les stages (PFE, stage d'initiation, stage de fin d'études), projets académiques, bénévolat ou activités associatives. Si le candidat est encore étudiant ou n'a que des stages, retourner 0. Si non précisé, déduis-le des dates de début/fin des postes salariés uniquement.
 - education : diplôme principal (ex. "Master Informatique", "Licence Gestion", "Bac+5 Ingénieur") — le plus haut obtenu
 - current_position : poste exact tel qu'il apparaît dans le CV
 - location : ville et pays si disponibles (ex. "Alger, Algérie")
@@ -309,7 +309,11 @@ Retourne UNIQUEMENT un objet JSON valide :
   "current_position": "<dernier poste occupé ou null>",
   "location": "<ville/pays ou null>"
 }}
-Règles : skills max 15, sans doublons. Le champ email doit obligatoirement contenir un "@" — sinon retourne null. Retourne QUE le JSON.
+Règles :
+- skills : max 15, sans doublons
+- experience_years : UNIQUEMENT les années d'expérience professionnelle rémunérée (CDI, CDD, freelance, emploi permanent). NE PAS compter les stages (PFE, stage d'initiation, stage de fin d'études), projets académiques, bénévolat ou activités associatives. Si le candidat est encore étudiant ou n'a que des stages, retourner 0.
+- email : doit obligatoirement contenir "@", sinon retourner null
+- Retourner QUE le JSON, sans texte avant ou après
 
 CV :
 {text[:8000]}
