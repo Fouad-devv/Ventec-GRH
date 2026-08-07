@@ -68,12 +68,98 @@ def _clean_text(text: str) -> str:
 
 # ── Native PDF extraction (pdfplumber) ────────────────────────────────────────
 
+def _find_column_boundary(page) -> float | None:
+    """
+    Detect the x-coordinate of a column gutter for 2-column PDF pages.
+
+    Builds a 1-px-per-bucket horizontal coverage map from word bounding boxes,
+    then searches the central 20–80 % of the page for the widest uncovered strip.
+    A gap ≥ 1 % of page width is treated as a real column separator.
+
+    Returns the gutter midpoint x, or None for single-column pages.
+    """
+    try:
+        words = page.extract_words(x_tolerance=2, y_tolerance=3)
+    except Exception:
+        return None
+    if len(words) < 8:
+        return None
+
+    page_width = float(page.width)
+    n = int(page_width) + 2
+    covered = bytearray(n)  # 0 = empty, 1 = covered by at least one word
+
+    for w in words:
+        lo = max(0, int(w["x0"]))
+        hi = min(n - 1, int(w["x1"]) + 1)
+        covered[lo : hi + 1] = b"\x01" * (hi - lo + 1)
+
+    # Scan the central 20–80 % for the widest uncovered run
+    search_lo = int(page_width * 0.20)
+    search_hi = int(page_width * 0.80)
+
+    best_len = 0
+    best_mid: float | None = None
+    run_start: int | None = None
+
+    for i in range(search_lo, search_hi + 1):
+        if covered[i] == 0:
+            if run_start is None:
+                run_start = i
+        else:
+            if run_start is not None:
+                run_len = i - run_start
+                if run_len > best_len:
+                    best_len = run_len
+                    best_mid = (run_start + i) / 2
+                run_start = None
+
+    if best_len >= page_width * 0.01 and best_mid is not None:
+        logger.debug(
+            "Column gutter detected at x=%.1f (gap=%d px, page_width=%.0f)",
+            best_mid, best_len, page_width,
+        )
+        return best_mid
+    return None
+
+
+def _extract_page_text(page) -> str:
+    """
+    Extract text from a single pdfplumber page with automatic column detection.
+
+    For 2-column layouts (like many modern CVs), pdfplumber's default extractor
+    reads left-to-right across the full page width, interleaving both columns on
+    the same lines. This function detects the column gutter via bounding-box
+    coverage, crops each column separately, and concatenates them so the LLM
+    receives clean, linearly-ordered text.
+    """
+    boundary = _find_column_boundary(page)
+
+    if boundary is not None:
+        page_width = float(page.width)
+        page_height = float(page.height)
+        try:
+            left_crop = page.crop((0, 0, boundary, page_height))
+            right_crop = page.crop((boundary, 0, page_width, page_height))
+            left_text = left_crop.extract_text(x_tolerance=3, y_tolerance=3) or ""
+            right_text = right_crop.extract_text(x_tolerance=3, y_tolerance=3) or ""
+            combined = left_text.strip()
+            if right_text.strip():
+                combined = combined + "\n\n" + right_text.strip()
+            if combined.strip():
+                return combined
+        except Exception as e:
+            logger.debug("Column crop extraction failed (%s) — using default", e)
+
+    # Single-column or fallback
+    return page.extract_text(x_tolerance=3, y_tolerance=3) or ""
+
+
 def _extract_with_pdfplumber(content: bytes) -> tuple[str, int]:
     """
     Extract text from a native PDF using pdfplumber.
     Returns (raw_text, page_count).
-    pdfplumber handles multi-column layouts, tables, and varied fonts
-    significantly better than PyPDF2.
+    Handles multi-column layouts automatically via _extract_page_text.
     """
     import pdfplumber
 
@@ -81,9 +167,7 @@ def _extract_with_pdfplumber(content: bytes) -> tuple[str, int]:
     with pdfplumber.open(io.BytesIO(content)) as pdf:
         page_count = len(pdf.pages)
         for page in pdf.pages:
-            # x_tolerance/y_tolerance control character grouping — defaults work
-            # well for most CVs; tighten if words are merged on complex layouts
-            page_text = page.extract_text(x_tolerance=3, y_tolerance=3) or ""
+            page_text = _extract_page_text(page)
             pages_text.append(page_text)
 
     return "\n\n".join(pages_text), page_count
