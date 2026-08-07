@@ -76,6 +76,21 @@ public class AiServiceClient {
                 .bodyToMono(Map.class);
     }
 
+    public Mono<Map> extractCvFullFromBytes(byte[] fileBytes, String filename) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        final String name = filename != null ? filename : "cv.pdf";
+        builder.part("file", new ByteArrayResource(fileBytes) {
+            @Override
+            public String getFilename() { return name; }
+        }).contentType(MediaType.APPLICATION_OCTET_STREAM);
+        return aiWebClient.post()
+                .uri("/extract-cv-full")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
+                .retrieve()
+                .bodyToMono(Map.class);
+    }
+
     public Mono<Map> extractCvFile(MultipartFile file) {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         try {

@@ -113,6 +113,12 @@ def _find_column_boundary(page) -> float | None:
                     best_len = run_len
                     best_mid = (run_start + i) / 2
                 run_start = None
+    # Close any run that extends to the end of the search range
+    if run_start is not None:
+        run_len = search_hi - run_start + 1
+        if run_len > best_len:
+            best_len = run_len
+            best_mid = (run_start + search_hi) / 2
 
     if best_len >= page_width * 0.01 and best_mid is not None:
         logger.debug(

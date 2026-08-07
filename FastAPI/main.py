@@ -295,8 +295,46 @@ async def extract_cv_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+_JSON_BLOCK_RE = re.compile(r'\{[\s\S]*\}')
+
+
+def _parse_cv_json(raw: str) -> dict:
+    """Parse JSON from a Groq response, with markdown-fence fallback."""
+    try:
+        return _json.loads(raw)
+    except _json.JSONDecodeError:
+        m = _JSON_BLOCK_RE.search(raw)
+        if m:
+            return _json.loads(m.group())
+        raise
+
+
+def _build_cv_result(data: dict) -> dict:
+    skills = data.get("skills", [])
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(",") if s.strip()]
+    return {
+        "first_name": data.get("first_name"),
+        "last_name": data.get("last_name"),
+        "email": _clean_email(data.get("email")),
+        "phone": data.get("phone"),
+        "skills": skills[:15],
+        "experience_years": data.get("experience_years"),
+        "education": data.get("education"),
+        "current_position": data.get("current_position"),
+        "location": data.get("location"),
+    }
+
+
 async def _run_cv_extraction_full(text: str, source: str = "native") -> dict:
-    """Extended CV extraction: returns name, email, phone + standard fields."""
+    """
+    Extended CV extraction: name, email, phone + standard fields.
+    Uses the fast model (8B) for all CVs — cheap and fast.
+    Falls back to the smart model (70B) ONLY if the fast model returns
+    unparseable JSON (rare, only for very complex/garbled CVs).
+    Transient API errors (429, 5xx, timeouts) bubble up to
+    _extract_full_with_retry which handles retries.
+    """
     client = _require_groq()
     ocr_note = ""
     if source == "ocr":
@@ -328,53 +366,103 @@ EXEMPLES CRITIQUES pour experience_years :
 • Étudiant avec PFE + clubs + projets académiques → experience_years: 0
 
 CV :
-{text[:8000]}
+{text[:12000]}
 """
+    # ── Step 1: fast model (8B) — no response_format ────────────────────────
+    # Groq's JSON enforcement (response_format) can trigger json_validate_failed
+    # for long CVs when the model's completion budget runs out before the JSON
+    # closes. Dropping response_format avoids this entirely; _parse_cv_json
+    # recovers JSON from raw text via regex.
+    # We also cap input at 4 000 chars — enough to cover any CV's critical
+    # section (name, contact, skills, first experience) without overwhelming
+    # the small model.
+    fast_prompt = prompt.replace(f"{text[:12000]}", f"{text[:4000]}", 1)
+    try:
+        response = await client.chat.completions.create(
+            model=settings.groq_model_fast,
+            messages=[{"role": "user", "content": fast_prompt}],
+            temperature=0.0,
+        )
+        raw = response.choices[0].message.content
+        try:
+            return _build_cv_result(_parse_cv_json(raw))
+        except _json.JSONDecodeError:
+            logger.warning(
+                "Fast model returned unparseable JSON — falling back to smart model. "
+                "Preview: %s", raw[:200],
+            )
+    except Exception as e:
+        e_str = str(e)
+        if "json_validate_failed" in e_str or "max completion tokens" in e_str.lower():
+            logger.warning("Fast model hit JSON token limit — falling back to smart model: %s", e_str[:150])
+        else:
+            raise  # 429 / 5xx / connection → _extract_full_with_retry handles retries
+
+    # ── Step 2: smart model (70B) — only on JSON failure ─────────────────────
     response = await client.chat.completions.create(
-        model=settings.groq_model_fast,
+        model=settings.groq_model_smart,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.0,
         response_format={"type": "json_object"},
     )
-    data = _json.loads(response.choices[0].message.content)
-    skills = data.get("skills", [])
-    if isinstance(skills, str):
-        skills = [s.strip() for s in skills.split(",") if s.strip()]
-    return {
-        "first_name": data.get("first_name"),
-        "last_name": data.get("last_name"),
-        "email": _clean_email(data.get("email")),
-        "phone": data.get("phone"),
-        "skills": skills[:15],
-        "experience_years": data.get("experience_years"),
-        "education": data.get("education"),
-        "current_position": data.get("current_position"),
-        "location": data.get("location"),
-    }
+    raw = response.choices[0].message.content
+    return _build_cv_result(_parse_cv_json(raw))
 
 
-def _is_rate_limit_error(e: Exception) -> bool:
-    msg = str(e).lower()
-    return "429" in str(e) or "rate_limit" in msg or "too many requests" in msg or "rate limit" in msg
+def _is_transient_error(e: Exception) -> bool:
+    """
+    Returns True for any Groq/network error that is worth retrying:
+      - 429 rate limit
+      - 5xx server errors (Groq 500/502/503)
+      - connection / timeout errors (APIConnectionError, httpx timeouts, network hiccups)
+    Returns False for permanent errors (401 auth, 400 bad request, etc.) that retrying won't fix.
+    """
+    e_str = str(e)
+    msg = e_str.lower()
+    # Rate-limit signals
+    if "429" in e_str or "rate_limit" in msg or "too many requests" in msg or "rate limit" in msg:
+        return True
+    # Groq / upstream 5xx
+    if "500" in e_str or "502" in e_str or "503" in e_str:
+        return True
+    if "internal server error" in msg or "bad gateway" in msg or "service unavailable" in msg:
+        return True
+    # Connection / timeout errors (openai.APIConnectionError, httpx.ReadTimeout, etc.)
+    if "connection" in msg or "timeout" in msg or "timed out" in msg or "network" in msg:
+        return True
+    # openai exception class names
+    cls = type(e).__name__.lower()
+    if "connection" in cls or "timeout" in cls or "server" in cls:
+        return True
+    return False
 
 
 async def _extract_full_with_retry(text: str, source: str, filename: str, max_retries: int = 3) -> dict:
-    """Calls _run_cv_extraction_full with exponential backoff on Groq rate limit (429)."""
+    """
+    Calls _run_cv_extraction_full with exponential backoff on any transient error.
+    Retries on: 429 rate-limit, Groq 5xx, connection/timeout errors.
+    Fails immediately on permanent errors (auth failure, bad request, etc.).
+    """
     last_error: Exception = Exception("unknown")
     for attempt in range(max_retries):
         try:
             return await _run_cv_extraction_full(text, source)
         except Exception as e:
             last_error = e
-            if _is_rate_limit_error(e):
+            if _is_transient_error(e):
                 wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
                 logger.warning(
-                    "Groq rate limit on '%s' — retrying in %ds (attempt %d/%d)",
-                    filename, wait, attempt + 1, max_retries,
+                    "Transient Groq error on '%s' [%s] — retrying in %ds (attempt %d/%d): %s",
+                    filename, type(e).__name__, wait, attempt + 1, max_retries, str(e)[:120],
                 )
                 await asyncio.sleep(wait)
             else:
-                raise  # non-rate-limit error: fail immediately
+                logger.error(
+                    "Permanent error on '%s' [%s] — not retrying: %s",
+                    filename, type(e).__name__, str(e)[:200],
+                )
+                raise
+    logger.error("All %d attempts failed for '%s': %s", max_retries, filename, str(last_error)[:200])
     raise last_error
 
 
@@ -400,8 +488,8 @@ async def extract_cv_full(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Full CV extraction failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Full CV extraction failed [%s]: %s", type(e).__name__, e)
+        raise HTTPException(status_code=500, detail=f"[{type(e).__name__}] {e}")
 
 
 @app.post("/extract-job-posting", response_model=ExtractJobPostingResponse)

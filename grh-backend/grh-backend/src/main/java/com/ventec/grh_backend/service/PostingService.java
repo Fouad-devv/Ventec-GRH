@@ -237,12 +237,15 @@ public class PostingService {
         for (MultipartFile file : files) {
             String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "CV";
             try {
-                String cvPath = storageService.store(file, "cvs");
+                // Read bytes BEFORE store() — Files.copy() drains getInputStream(),
+                // making file.getBytes() return empty for larger files (stored as temp files)
+                byte[] fileBytes = file.getBytes();
+                String cvPath = storageService.storeBytes(fileBytes, fileName, "cvs");
 
                 Map<?, ?> data = null;
                 String aiError = null;
                 try {
-                    data = aiServiceClient.extractCvFull(file).block();
+                    data = aiServiceClient.extractCvFullFromBytes(fileBytes, fileName).block();
                 } catch (Exception e) {
                     log.warn("AI extraction failed for {}: {}", fileName, e.getMessage());
                     String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
@@ -250,6 +253,10 @@ public class PostingService {
                         aiError = "Limite de requêtes IA atteinte — extraction échouée après 3 tentatives. Complétez le profil manuellement ou réimportez ce CV dans quelques minutes.";
                     } else if (msg.contains("503") || msg.contains("502") || msg.contains("service unavailable") || msg.contains("connection refused")) {
                         aiError = "Service IA indisponible — les données du CV n'ont pas pu être extraites. Réessayez dans quelques instants.";
+                    } else if (msg.contains("500") || msg.contains("internal server error")) {
+                        aiError = "Erreur interne du service IA — extraction échouée après 3 tentatives. Réessayez dans quelques instants ou complétez le profil manuellement.";
+                    } else if (msg.contains("timeout") || msg.contains("timed out") || msg.contains("connection reset")) {
+                        aiError = "Délai d'attente dépassé — le candidat a été importé sans données extraites. Réessayez dans quelques instants.";
                     } else if (msg.contains("422") || msg.contains("texte du cv est vide")) {
                         aiError = "Impossible de lire le contenu de ce PDF — il est peut-être protégé, corrompu ou scanné sans OCR. Essayez un autre format.";
                     } else {
