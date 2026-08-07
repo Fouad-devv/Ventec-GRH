@@ -116,16 +116,7 @@ export const DashboardPage = () => {
   const load = () => {
     setLoading(true);
     api.getStats()
-      .then((r) => {
-        setStats(r.data);
-        setYearData({
-          pending: r.data.pendingThisYear,
-          shortlisted: r.data.shortlistedThisYear,
-          interviews: r.data.interviewsThisYear,
-          hired: r.data.hiredThisYear,
-          rejected: r.data.rejectedThisYear,
-        });
-      })
+      .then((r) => setStats(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -133,7 +124,6 @@ export const DashboardPage = () => {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    if (selectedYear === CURRENT_YEAR) return;
     setYearLoading(true);
     api.getYearBreakdown(selectedYear)
       .then((r) => setYearData(r.data))
