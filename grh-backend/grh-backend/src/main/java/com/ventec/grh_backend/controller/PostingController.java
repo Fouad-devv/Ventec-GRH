@@ -5,6 +5,7 @@ import com.ventec.grh_backend.DTO.request.GenerateDescriptionRequest;
 import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
 import com.ventec.grh_backend.DTO.response.ApplicationResponse;
 import com.ventec.grh_backend.DTO.response.GenerateDescriptionResponse;
+import com.ventec.grh_backend.DTO.response.ImportCvResult;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
 import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
 import com.ventec.grh_backend.service.AiServiceClient;
@@ -160,7 +161,7 @@ public class PostingController {
     @Operation(summary = "Importer des CVs", description = "Importe plusieurs CVs PDF et crée les candidatures associées à l'offre")
     @PostMapping("/{id}/import-cvs")
     @PreAuthorize("hasRole('RH') or hasRole('ADMIN')")
-    public ResponseEntity<List<ApplicationResponse>> importCvs(
+    public ResponseEntity<List<ImportCvResult>> importCvs(
             @Parameter(description = "ID de l'offre") @PathVariable UUID id,
             @RequestParam("files") List<MultipartFile> files) {
         return ResponseEntity.ok(postingService.importCvs(id, files));

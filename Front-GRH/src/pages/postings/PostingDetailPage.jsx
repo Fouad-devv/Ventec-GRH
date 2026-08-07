@@ -422,17 +422,35 @@ const ImportCvsModal = ({ postingId, pApi, onClose, onSuccess }) => {
         ) : (
           <div className="p-5 space-y-3">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              {results.length} CV{results.length !== 1 ? 's' : ''} importé{results.length !== 1 ? 's' : ''}
+              {results.filter((r) => r.application).length} CV{results.length !== 1 ? 's' : ''} importé{results.length !== 1 ? 's' : ''} sur {results.length}
             </p>
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {results.map((r) => (
-                <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                  <MdCheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
-                    {r.candidateFirstName} {r.candidateLastName}
-                  </span>
-                  <StatusBadge status={r.status} />
-                </div>
+              {results.map((r, i) => (
+                r.application ? (
+                  <div key={i} className={`flex flex-col gap-0.5 px-3 py-1.5 rounded-lg ${r.aiError ? 'bg-amber-50 dark:bg-amber-950/30' : 'bg-emerald-50 dark:bg-emerald-950/30'}`}>
+                    <div className="flex items-center gap-2">
+                      {r.aiError
+                        ? <MdWarning className="w-4 h-4 text-amber-500 shrink-0" />
+                        : <MdCheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                      }
+                      <span className="text-sm text-slate-700 dark:text-slate-300">
+                        {r.application.candidateFirstName} {r.application.candidateLastName}
+                      </span>
+                      <StatusBadge status={r.application.status} />
+                    </div>
+                    {r.aiError && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 pl-6">{r.aiError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div key={i} className="flex flex-col gap-0.5 px-3 py-1.5 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <MdError className="w-4 h-4 text-red-500 shrink-0" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400">{r.fileName}</span>
+                    </div>
+                    <p className="text-xs text-red-600 dark:text-red-400 pl-6">{r.aiError}</p>
+                  </div>
+                )
               ))}
             </div>
             <div className="flex justify-end pt-1">

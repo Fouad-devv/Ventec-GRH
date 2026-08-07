@@ -8,6 +8,7 @@ import com.ventec.grh_backend.domain.User;
 import com.ventec.grh_backend.DTO.request.CreateJobPostingRequest;
 import com.ventec.grh_backend.DTO.request.UpdateJobPostingRequest;
 import com.ventec.grh_backend.DTO.response.ApplicationResponse;
+import com.ventec.grh_backend.DTO.response.ImportCvResult;
 import com.ventec.grh_backend.DTO.response.JobPostingResponse;
 import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
 import com.ventec.grh_backend.exception.NotFoundException;
@@ -228,20 +229,30 @@ public class PostingService {
         return toResponse(jobPostingRepository.save(posting));
     }
 
-    public List<ApplicationResponse> importCvs(UUID postingId, List<MultipartFile> files) {
+    public List<ImportCvResult> importCvs(UUID postingId, List<MultipartFile> files) {
         JobPosting posting = jobPostingRepository.findById(postingId)
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + postingId));
 
-        List<ApplicationResponse> results = new ArrayList<>();
+        List<ImportCvResult> results = new ArrayList<>();
         for (MultipartFile file : files) {
+            String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "CV";
             try {
                 String cvPath = storageService.store(file, "cvs");
 
                 Map<?, ?> data = null;
+                String aiError = null;
                 try {
                     data = aiServiceClient.extractCvFull(file).block();
                 } catch (Exception e) {
-                    log.warn("AI extraction failed for {}: {}", file.getOriginalFilename(), e.getMessage());
+                    log.warn("AI extraction failed for {}: {}", fileName, e.getMessage());
+                    String msg = e.getMessage() != null ? e.getMessage() : "";
+                    if (msg.contains("429") || msg.toLowerCase().contains("rate limit") || msg.toLowerCase().contains("too many requests")) {
+                        aiError = "Limite de requêtes IA atteinte — les données du CV n'ont pas pu être extraites automatiquement. Veuillez compléter le profil manuellement.";
+                    } else if (msg.contains("503") || msg.contains("502") || msg.toLowerCase().contains("service unavailable") || msg.toLowerCase().contains("connection")) {
+                        aiError = "Le service IA est temporairement indisponible — les données du CV n'ont pas pu être extraites. Réessayez dans quelques instants.";
+                    } else {
+                        aiError = "Erreur lors de l'extraction IA du CV — les données n'ont pas pu être lues automatiquement. Veuillez compléter le profil manuellement.";
+                    }
                 }
 
                 String firstName = data != null ? (String) data.get("first_name") : null;
@@ -325,7 +336,7 @@ public class PostingService {
                                 .status("NEW")
                                 .build()));
 
-                results.add(new ApplicationResponse(
+                ApplicationResponse appResponse = new ApplicationResponse(
                         app.getId(),
                         savedCandidate.getId(),
                         savedCandidate.getFirstName(),
@@ -344,9 +355,12 @@ public class PostingService {
                         null,
                         null,
                         savedCandidate.getExperienceYears()
-                ));
+                );
+                results.add(new ImportCvResult(appResponse, fileName, aiError));
             } catch (Exception e) {
-                log.error("Failed to import CV {}: {}", file.getOriginalFilename(), e.getMessage());
+                log.error("Failed to import CV {}: {}", fileName, e.getMessage());
+                results.add(new ImportCvResult(null, fileName,
+                        "Échec de l'importation du fichier — vérifiez que le fichier est un PDF valide et non corrompu."));
             }
         }
         return results;
