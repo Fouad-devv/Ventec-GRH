@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { MdClose, MdUploadFile, MdInsertDriveFile, MdCheck } from 'react-icons/md';
 import { postingsApi } from '../../api/postings';
+import { useToast } from '../../context/ToastContext';
 
 const CONTRACT_TYPES = ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'INTERIME'];
 
@@ -25,6 +26,7 @@ const SELECT_CLS = 'w-full px-3 py-2 border border-slate-200 dark:border-slate-7
 export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
   const api = postingsApi(axios);
   const fileRef = useRef(null);
+  const { showToast } = useToast();
 
   const [form, setForm] = useState({
     title: '', department: '', location: '', contractType: 'CDI',
@@ -79,9 +81,11 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
         await api.uploadFicheFonction(postingId, ficheFonction);
       }
 
+      showToast('Offre créée avec succès');
       onCreated();
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la création.');
+      showToast('Erreur lors de la création de l\'offre', 'error');
       setStep('');
     }
   };

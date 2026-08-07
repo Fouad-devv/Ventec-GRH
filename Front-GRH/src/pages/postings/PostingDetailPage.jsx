@@ -11,6 +11,7 @@ import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
 import { filterApi } from '../../api/filter';
 import { usePageBack } from '../../context/HeaderContext';
+import { useToast } from '../../context/ToastContext';
 
 const ScoreBadge = ({ score }) => {
   if (score == null) return <span className="text-slate-400 text-xs">—</span>;
@@ -451,6 +452,7 @@ export const PostingDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const axios = useAxiosPrivate();
+  const { showToast } = useToast();
 
   const backTo = location.state?.from || '/app/postings';
 
@@ -543,8 +545,10 @@ export const PostingDetailPage = () => {
     try {
       await pApi.uploadFicheFonction(id, file);
       load();
+      showToast('Fiche de poste importée avec succès');
     } catch (e) {
       console.error(e);
+      showToast("Erreur lors de l'import de la fiche", 'error');
     } finally {
       setFicheUploading(false);
     }
@@ -555,19 +559,27 @@ export const PostingDetailPage = () => {
     try {
       await pApi.generateFicheFonction(id);
       load();
+      showToast('Fiche de poste générée avec succès');
     } catch (e) {
       console.error(e);
+      showToast('Erreur lors de la génération de la fiche', 'error');
     } finally {
       setFicheGenerating(false);
     }
   };
 
-  const handlePublish = () => pApi.publish(id).then(load);
-  const handleClose = () => pApi.close(id).then(load);
+  const handlePublish = () => pApi.publish(id).then(() => { load(); showToast('Offre publiée avec succès'); }).catch(() => showToast('Erreur lors de la publication', 'error'));
+  const handleClose  = () => pApi.close(id).then(() => { load(); showToast('Offre clôturée'); }).catch(() => showToast('Erreur lors de la clôture', 'error'));
 
   const handleSaveSkills = async (skillsWeightsJson) => {
-    await pApi.update(id, { skillsWeights: skillsWeightsJson });
-    load();
+    try {
+      await pApi.update(id, { skillsWeights: skillsWeightsJson });
+      load();
+      showToast('Grille de compétences enregistrée');
+    } catch (e) {
+      console.error(e);
+      showToast("Erreur lors de l'enregistrement", 'error');
+    }
   };
 
   const handleFilter = async () => {
@@ -576,8 +588,10 @@ export const PostingDetailPage = () => {
       const res = await fApi.requestFilter(id);
       setActiveFilterJob(res.data);
       startPolling(res.data.id);
+      showToast('Filtrage IA lancé', 'info');
     } catch (e) {
       console.error(e);
+      showToast('Erreur lors du lancement du filtrage', 'error');
     } finally {
       setFiltering(false);
     }
@@ -590,6 +604,7 @@ export const PostingDetailPage = () => {
       navigate('/app/postings');
     } catch (e) {
       console.error(e);
+      showToast("Erreur lors de la suppression de l'offre", 'error');
       setDeleting(false);
       setConfirmDelete(false);
     }
@@ -602,8 +617,10 @@ export const PostingDetailPage = () => {
       await appApi.delete(confirmDeleteApp.id);
       setConfirmDeleteApp(null);
       load();
+      showToast('Candidature supprimée');
     } catch (e) {
       console.error(e);
+      showToast('Erreur lors de la suppression de la candidature', 'error');
     } finally {
       setDeletingApp(false);
     }

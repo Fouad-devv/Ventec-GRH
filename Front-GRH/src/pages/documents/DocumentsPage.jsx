@@ -5,12 +5,14 @@ import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
 import { checklistsApi } from '../../api/checklists';
+import { useToast } from '../../context/ToastContext';
 
 export const DocumentsPage = () => {
   const axios = useAxiosPrivate();
   const pApi = postingsApi(axios);
   const appApi = applicationsApi(axios);
   const clApi = checklistsApi(axios);
+  const { showToast } = useToast();
 
   const [postings, setPostings] = useState([]);
   const [selectedPostingId, setSelectedPostingId] = useState('');
@@ -63,8 +65,11 @@ export const DocumentsPage = () => {
       setSavedDocs(docs);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+      showToast('Documents enregistrés avec succès');
+    } catch (e) {
+      console.error(e);
+      showToast("Erreur lors de l'enregistrement des documents", 'error');
+    } finally { setSaving(false); }
   };
 
   const download = (type) => {

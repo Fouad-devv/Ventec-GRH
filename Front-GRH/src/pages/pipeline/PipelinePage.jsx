@@ -3,6 +3,7 @@ import { MdCalendarMonth, MdStar, MdAutoAwesome, MdDownload, MdClose, MdQuestion
 import { useNavigate, useLocation } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import { usePageActions } from '../../context/HeaderContext';
+import { useToast } from '../../context/ToastContext';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
@@ -55,6 +56,7 @@ const toISOWithLocalOffset = (localStr) => {
 
 const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) => {
   const api = interviewsApi(axios);
+  const { showToast } = useToast();
   const interviewId = application.scheduledInterviewId ?? null;
   const isEdit = !!interviewId;
   const [form, setForm] = useState({ scheduledAt: '', durationMinutes: 60, type: 'VIDEO', locationOrLink: '', notes: '', responsableNom: '', responsableEmail: '' });
@@ -86,9 +88,11 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
       } else {
         await api.schedule({ applicationId: application.id, ...payload });
       }
+      showToast(isEdit ? 'Entretien modifié avec succès' : 'Entretien planifié avec succès');
       onScheduled();
     } catch (err) {
       console.error(err);
+      showToast("Erreur lors de l'enregistrement de l'entretien", 'error');
     } finally {
       setSaving(false);
     }
@@ -340,6 +344,7 @@ export const PipelinePage = () => {
   const location = useLocation();
   const pApi = postingsApi(axios);
   const appApi = applicationsApi(axios);
+  const { showToast } = useToast();
 
   const [postings, setPostings] = useState([]);
   const [selectedPosting, setSelectedPosting] = useState(null);
@@ -380,8 +385,14 @@ export const PipelinePage = () => {
   );
 
   const updateStatus = async (appId, status) => {
-    await appApi.updateStatus(appId, { status });
-    setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
+    try {
+      await appApi.updateStatus(appId, { status });
+      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
+      showToast('Statut du candidat mis à jour');
+    } catch (e) {
+      console.error(e);
+      showToast('Erreur lors de la mise à jour du statut', 'error');
+    }
   };
 
   const downloadDocuments = async (app, format = 'docx') => {
@@ -408,8 +419,10 @@ export const PipelinePage = () => {
       setEmailResult({ sent: res.data.sent, noEmail: res.data.noEmail || [], type: 'rejection' });
       setShowRejectionConfirm(false);
       loadApplications();
+      showToast(`${res.data.sent} email${res.data.sent > 1 ? 's' : ''} de refus envoyé${res.data.sent > 1 ? 's' : ''}`);
     } catch (e) {
       console.error(e);
+      showToast("Erreur lors de l'envoi des emails de refus", 'error');
     } finally {
       setSendingEmails(false);
     }
@@ -424,8 +437,10 @@ export const PipelinePage = () => {
       setEmailResult({ sent, noInterview, noEmail: noEmail || [], type: 'interview' });
       setShowInterviewConfirm(false);
       loadApplications();
+      showToast(`${sent} convocation${sent > 1 ? 's' : ''} envoyée${sent > 1 ? 's' : ''}`);
     } catch (e) {
       console.error(e);
+      showToast("Erreur lors de l'envoi des convocations", 'error');
     } finally {
       setSendingEmails(false);
     }

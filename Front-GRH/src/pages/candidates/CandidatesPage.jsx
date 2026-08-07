@@ -8,6 +8,7 @@ import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { candidatesApi } from '../../api/candidates';
 import { postingsApi } from '../../api/postings';
 import { usePageActions } from '../../context/HeaderContext';
+import { useToast } from '../../context/ToastContext';
 
 const PAGE_SIZE = 30;
 
@@ -30,6 +31,7 @@ export const CandidatesPage = () => {
   const api        = candidatesApi(axios);
   const pApi       = postingsApi(axios);
   const navigate   = useNavigate();
+  const { showToast } = useToast();
 
   const [candidates, setCandidates]     = useState([]);
   const [postings, setPostings]         = useState([]);
@@ -103,8 +105,10 @@ export const CandidatesPage = () => {
       await api.delete(confirmDelete.id);
       setConfirmDelete(null);
       load(page, search, postingFilter);
+      showToast('Candidat supprimé avec succès');
     } catch (e) {
       console.error(e);
+      showToast('Erreur lors de la suppression du candidat', 'error');
     } finally {
       setDeleting(false);
     }

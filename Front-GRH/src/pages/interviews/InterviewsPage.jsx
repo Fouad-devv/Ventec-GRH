@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { usePageActions } from '../../context/HeaderContext';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { interviewsApi } from '../../api/interviews';
+import { useToast } from '../../context/ToastContext';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ const InfoRow = ({ label, value, isLink }) => (
 
 const InterviewDetailModal = ({ interview, onClose, onStatusUpdated, axios }) => {
   const iApi = interviewsApi(axios);
+  const { showToast } = useToast();
   const [questions, setQuestions] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -59,8 +61,12 @@ const InterviewDetailModal = ({ interview, onClose, onStatusUpdated, axios }) =>
     try {
       const res = await iApi.update(interview.id, { status });
       onStatusUpdated(res.data);
-    } catch (e) { console.error(e); }
-    finally { setUpdatingStatus(false); }
+      const label = status === 'COMPLETED' ? 'Entretien marqué comme terminé' : 'Entretien annulé';
+      showToast(label);
+    } catch (e) {
+      console.error(e);
+      showToast('Erreur lors de la mise à jour du statut', 'error');
+    } finally { setUpdatingStatus(false); }
   };
 
   useEffect(() => {
@@ -73,8 +79,11 @@ const InterviewDetailModal = ({ interview, onClose, onStatusUpdated, axios }) =>
     try {
       const res = await iApi.generateQuestions(interview.id);
       try { setQuestions(JSON.parse(res.data.questions || '[]')); } catch { setQuestions([]); }
-    } catch (e) { console.error(e); }
-    finally { setGenerating(false); }
+      showToast('Questions générées avec succès');
+    } catch (e) {
+      console.error(e);
+      showToast('Erreur lors de la génération des questions', 'error');
+    } finally { setGenerating(false); }
   };
 
   const exportPdf = () => {

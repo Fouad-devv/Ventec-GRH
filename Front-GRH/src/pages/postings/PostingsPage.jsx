@@ -6,11 +6,13 @@ import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { CreatePostingModal } from './CreatePostingModal';
 import { usePageActions } from '../../context/HeaderContext';
+import { useToast } from '../../context/ToastContext';
 
 export const PostingsPage = () => {
   const axios = useAxiosPrivate();
   const api = postingsApi(axios);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [postings, setPostings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,8 +45,10 @@ export const PostingsPage = () => {
       await api.delete(confirmDelete.id);
       setConfirmDelete(null);
       load();
+      showToast('Offre supprimée avec succès');
     } catch (e) {
       console.error(e);
+      showToast("Erreur lors de la suppression de l'offre", 'error');
     } finally {
       setDeleting(false);
     }

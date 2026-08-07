@@ -4,6 +4,7 @@ import { MdMenu, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import { Sidebar } from './Sidebar';
 import { ThemeToggle } from './ThemeToggle';
 import { HeaderProvider, useHeaderContext } from '../context/HeaderContext';
+import { ToastProvider } from '../context/ToastContext';
 
 const getTitle = (pathname) => {
   if (pathname.startsWith('/app/dashboard'))     return 'Tableau de bord';
@@ -133,8 +134,10 @@ export const AppLayout = () => {
   };
 
   return (
-    <HeaderProvider>
-      <AppLayoutInner expanded={expanded} onToggle={toggle} onClose={close} onExpand={expand} isLarge={isLarge} />
-    </HeaderProvider>
+    <ToastProvider>
+      <HeaderProvider>
+        <AppLayoutInner expanded={expanded} onToggle={toggle} onClose={close} onExpand={expand} isLarge={isLarge} />
+      </HeaderProvider>
+    </ToastProvider>
   );
 };
