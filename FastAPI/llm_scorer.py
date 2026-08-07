@@ -262,6 +262,8 @@ async def score_candidate(
     candidate_id: str,
     extracted_job_data: Optional[str] = None,
     free_filter_prompt: Optional[str] = None,
+    experience_years: Optional[int] = None,
+    min_experience: Optional[int] = None,
 ) -> dict:
     """
     Returns {"candidate_id": ..., "score": float, "summary": str}
@@ -350,6 +352,29 @@ async def score_candidate(
             "même s'il a de très bonnes compétences techniques."
         )
 
+    # ── Experience penalty: sliding cap based on how far below minimum ───────────
+    # Cap formula: 30 + (exp / min_exp) × 45
+    #   0 yr  / min 1  → cap 30   |  1 yr / min 2  → cap 52
+    #   2 yrs / min 3  → cap 60   |  4 yrs / min 6 → cap 60
+    #   5 yrs / min 6  → cap 67   |  meets minimum → no cap
+    experience_cap = None
+    if (
+        min_experience is not None and min_experience > 0
+        and experience_years is not None
+        and experience_years < min_experience
+    ):
+        ratio = experience_years / min_experience  # 0.0 … <1.0
+        experience_cap = int(30 + ratio * 45)
+        job_context_parts.append(
+            f"⚠️ AVERTISSEMENT EXPÉRIENCE : Ce candidat a {experience_years} an(s) d'expérience "
+            f"professionnelle alors que le poste exige un minimum de {min_experience} an(s). "
+            f"L'écart est de {min_experience - experience_years} an(s). "
+            f"Vous DEVEZ mentionner cet écart explicitement dans le résumé et réduire le score "
+            f"proportionnellement à ce manque d'expérience — plus l'écart est grand, "
+            f"plus le score doit être pénalisé."
+        )
+    # ─────────────────────────────────────────────────────────────────────────────
+
     if not job_context_parts:
         job_context_parts.append("Aucune description du poste fournie.")
 
@@ -372,6 +397,9 @@ CONTENU DU CV (informations personnelles supprimées) :
         data = json.loads(response.choices[0].message.content)
         score = float(data.get("score", 50))
         summary = str(data.get("summary", ""))
+        # Deterministic cap: never let LLM override the experience ceiling
+        if experience_cap is not None:
+            score = min(score, experience_cap)
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
     except Exception as e:
         logger.error("LLM scoring failed for candidate %s: %s", candidate_id, e)
@@ -384,9 +412,10 @@ async def score_multiple_candidates(
     requirements: str,
     extracted_job_data: Optional[str] = None,
     free_filter_prompt: Optional[str] = None,
+    min_experience: Optional[int] = None,
 ) -> list[dict]:
     """
-    candidates: [{"candidate_id": str, "cv_text": str}, ...]
+    candidates: [{"candidate_id": str, "cv_text": str, "experience_years": int|None}, ...]
     Returns: [{"candidate_id": str, "score": float, "summary": str}, ...]
     """
     import asyncio
@@ -398,6 +427,8 @@ async def score_multiple_candidates(
             candidate_id=c["candidate_id"],
             extracted_job_data=extracted_job_data,
             free_filter_prompt=free_filter_prompt,
+            experience_years=c.get("experience_years"),
+            min_experience=min_experience,
         )
         for c in candidates
     ]

@@ -66,7 +66,7 @@ public class FilterService {
         aiServiceClient.requestFilter(
                 filterJob.getId(), jobPostingId,
                 posting.getDescription(), posting.getRequirements(),
-                posting.getMinAge(), posting.getMaxAge(),
+                posting.getMinAge(), posting.getMaxAge(), posting.getMinExperience(),
                 posting.getFreeFilterPrompt(), posting.getExtractedJobData(),
                 candidateIds);
 

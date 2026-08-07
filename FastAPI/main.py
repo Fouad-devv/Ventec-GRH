@@ -67,6 +67,7 @@ async def _run_filter(req: FilterRequest):
         # 2. Deterministic filter (experience + age if provided)
         filtered = apply_deterministic_filter(
             candidates_data,
+            min_experience=req.min_experience,
             min_age=req.min_age,
             max_age=req.max_age,
         )
@@ -77,7 +78,11 @@ async def _run_filter(req: FilterRequest):
 
         # 3. LLM scoring with full job context
         scoring_input = [
-            {"candidate_id": c["candidate_id"], "cv_text": c.get("cv_text", "")}
+            {
+                "candidate_id": c["candidate_id"],
+                "cv_text": c.get("cv_text", ""),
+                "experience_years": c.get("experience_years"),
+            }
             for c in filtered
         ]
         results = await score_multiple_candidates(
@@ -86,6 +91,7 @@ async def _run_filter(req: FilterRequest):
             req.requirements,
             extracted_job_data=req.extracted_job_data,
             free_filter_prompt=req.free_filter_prompt,
+            min_experience=req.min_experience,
         )
 
         await _send_callback(callback_url, "DONE", results)

@@ -25,7 +25,7 @@ public class AiServiceClient {
     // Fire-and-forget: FastAPI calls back /api/callback/filter/{filterJobId} with results
     public void requestFilter(UUID filterJobId, UUID jobPostingId,
                               String jobDescription, String requirements,
-                              Integer minAge, Integer maxAge,
+                              Integer minAge, Integer maxAge, Integer minExperience,
                               String freeFilterPrompt, String extractedJobData,
                               List<UUID> candidateIds) {
         Map<String, Object> payload = new java.util.HashMap<>();
@@ -36,6 +36,7 @@ public class AiServiceClient {
         payload.put("candidate_ids", candidateIds.stream().map(UUID::toString).toList());
         if (minAge != null) payload.put("min_age", minAge);
         if (maxAge != null) payload.put("max_age", maxAge);
+        if (minExperience != null) payload.put("min_experience", minExperience);
         if (freeFilterPrompt != null) payload.put("free_filter_prompt", freeFilterPrompt);
         if (extractedJobData != null) payload.put("extracted_job_data", extractedJobData);
         aiWebClient.post()

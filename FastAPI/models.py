@@ -10,6 +10,7 @@ class FilterRequest(BaseModel):
     candidate_ids: List[str]
     min_age: Optional[int] = None
     max_age: Optional[int] = None
+    min_experience: Optional[int] = None
     free_filter_prompt: Optional[str] = None
     extracted_job_data: Optional[str] = None  # JSON string with structured job requirements
 
