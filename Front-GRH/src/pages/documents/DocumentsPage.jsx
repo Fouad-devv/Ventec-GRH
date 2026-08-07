@@ -7,6 +7,15 @@ import { applicationsApi } from '../../api/applications';
 import { checklistsApi } from '../../api/checklists';
 import { useToast } from '../../context/ToastContext';
 
+const EXCLUDED_DOCS = [
+  "bulletin d'adhésion",
+  "bulletin adhesion",
+  "fiche administrative",
+  "contrat de travail",
+];
+const isExcluded = (name) =>
+  EXCLUDED_DOCS.some((p) => name?.toLowerCase().includes(p));
+
 export const DocumentsPage = () => {
   const axios = useAxiosPrivate();
   const pApi = postingsApi(axios);
@@ -50,6 +59,15 @@ export const DocumentsPage = () => {
       .then((r) => {
         let parsed = [];
         try { parsed = JSON.parse(r.data.documents || '[]'); } catch { parsed = []; }
+        const isExperienced = (selectedApp.candidateExperienceYears ?? 0) > 0;
+        parsed = parsed
+          .filter((doc) => !isExcluded(doc.name))
+          .filter((doc) => {
+            const n = doc.name?.toLowerCase() ?? '';
+            if (isExperienced  && n.includes('attestation de stage'))  return false;
+            if (!isExperienced && n.includes('certificat de travail')) return false;
+            return true;
+          });
         setDocs(parsed);
         setSavedDocs(parsed);
       })

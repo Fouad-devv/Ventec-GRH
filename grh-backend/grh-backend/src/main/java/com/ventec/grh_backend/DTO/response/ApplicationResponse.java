@@ -21,5 +21,6 @@ public record ApplicationResponse(
         OffsetDateTime rejectionEmailSentAt,
         OffsetDateTime interviewNotifiedAt,
         UUID scheduledInterviewId,
-        String scheduledInterviewStatus
+        String scheduledInterviewStatus,
+        Integer candidateExperienceYears
 ) {}

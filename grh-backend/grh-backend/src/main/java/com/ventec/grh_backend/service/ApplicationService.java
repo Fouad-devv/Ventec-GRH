@@ -135,7 +135,10 @@ public class ApplicationService {
             // FastAPI now returns [{name, copies, observation}] — add tracking fields
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> rawDocs = (List<Map<String, Object>>) result.get("documents");
+            boolean isExperienced = candidate.getExperienceYears() != null && candidate.getExperienceYears() > 0;
             List<Map<String, Object>> checklistItems = rawDocs.stream()
+                    .filter(doc -> !isExcludedDocument(String.valueOf(doc.getOrDefault("name", ""))))
+                    .filter(doc -> !isExperienceConflict(String.valueOf(doc.getOrDefault("name", "")), isExperienced))
                     .map(doc -> {
                         Map<String, Object> m = new java.util.HashMap<>(doc);
                         m.putIfAbsent("required", true);
@@ -157,6 +160,27 @@ public class ApplicationService {
         } catch (Exception e) {
             log.warn("Auto-checklist generation failed for application {}: {}", app.getId(), e.getMessage());
         }
+    }
+
+    private static final java.util.List<String> EXCLUDED_DOC_PATTERNS = java.util.List.of(
+            "bulletin d'adhésion",
+            "bulletin adhesion",
+            "fiche administrative",
+            "contrat de travail"
+    );
+
+    private boolean isExcludedDocument(String name) {
+        String lower = name.toLowerCase();
+        return EXCLUDED_DOC_PATTERNS.stream().anyMatch(lower::contains);
+    }
+
+    /** Returns true if the document should be dropped based on the candidate's experience level. */
+    private boolean isExperienceConflict(String name, boolean isExperienced) {
+        String lower = name.toLowerCase();
+        // Experienced → no stage certificate; non-experienced → no work certificate
+        if (isExperienced  && lower.contains("attestation de stage")) return true;
+        if (!isExperienced && lower.contains("certificat de travail")) return true;
+        return false;
     }
 
     private void notifyManagerShortlist(Application app) {
@@ -342,7 +366,8 @@ public class ApplicationService {
                 a.getRejectionEmailSentAt(),
                 a.getInterviewNotifiedAt(),
                 activeInterview != null ? activeInterview.getId()     : null,
-                activeInterview != null ? activeInterview.getStatus() : null
+                activeInterview != null ? activeInterview.getStatus() : null,
+                a.getCandidate().getExperienceYears()
         );
     }
 }
