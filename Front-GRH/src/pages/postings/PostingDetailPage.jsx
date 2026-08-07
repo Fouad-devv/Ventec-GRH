@@ -497,6 +497,11 @@ export const PostingDetailPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteApp, setConfirmDeleteApp] = useState(null); // { id, name }
   const [deletingApp, setDeletingApp] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedApps, setSelectedApps] = useState(new Set());
+  const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [deletingSelected, setDeletingSelected] = useState(false);
   const [activeFilterJob, setActiveFilterJob] = useState(null);
   const [generatingFiche, setGeneratingFiche] = useState(false);
   const [ficheUploading, setFicheUploading] = useState(false);
@@ -641,6 +646,41 @@ export const PostingDetailPage = () => {
       showToast('Erreur lors de la suppression de la candidature', 'error');
     } finally {
       setDeletingApp(false);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    setDeletingSelected(true);
+    try {
+      await Promise.all([...selectedApps].map((appId) => appApi.delete(appId)));
+      const count = selectedApps.size;
+      setSelectedApps(new Set());
+      setSelectionMode(false);
+      setConfirmDeleteSelected(false);
+      load();
+      showToast(`${count} candidature(s) supprimée(s)`);
+    } catch (e) {
+      console.error(e);
+      showToast('Erreur lors de la suppression', 'error');
+    } finally {
+      setDeletingSelected(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingSelected(true);
+    try {
+      await Promise.all(applications.map((app) => appApi.delete(app.id)));
+      setSelectedApps(new Set());
+      setSelectionMode(false);
+      setConfirmDeleteAll(false);
+      load();
+      showToast('Toutes les candidatures supprimées');
+    } catch (e) {
+      console.error(e);
+      showToast('Erreur lors de la suppression', 'error');
+    } finally {
+      setDeletingSelected(false);
     }
   };
 
@@ -904,21 +944,103 @@ export const PostingDetailPage = () => {
         {/* Right: ranked candidates */}
         <div>
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-semibold text-slate-900 dark:text-white">
-                Candidatures ({applications.length})
-              </h3>
-              {scoredApps.some((a) => a.aiScore != null) && (
-                <p className="text-xs text-slate-400 mt-0.5">Classées par score IA</p>
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
+                  Candidatures ({applications.length})
+                </h3>
+                {scoredApps.some((a) => a.aiScore != null) && (
+                  <p className="text-xs text-slate-400 mt-0.5">Classées par score IA</p>
+                )}
+              </div>
+              {applications.length > 0 && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => { setSelectionMode((v) => !v); setSelectedApps(new Set()); }}
+                    title={selectionMode ? 'Annuler la sélection' : 'Sélectionner des candidatures'}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                      selectionMode
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                        : 'border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <MdCheck className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">{selectionMode ? 'Annuler' : 'Sélectionner'}</span>
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteAll(true)}
+                    title="Supprimer toutes les candidatures"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors whitespace-nowrap"
+                  >
+                    <MdDelete className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">Tout supprimer</span>
+                  </button>
+                </div>
               )}
             </div>
+
+            {/* Selection mode toolbar */}
+            {selectionMode && (
+              <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-blue-50 dark:bg-blue-950/30 flex items-center justify-between gap-2">
+                <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                  {selectedApps.size} sélectionné(s)
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (selectedApps.size === applications.length) {
+                        setSelectedApps(new Set());
+                      } else {
+                        setSelectedApps(new Set(applications.map((a) => a.id)));
+                      }
+                    }}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {selectedApps.size === applications.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                  </button>
+                  {selectedApps.size > 0 && (
+                    <button
+                      onClick={() => setConfirmDeleteSelected(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors"
+                    >
+                      <MdDelete className="w-3.5 h-3.5" />
+                      Supprimer ({selectedApps.size})
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {applications.length === 0 ? (
               <p className="text-sm text-slate-400 p-4">Aucune candidature</p>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[500px] overflow-y-auto">
                 {scoredApps.map((app) => (
-                  <div key={app.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
+                  <div
+                    key={app.id}
+                    className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group ${
+                      selectedApps.has(app.id) ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+                    }`}
+                  >
                     <div className="flex items-start justify-between gap-2">
+                      {selectionMode && (
+                        <div className="pt-0.5 shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedApps.has(app.id)}
+                            onChange={() =>
+                              setSelectedApps((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(app.id)) next.delete(app.id);
+                                else next.add(app.id);
+                                return next;
+                              })
+                            }
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer accent-blue-600"
+                          />
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <p
                           className="text-sm font-medium text-slate-900 dark:text-white truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
@@ -933,13 +1055,15 @@ export const PostingDetailPage = () => {
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <StatusBadge status={app.status} />
                         <ScoreBadge score={app.aiScore} />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteApp({ id: app.id, name: `${app.candidateFirstName} ${app.candidateLastName}` }); }}
-                          className="opacity-0 group-hover:opacity-100 mt-1 p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
-                          title="Retirer de l'offre"
-                        >
-                          <MdDelete className="w-3.5 h-3.5" />
-                        </button>
+                        {!selectionMode && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteApp({ id: app.id, name: `${app.candidateFirstName} ${app.candidateLastName}` }); }}
+                            className="opacity-0 group-hover:opacity-100 mt-1 p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                            title="Retirer de l'offre"
+                          >
+                            <MdDelete className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1024,6 +1148,90 @@ export const PostingDetailPage = () => {
                   <MdDelete className="w-4 h-4" />
                 )}
                 Retirer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteSelected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-950 rounded-xl">
+                <MdWarning className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900 dark:text-white">Supprimer la sélection</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+              Voulez-vous supprimer{' '}
+              <span className="font-semibold text-slate-900 dark:text-white">{selectedApps.size} candidature(s)</span>{' '}
+              de cette offre ?
+            </p>
+            <p className="text-xs text-slate-400 mb-5">
+              Les candidats resteront dans le système mais leurs candidatures pour ce poste seront supprimées.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDeleteSelected(false)}
+                disabled={deletingSelected}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={deletingSelected}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deletingSelected ? (
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <MdDelete className="w-4 h-4" />
+                )}
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-950 rounded-xl">
+                <MdWarning className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900 dark:text-white">Supprimer toutes les candidatures</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+              Voulez-vous supprimer{' '}
+              <span className="font-semibold text-slate-900 dark:text-white">toutes les {applications.length} candidature(s)</span>{' '}
+              de cette offre ?
+            </p>
+            <p className="text-xs text-red-500 mb-5">
+              Les candidats resteront dans le système. Cette action est irréversible.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDeleteAll(false)}
+                disabled={deletingSelected}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deletingSelected}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deletingSelected ? (
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <MdDelete className="w-4 h-4" />
+                )}
+                Tout supprimer
               </button>
             </div>
           </div>
