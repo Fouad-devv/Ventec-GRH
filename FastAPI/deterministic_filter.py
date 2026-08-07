@@ -11,14 +11,6 @@ Note on age filtering:
 from typing import List, Optional
 
 
-def passes_experience_filter(experience_years: Optional[int], min_experience: Optional[int]) -> bool:
-    if min_experience is None or min_experience == 0:
-        return True
-    if experience_years is None:
-        return True  # unknown — let LLM decide
-    return experience_years >= min_experience
-
-
 def apply_deterministic_filter(
     candidates: List[dict],
     min_experience: Optional[int] = None,
@@ -30,9 +22,9 @@ def apply_deterministic_filter(
       - candidate_id (str)
       - experience_years (int | None)
     Returns filtered list (same structure).
+    Experience shortfalls are NOT hard-filtered here — the LLM scorer applies a
+    sliding penalty cap so candidates below the minimum still appear with a
+    proportionally reduced score rather than being silently dropped.
     Age bounds are accepted for API symmetry but are soft criteria handled by the LLM scorer.
     """
-    return [
-        c for c in candidates
-        if passes_experience_filter(c.get("experience_years"), min_experience)
-    ]
+    return list(candidates)
