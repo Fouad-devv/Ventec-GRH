@@ -320,7 +320,11 @@ async def score_candidate(
                     f"Des intitulés différents mais de niveau équivalent SATISFONT le critère."
                 )
             if parsed.get("required_experience"):
-                elim_parts.append(f"⛔ EXPÉRIENCE ÉLIMINATOIRE : {parsed['required_experience']}")
+                if min_experience is not None and min_experience > 0:
+                    # Exact min handled by the explicit warning below — keep as info only
+                    skill_parts.append(f"Expérience attendue : {parsed['required_experience']}")
+                else:
+                    elim_parts.append(f"⛔ EXPÉRIENCE ÉLIMINATOIRE : {parsed['required_experience']}")
 
             if parsed.get("required_skills"):
                 skill_parts.append("Compétences requises : " + ", ".join(parsed["required_skills"]))
@@ -352,26 +356,31 @@ async def score_candidate(
             "même s'il a de très bonnes compétences techniques."
         )
 
-    # ── Experience penalty: sliding cap based on how far below minimum ───────────
-    # Cap formula: 30 + (exp / min_exp) × 45
-    #   0 yr  / min 1  → cap 30   |  1 yr / min 2  → cap 52
-    #   2 yrs / min 3  → cap 60   |  4 yrs / min 6 → cap 60
-    #   5 yrs / min 6  → cap 67   |  meets minimum → no cap
+    # ── Experience penalty: sliding cap based on absolute gap in years ───────────
+    # Formula: max(35, 75 - gap × 10)
+    #   gap 1 yr  → cap 65  |  gap 2 yrs → cap 55
+    #   gap 3 yrs → cap 45  |  gap 4+ yrs → cap 35
+    #   meets minimum → no cap (LLM scores freely; more exp above min = higher score)
     experience_cap = None
+    experience_gap = None
     if (
         min_experience is not None and min_experience > 0
         and experience_years is not None
         and experience_years < min_experience
     ):
-        ratio = experience_years / min_experience  # 0.0 … <1.0
-        experience_cap = int(30 + ratio * 45)
-        job_context_parts.append(
-            f"⚠️ AVERTISSEMENT EXPÉRIENCE : Ce candidat a {experience_years} an(s) d'expérience "
-            f"professionnelle alors que le poste exige un minimum de {min_experience} an(s). "
-            f"L'écart est de {min_experience - experience_years} an(s). "
-            f"Vous DEVEZ mentionner cet écart explicitement dans le résumé et réduire le score "
-            f"proportionnellement à ce manque d'expérience — plus l'écart est grand, "
-            f"plus le score doit être pénalisé."
+        experience_gap = min_experience - experience_years
+        experience_cap = max(35, 75 - experience_gap * 10)
+        # Insert FIRST so LLM reads it before EXIGENCES (which mention experience in text)
+        job_context_parts.insert(0,
+            f"RÈGLE ABSOLUE — EXPÉRIENCE (lire EN PREMIER avant toute autre instruction) :\n"
+            f"  • Expérience du candidat : {experience_years} an(s)\n"
+            f"  • Minimum requis du poste : {min_experience} an(s)\n"
+            f"  • Écart : {experience_gap} an(s)\n"
+            f"Le manque d'expérience est un critère de PÉNALISATION PROGRESSIVE — "
+            f"il N'EST PAS éliminatoire. Ne jamais donner score = 0 pour ce seul motif. "
+            f"Évaluez compétences et formation normalement (score entre 40 et 100). "
+            f"Dans le résumé, indiquez l'écart avec les valeurs exactes ci-dessus — "
+            f"ne pas les recalculer depuis le CV."
         )
     # ─────────────────────────────────────────────────────────────────────────────
 
@@ -397,9 +406,27 @@ CONTENU DU CV (informations personnelles supprimées) :
         data = json.loads(response.choices[0].message.content)
         score = float(data.get("score", 50))
         summary = str(data.get("summary", ""))
-        # Deterministic cap: never let LLM override the experience ceiling
+
         if experience_cap is not None:
-            score = min(score, experience_cap)
+            if score <= 0.0:
+                # LLM wrongly eliminated for experience — rebuild summary and use cap
+                score = float(experience_cap)
+                summary = (
+                    f"{summary.strip()} "
+                    f"[Correction automatique : l'expérience insuffisante n'est pas éliminatoire. "
+                    f"Score ajusté à {experience_cap}/100 — "
+                    f"{experience_years} an(s) d'expérience, {min_experience} an(s) requis, "
+                    f"écart de {experience_gap} an(s).]"
+                )
+            else:
+                score = min(score, experience_cap)
+                # Append factual note if gap not already correctly stated
+                fact = (
+                    f" Expérience : {experience_years} an(s) / {min_experience} an(s) requis "
+                    f"(écart de {experience_gap} an(s)) — score plafonné à {experience_cap}/100."
+                )
+                summary = summary.rstrip().rstrip('.') + fact
+
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
     except Exception as e:
         logger.error("LLM scoring failed for candidate %s: %s", candidate_id, e)
