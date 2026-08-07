@@ -287,6 +287,18 @@ public class PostingService {
                 if (data != null && data.get("experience_years") instanceof Number n) {
                     experienceYears = n.intValue();
                 }
+                // Guard: if current_position indicates a student/intern, reset to 0
+                if (experienceYears != null && experienceYears > 0 && data != null) {
+                    String pos = data.get("current_position") instanceof String p ? p.toLowerCase() : "";
+                    String edu = data.get("education") instanceof String e ? e.toLowerCase() : "";
+                    String cvSnippet = data.get("cv_text") instanceof String t ? t.toLowerCase() : "";
+                    boolean looksLikeStudent =
+                        pos.contains("stagiaire") || pos.contains("stage") ||
+                        pos.contains("étudiant") || pos.contains("student") ||
+                        pos.contains("en formation") || pos.contains("apprenti") ||
+                        (edu.contains("en cours") && cvSnippet.contains("stage") && !cvSnippet.contains("cdi") && !cvSnippet.contains("cdd"));
+                    if (looksLikeStudent) experienceYears = 0;
+                }
 
                 final Map<?, ?> d = data;
                 Candidate candidate = Candidate.builder()
