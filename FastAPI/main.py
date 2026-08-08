@@ -152,37 +152,52 @@ async def _send_callback(url: str, status: str, results: list, error_message: st
     logger.error("All callback attempts failed for %s", url)
 
 
+# ── Groq — PRIMARY ──────────────────────────────────────────────────────────
+_GROQ_BASE = "https://api.groq.com/openai/v1"
+
+_groq_client = AsyncOpenAI(
+    api_key=settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
+) if settings.groq_api_key else None
+_groq_client2 = AsyncOpenAI(
+    api_key=settings.groq_api_key2 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
+) if settings.groq_api_key else None
+_groq_client3 = AsyncOpenAI(
+    api_key=settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
+) if settings.groq_api_key else None
+_groq_client4 = AsyncOpenAI(
+    api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
+) if settings.groq_api_key else None
+_groq_client5 = AsyncOpenAI(
+    api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
+) if settings.groq_api_key else None
+
+# Tier-1 fast: key1-5 (8B models, no JSON-mode)
+_extraction_fast_clients = [c for c in [_groq_client, _groq_client2, _groq_client3, _groq_client4, _groq_client5] if c is not None]
+# Tier-2 smart: key1-2 only (70B, JSON-mode)
+_extraction_clients = [c for c in [_groq_client, _groq_client2] if c is not None]
+
+
+# ── SambaNova — FALLBACK ──────────────────────────────────────────────────────
+# Activated automatically when all Groq chains hit rate limits or errors.
+# Default SDK connect timeout (5s) is too short from some regions — use 120s.
 _SAMBANOVA_BASE = "https://api.sambanova.ai/v1"
-# Default SDK connect timeout is 5s — too short for SambaNova from some regions.
-# 120s covers both the TCP handshake and full response generation.
 _SAMBANOVA_TIMEOUT = 120.0
 
-# Extraction clients — key1 + key2
 _sambanova_client = AsyncOpenAI(
-    api_key=settings.sambanova_api_key,
-    base_url=_SAMBANOVA_BASE,
-    max_retries=0,
-    timeout=_SAMBANOVA_TIMEOUT,
+    api_key=settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT,
 ) if settings.sambanova_api_key else None
-
 _sambanova_client2 = AsyncOpenAI(
-    api_key=settings.sambanova_api_key2 or settings.sambanova_api_key,
-    base_url=_SAMBANOVA_BASE,
-    max_retries=0,
-    timeout=_SAMBANOVA_TIMEOUT,
+    api_key=settings.sambanova_api_key2 or settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT,
 ) if settings.sambanova_api_key else None
 
-# Tier-1 fast extraction: key1 + key2
-_extraction_fast_clients = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
-
-# Tier-2 smart extraction: key1 + key2
-_extraction_clients = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
+_extraction_fast_fallback = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
+_extraction_fallback      = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
 
 
-def _require_sambanova():
-    if not _sambanova_client:
-        raise HTTPException(status_code=503, detail="SambaNova API key not configured")
-    return _sambanova_client
+def _require_groq():
+    if not _groq_client:
+        raise HTTPException(status_code=503, detail="Groq API key not configured")
+    return _groq_client
 
 
 _EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -203,8 +218,6 @@ async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResp
     `source` is 'pdfplumber', 'ocr', 'text', or 'pdfplumber_fallback' — used to
     tune the prompt so the model is aware of potential OCR noise.
     """
-    client = _require_sambanova()
-
     # OCR text can contain garbled characters — tell the model explicitly
     ocr_note = ""
     if source == "ocr":
@@ -242,13 +255,11 @@ Règles strictes :
 CV :
 {text[:char_limit]}
 """
-    response = await client.chat.completions.create(
-        model=settings.sambanova_model_fast,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.0,
-        response_format={"type": "json_object"},
+    raw = await _call_with_fallback(
+        [{"role": "user", "content": prompt}],
+        model_type="fast", use_json=True, label="extract-cv",
     )
-    data = _json.loads(response.choices[0].message.content)
+    data = _json.loads(raw)
     skills = data.get("skills", [])
     if isinstance(skills, str):
         skills = [s.strip() for s in skills.split(",") if s.strip()]
@@ -264,7 +275,7 @@ CV :
 @app.post("/extract-cv", response_model=ExtractCvResponse)
 async def extract_cv(req: ExtractCvRequest):
     """Extracts structured data from raw CV text (already extracted by the caller)."""
-    if not settings.sambanova_api_key:
+    if not settings.groq_api_key and not settings.sambanova_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     if not req.text or not req.text.strip():
@@ -286,7 +297,7 @@ async def extract_cv_file(file: UploadFile = File(...)):
     - Scanned PDF → pytesseract OCR at 300 DPI (automatic fallback)
     - Plain text  → UTF-8 decode
     """
-    if not settings.sambanova_api_key:
+    if not settings.groq_api_key and not settings.sambanova_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     try:
@@ -362,11 +373,14 @@ async def _call_groq(
     messages: list,
     use_json_format: bool = False,
     label: str = "",
+    fallback_clients=None,
+    fallback_models=None,
 ) -> str:
     """
     Try each model across all clients in sequence.
     client can be a single AsyncOpenAI instance or a list of instances.
     Moves to the next model/client on 429, decommissioned, or not_found.
+    If all primary (Groq) chains are exhausted, tries fallback_clients with fallback_models (SambaNova).
     Re-raises immediately on 5xx / connection errors.
     """
     clients = client if isinstance(client, list) else [client]
@@ -389,6 +403,67 @@ async def _call_groq(
                     last_error = e
                     continue
                 raise
+    # All primary (Groq) exhausted — switch to SambaNova fallback
+    if fallback_clients and fallback_models:
+        logger.warning("[%s] Groq exhausted — switching to SambaNova fallback", label)
+        fb_clients = fallback_clients if isinstance(fallback_clients, list) else [fallback_clients]
+        for i, c in enumerate(fb_clients):
+            key_label = f"samba-key{i + 1}"
+            for model in fallback_models:
+                try:
+                    kwargs: dict = {"model": model, "messages": messages, "temperature": 0.0}
+                    if use_json_format:
+                        kwargs["response_format"] = {"type": "json_object"}
+                    resp = await c.chat.completions.create(**kwargs)
+                    logger.info("[%s] SambaNova fallback succeeded with %s/%s", label, key_label, model)
+                    return resp.choices[0].message.content
+                except Exception as e:
+                    e_lower = str(e).lower()
+                    if any(sig in e_lower for sig in _SKIP_MODEL_SIGNALS):
+                        logger.warning("[%s] Skipping fallback %s/%s — %s", label, key_label, model, str(e)[:120])
+                        last_error = e
+                        continue
+                    raise
+    raise last_error
+
+
+async def _call_with_fallback(
+    messages: list,
+    *,
+    model_type: str = "smart",
+    use_json: bool = False,
+    label: str = "",
+    temperature: float = 0.0,
+) -> str:
+    """
+    Single-call with Groq primary → SambaNova fallback.
+    Used by generate-description, interview questions, checklist, fiche de fonction, etc.
+    """
+    groq_model = settings.groq_model_smart if model_type == "smart" else settings.groq_model_fast
+    samba_model = settings.sambanova_model_smart if model_type == "smart" else settings.sambanova_model_fast
+    chains = []
+    if _groq_client:
+        chains.append(("groq", _groq_client, groq_model))
+    if _sambanova_client:
+        chains.append(("sambanova", _sambanova_client, samba_model))
+    if not chains:
+        raise HTTPException(status_code=503, detail="No LLM provider configured")
+    last_error: Exception = RuntimeError(f"[{label}] all providers exhausted")
+    for provider, c, model in chains:
+        try:
+            kwargs: dict = {"model": model, "messages": messages, "temperature": temperature}
+            if use_json:
+                kwargs["response_format"] = {"type": "json_object"}
+            resp = await c.chat.completions.create(**kwargs)
+            if provider != "groq":
+                logger.info("[%s] SambaNova fallback used", label)
+            return resp.choices[0].message.content
+        except Exception as e:
+            if any(sig in str(e).lower() for sig in _SKIP_MODEL_SIGNALS):
+                logger.warning("[%s] %s failed — trying next provider: %s", label, provider, str(e)[:80])
+                last_error = e
+                continue
+            raise
     raise last_error
 
 
@@ -406,7 +481,6 @@ async def _run_cv_extraction_full(text: str, source: str = "native") -> dict:
     Within each tier, models are tried left-to-right on 429 / json_validate_failed.
     5xx / connection errors bubble up to _extract_full_with_retry for backoff retries.
     """
-    client = _require_sambanova()
     ocr_note = (
         "\nATTENTION : texte extrait par OCR, peut contenir des erreurs.\n"
         if source == "ocr" else ""
@@ -447,8 +521,12 @@ CV :
     # ── Tier 1: fast chain (8B) ── no JSON-mode, 4 000-char cap ─────────────
     fast_msgs = [{"role": "user", "content": prompt_base + text[:4000]}]
     try:
-        raw = await _call_groq(_extraction_fast_clients, settings.sambanova_fast_models, fast_msgs,
-                               use_json_format=False, label="fast")
+        raw = await _call_groq(
+            _extraction_fast_clients, settings.groq_fast_models, fast_msgs,
+            use_json_format=False, label="fast",
+            fallback_clients=_extraction_fast_fallback,
+            fallback_models=settings.sambanova_fast_models,
+        )
         try:
             return _build_cv_result(_parse_cv_json(raw))
         except _json.JSONDecodeError:
@@ -462,8 +540,12 @@ CV :
 
     # ── Tier 2: smart chain (70B) ── JSON-mode, full text ────────────────────
     smart_msgs = [{"role": "user", "content": prompt_base + text[:12000]}]
-    raw = await _call_groq(_extraction_clients, settings.sambanova_smart_models, smart_msgs,
-                           use_json_format=True, label="smart")
+    raw = await _call_groq(
+        _extraction_clients, settings.groq_smart_models, smart_msgs,
+        use_json_format=True, label="smart",
+        fallback_clients=_extraction_fallback,
+        fallback_models=settings.sambanova_smart_models,
+    )
     return _build_cv_result(_parse_cv_json(raw))
 
 
@@ -510,7 +592,7 @@ async def _extract_full_with_retry(text: str, source: str, filename: str, max_re
             if _is_transient_error(e):
                 wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
                 logger.warning(
-                    "Transient Cerebras error on '%s' [%s] — retrying in %ds (attempt %d/%d): %s",
+                    "Transient error on '%s' [%s] — retrying in %ds (attempt %d/%d): %s",
                     filename, type(e).__name__, wait, attempt + 1, max_retries, str(e)[:120],
                 )
                 await asyncio.sleep(wait)
@@ -530,7 +612,7 @@ async def extract_cv_full(file: UploadFile = File(...)):
     Full CV extraction used for bulk import from job postings.
     Returns raw text + all structured fields including name and contact info.
     """
-    if not settings.sambanova_api_key:
+    if not settings.groq_api_key and not settings.sambanova_api_key:
         return {"cv_text": "", "first_name": None, "last_name": None, "email": None,
                 "phone": None, "skills": [], "experience_years": None,
                 "education": None, "current_position": None, "location": None}
@@ -556,7 +638,7 @@ async def extract_job_posting(file: UploadFile = File(...)):
     Extracts structured requirements from an uploaded job posting / fiche de poste document.
     Returns skills, tools, education, experience, missions, and formatted description/requirements.
     """
-    if not settings.sambanova_api_key:
+    if not settings.groq_api_key and not settings.sambanova_api_key:
         return ExtractJobPostingResponse()
     try:
         content = await file.read()
@@ -565,7 +647,6 @@ async def extract_job_posting(file: UploadFile = File(...)):
         logger.info("Job posting extraction '%s' via %s — %d chars", filename, method, len(text))
         if not text.strip():
             raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du document.")
-        client = _require_sambanova()
         prompt = f"""Tu es un expert RH. Analyse cette fiche de poste et extrait les informations structurées.
 
 Retourne UNIQUEMENT un objet JSON valide :
@@ -593,13 +674,11 @@ Règles :
 Fiche de poste :
 {text[:10000]}
 """
-        response = await client.chat.completions.create(
-            model=settings.sambanova_model_smart,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            response_format={"type": "json_object"},
+        raw = await _call_with_fallback(
+            [{"role": "user", "content": prompt}],
+            model_type="smart", use_json=True, label="extract-job-posting", temperature=0.1,
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(raw)
 
         def _to_str(val) -> str | None:
             if val is None:
@@ -639,7 +718,6 @@ Fiche de poste :
 @app.post("/generate-description", response_model=GenerateDescriptionResponse)
 async def generate_description(req: GenerateDescriptionRequest):
     """Generates a job posting description and requirements using Groq Llama."""
-    client = _require_sambanova()
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:
         context_parts.append(f"Département : {req.department}")
@@ -664,13 +742,11 @@ Retourne UNIQUEMENT un objet JSON valide :
 La description doit être motivante, claire et professionnelle. Les exigences doivent être précises et réalistes.
 """
     try:
-        response = await client.chat.completions.create(
-            model=settings.sambanova_model_smart,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            response_format={"type": "json_object"},
+        raw = await _call_with_fallback(
+            [{"role": "user", "content": prompt}],
+            model_type="smart", use_json=True, label="generate-description", temperature=0.7,
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(raw)
         return GenerateDescriptionResponse(
             description=data.get("description", ""),
             requirements=data.get("requirements", ""),
@@ -683,7 +759,6 @@ La description doit être motivante, claire et professionnelle. Les exigences do
 @app.post("/generate-interview-questions", response_model=GenerateInterviewQuestionsResponse)
 async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
     """Generates tailored interview questions using Groq Llama fast."""
-    client = _require_sambanova()
     context_parts = [f"Poste : {req.job_title}"]
     if req.job_description:
         context_parts.append(f"Description : {req.job_description[:500]}")
@@ -718,13 +793,11 @@ Retourne UNIQUEMENT ce JSON :
 }}
 """
     try:
-        response = await client.chat.completions.create(
-            model=settings.sambanova_model_fast,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            response_format={"type": "json_object"},
+        response_raw = await _call_with_fallback(
+            [{"role": "user", "content": prompt}],
+            model_type="fast", use_json=True, label="generate-interview-questions", temperature=0.7,
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(response_raw)
         raw = data.get("questions", [])
         questions = []
         for q in raw:
@@ -754,8 +827,6 @@ async def generate_fiche_fonction(req: GenerateFicheFonctionRequest):
     The behavioral competencies are standard and hardcoded in the Java export layer.
     This endpoint only generates the variable content specific to the position.
     """
-    client = _require_sambanova()
-
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:    context_parts.append(f"Département : {req.department}")
     if req.contract_type: context_parts.append(f"Type de contrat : {req.contract_type}")
@@ -860,13 +931,11 @@ Règles strictes :
 """
 
     try:
-        response = await client.chat.completions.create(
-            model=settings.sambanova_model_smart,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            response_format={"type": "json_object"},
+        response_raw = await _call_with_fallback(
+            [{"role": "user", "content": prompt}],
+            model_type="smart", use_json=True, label="generate-fiche-fonction", temperature=0.3,
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(response_raw)
 
         competences_raw = data.get("competences_techniques", [])
         competences = []
@@ -929,8 +998,8 @@ async def generate_checklist(req: GenerateChecklistRequest):
     Uses Groq (Llama) for context-aware personalisation.
     Falls back to the standard Ventec list if Groq is not configured or fails.
     """
-    if not _sambanova_client:
-        logger.warning("Cerebras API key not set — returning default checklist")
+    if not _groq_client and not _sambanova_client:
+        logger.warning("No LLM provider configured — returning default checklist")
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
 
     context = (req.job_title + " " + (req.department or "")).lower()
@@ -1007,14 +1076,11 @@ Format JSON attendu :
 }}"""
 
     try:
-        client = _require_sambanova()
-        response = await client.chat.completions.create(
-            model=settings.sambanova_model_fast,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=0.1,
+        checklist_raw = await _call_with_fallback(
+            [{"role": "user", "content": prompt}],
+            model_type="fast", use_json=True, label="generate-checklist", temperature=0.1,
         )
-        data = _json.loads(response.choices[0].message.content)
+        data = _json.loads(checklist_raw)
         raw_items = data.get("documents", [])
         documents = [
             ChecklistItem(
