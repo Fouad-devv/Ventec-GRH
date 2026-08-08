@@ -530,12 +530,30 @@ CONTENU DU CV (informations personnelles supprimées) :
                     )
                 # else: genuine elimination — keep score = 0
             else:
-                score = min(score, experience_cap)
-                fact = (
-                    f" Expérience : {experience_years} an(s) / {min_experience} an(s) requis "
-                    f"(écart de {experience_gap} an(s)) — score plafonné à {experience_cap}/100."
-                )
-                summary = summary.rstrip().rstrip('.') + fact
+                # Even when LLM gave a positive score, domain/field mismatch is still
+                # eliminatory — check before applying the experience cap.
+                summary_lower = summary.lower()
+                domain_elimination = any(kw in summary_lower for kw in [
+                    "domaine de formation", "domaine d'études", "domaine non pertinent",
+                    "domaine ne correspond", "spécialité non pertinente",
+                    "spécialité incompatible", "sans rapport avec",
+                    "incompatible avec", "ne correspond pas au domaine",
+                    "critère éliminatoire de formation", "critère éliminatoire non satisfait",
+                    "critères éliminatoires",
+                    "niveau de formation insuffisant", "niveau insuffisant",
+                    "diplôme insuffisant", "formation insuffisante",
+                    "encore étudiant", "en cours de formation", "en cours de cycle",
+                ])
+                if domain_elimination:
+                    score = 0.0
+                    # Summary already explains the elimination — no extra text needed
+                else:
+                    score = min(score, experience_cap)
+                    fact = (
+                        f" Expérience : {experience_years} an(s) / {min_experience} an(s) requis "
+                        f"(écart de {experience_gap} an(s)) — score plafonné à {experience_cap}/100."
+                    )
+                    summary = summary.rstrip().rstrip('.') + fact
 
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
     except Exception as e:
