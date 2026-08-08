@@ -152,49 +152,37 @@ async def _send_callback(url: str, status: str, results: list, error_message: st
     logger.error("All callback attempts failed for %s", url)
 
 
-_groq_client = AsyncOpenAI(
-    api_key=settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+_SAMBANOVA_BASE = "https://api.sambanova.ai/v1"
+# Default SDK connect timeout is 5s — too short for SambaNova from some regions.
+# 120s covers both the TCP handshake and full response generation.
+_SAMBANOVA_TIMEOUT = 120.0
+
+# Extraction clients — key1 + key2
+_sambanova_client = AsyncOpenAI(
+    api_key=settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
-) if settings.groq_api_key else None
+    timeout=_SAMBANOVA_TIMEOUT,
+) if settings.sambanova_api_key else None
 
-# Second Groq account for extraction — separate TPM limits
-_groq_client2 = AsyncOpenAI(
-    api_key=settings.groq_api_key2 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+_sambanova_client2 = AsyncOpenAI(
+    api_key=settings.sambanova_api_key2 or settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
-) if settings.groq_api_key else None
+    timeout=_SAMBANOVA_TIMEOUT,
+) if settings.sambanova_api_key else None
 
-# key3/key4/key5 — dedicated to Tier-1 fast extraction (llama-3.1-8b-instant only)
-_groq_client3 = AsyncOpenAI(
-    api_key=settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
-    max_retries=0,
-) if settings.groq_api_key else None
+# Tier-1 fast extraction: key1 + key2
+_extraction_fast_clients = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
 
-_groq_client4 = AsyncOpenAI(
-    api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
-    max_retries=0,
-) if settings.groq_api_key else None
-
-_groq_client5 = AsyncOpenAI(
-    api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
-    max_retries=0,
-) if settings.groq_api_key else None
-
-# Tier-1 fast extraction: key1+key2+key3+key4+key5 (8B models only)
-_extraction_fast_clients = [c for c in [_groq_client, _groq_client2, _groq_client3, _groq_client4, _groq_client5] if c is not None]
-
-# Tier-2 smart extraction: key1+key2 only (70B models, JSON-mode)
-_extraction_clients = [c for c in [_groq_client, _groq_client2] if c is not None]
+# Tier-2 smart extraction: key1 + key2
+_extraction_clients = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
 
 
-def _require_groq():
-    if not _groq_client:
-        raise HTTPException(status_code=503, detail="Groq API key not configured")
-    return _groq_client
+def _require_sambanova():
+    if not _sambanova_client:
+        raise HTTPException(status_code=503, detail="SambaNova API key not configured")
+    return _sambanova_client
 
 
 _EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -215,7 +203,7 @@ async def _run_cv_extraction(text: str, source: str = "native") -> ExtractCvResp
     `source` is 'pdfplumber', 'ocr', 'text', or 'pdfplumber_fallback' — used to
     tune the prompt so the model is aware of potential OCR noise.
     """
-    client = _require_groq()
+    client = _require_sambanova()
 
     # OCR text can contain garbled characters — tell the model explicitly
     ocr_note = ""
@@ -255,7 +243,7 @@ CV :
 {text[:char_limit]}
 """
     response = await client.chat.completions.create(
-        model=settings.groq_model_fast,
+        model=settings.sambanova_model_fast,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.0,
         response_format={"type": "json_object"},
@@ -276,7 +264,7 @@ CV :
 @app.post("/extract-cv", response_model=ExtractCvResponse)
 async def extract_cv(req: ExtractCvRequest):
     """Extracts structured data from raw CV text (already extracted by the caller)."""
-    if not settings.groq_api_key:
+    if not settings.sambanova_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     if not req.text or not req.text.strip():
@@ -298,7 +286,7 @@ async def extract_cv_file(file: UploadFile = File(...)):
     - Scanned PDF → pytesseract OCR at 300 DPI (automatic fallback)
     - Plain text  → UTF-8 decode
     """
-    if not settings.groq_api_key:
+    if not settings.sambanova_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     try:
@@ -418,7 +406,7 @@ async def _run_cv_extraction_full(text: str, source: str = "native") -> dict:
     Within each tier, models are tried left-to-right on 429 / json_validate_failed.
     5xx / connection errors bubble up to _extract_full_with_retry for backoff retries.
     """
-    client = _require_groq()
+    client = _require_sambanova()
     ocr_note = (
         "\nATTENTION : texte extrait par OCR, peut contenir des erreurs.\n"
         if source == "ocr" else ""
@@ -459,7 +447,7 @@ CV :
     # ── Tier 1: fast chain (8B) ── no JSON-mode, 4 000-char cap ─────────────
     fast_msgs = [{"role": "user", "content": prompt_base + text[:4000]}]
     try:
-        raw = await _call_groq(_extraction_fast_clients, settings.groq_fast_models, fast_msgs,
+        raw = await _call_groq(_extraction_fast_clients, settings.sambanova_fast_models, fast_msgs,
                                use_json_format=False, label="fast")
         try:
             return _build_cv_result(_parse_cv_json(raw))
@@ -474,7 +462,7 @@ CV :
 
     # ── Tier 2: smart chain (70B) ── JSON-mode, full text ────────────────────
     smart_msgs = [{"role": "user", "content": prompt_base + text[:12000]}]
-    raw = await _call_groq(_extraction_clients, settings.groq_smart_models, smart_msgs,
+    raw = await _call_groq(_extraction_clients, settings.sambanova_smart_models, smart_msgs,
                            use_json_format=True, label="smart")
     return _build_cv_result(_parse_cv_json(raw))
 
@@ -522,7 +510,7 @@ async def _extract_full_with_retry(text: str, source: str, filename: str, max_re
             if _is_transient_error(e):
                 wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
                 logger.warning(
-                    "Transient Groq error on '%s' [%s] — retrying in %ds (attempt %d/%d): %s",
+                    "Transient Cerebras error on '%s' [%s] — retrying in %ds (attempt %d/%d): %s",
                     filename, type(e).__name__, wait, attempt + 1, max_retries, str(e)[:120],
                 )
                 await asyncio.sleep(wait)
@@ -542,7 +530,7 @@ async def extract_cv_full(file: UploadFile = File(...)):
     Full CV extraction used for bulk import from job postings.
     Returns raw text + all structured fields including name and contact info.
     """
-    if not settings.groq_api_key:
+    if not settings.sambanova_api_key:
         return {"cv_text": "", "first_name": None, "last_name": None, "email": None,
                 "phone": None, "skills": [], "experience_years": None,
                 "education": None, "current_position": None, "location": None}
@@ -568,7 +556,7 @@ async def extract_job_posting(file: UploadFile = File(...)):
     Extracts structured requirements from an uploaded job posting / fiche de poste document.
     Returns skills, tools, education, experience, missions, and formatted description/requirements.
     """
-    if not settings.groq_api_key:
+    if not settings.sambanova_api_key:
         return ExtractJobPostingResponse()
     try:
         content = await file.read()
@@ -577,7 +565,7 @@ async def extract_job_posting(file: UploadFile = File(...)):
         logger.info("Job posting extraction '%s' via %s — %d chars", filename, method, len(text))
         if not text.strip():
             raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du document.")
-        client = _require_groq()
+        client = _require_sambanova()
         prompt = f"""Tu es un expert RH. Analyse cette fiche de poste et extrait les informations structurées.
 
 Retourne UNIQUEMENT un objet JSON valide :
@@ -606,7 +594,7 @@ Fiche de poste :
 {text[:10000]}
 """
         response = await client.chat.completions.create(
-            model=settings.groq_model_smart,
+            model=settings.sambanova_model_smart,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             response_format={"type": "json_object"},
@@ -651,7 +639,7 @@ Fiche de poste :
 @app.post("/generate-description", response_model=GenerateDescriptionResponse)
 async def generate_description(req: GenerateDescriptionRequest):
     """Generates a job posting description and requirements using Groq Llama."""
-    client = _require_groq()
+    client = _require_sambanova()
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:
         context_parts.append(f"Département : {req.department}")
@@ -677,7 +665,7 @@ La description doit être motivante, claire et professionnelle. Les exigences do
 """
     try:
         response = await client.chat.completions.create(
-            model=settings.groq_model_smart,
+            model=settings.sambanova_model_smart,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             response_format={"type": "json_object"},
@@ -695,7 +683,7 @@ La description doit être motivante, claire et professionnelle. Les exigences do
 @app.post("/generate-interview-questions", response_model=GenerateInterviewQuestionsResponse)
 async def generate_interview_questions(req: GenerateInterviewQuestionsRequest):
     """Generates tailored interview questions using Groq Llama fast."""
-    client = _require_groq()
+    client = _require_sambanova()
     context_parts = [f"Poste : {req.job_title}"]
     if req.job_description:
         context_parts.append(f"Description : {req.job_description[:500]}")
@@ -731,7 +719,7 @@ Retourne UNIQUEMENT ce JSON :
 """
     try:
         response = await client.chat.completions.create(
-            model=settings.groq_model_fast,
+            model=settings.sambanova_model_fast,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             response_format={"type": "json_object"},
@@ -766,7 +754,7 @@ async def generate_fiche_fonction(req: GenerateFicheFonctionRequest):
     The behavioral competencies are standard and hardcoded in the Java export layer.
     This endpoint only generates the variable content specific to the position.
     """
-    client = _require_groq()
+    client = _require_sambanova()
 
     context_parts = [f"Titre du poste : {req.title}"]
     if req.department:    context_parts.append(f"Département : {req.department}")
@@ -873,7 +861,7 @@ Règles strictes :
 
     try:
         response = await client.chat.completions.create(
-            model=settings.groq_model_smart,
+            model=settings.sambanova_model_smart,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             response_format={"type": "json_object"},
@@ -941,8 +929,8 @@ async def generate_checklist(req: GenerateChecklistRequest):
     Uses Groq (Llama) for context-aware personalisation.
     Falls back to the standard Ventec list if Groq is not configured or fails.
     """
-    if not _groq_client:
-        logger.warning("Groq API key not set — returning default checklist")
+    if not _sambanova_client:
+        logger.warning("Cerebras API key not set — returning default checklist")
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
 
     context = (req.job_title + " " + (req.department or "")).lower()
@@ -1019,9 +1007,9 @@ Format JSON attendu :
 }}"""
 
     try:
-        client = _require_groq()
+        client = _require_sambanova()
         response = await client.chat.completions.create(
-            model=settings.groq_model_fast,
+            model=settings.sambanova_model_fast,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.1,
@@ -1042,5 +1030,5 @@ Format JSON attendu :
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Groq checklist generation failed: %s — returning default", e)
+        logger.error("Cerebras checklist generation failed: %s — returning default", e)
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])

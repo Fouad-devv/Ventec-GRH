@@ -181,35 +181,43 @@ def _eliminatory_check(
 
     return None
 
+_SAMBANOVA_BASE = "https://api.sambanova.ai/v1"
+_SAMBANOVA_TIMEOUT = 120.0
+
 client = AsyncOpenAI(
-    api_key=settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+    api_key=settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
+    timeout=_SAMBANOVA_TIMEOUT,
 )
 
-# Scoring accounts (key3, key4, key5) — separate from extraction (key1, key2)
+# Scoring accounts (key3, key4, key5, key6) — separate from extraction (key1, key2)
 scoring_client = AsyncOpenAI(
-    api_key=settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+    api_key=settings.sambanova_api_key3 or settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
+    timeout=_SAMBANOVA_TIMEOUT,
 )
 
 scoring_client2 = AsyncOpenAI(
-    api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+    api_key=settings.sambanova_api_key4 or settings.sambanova_api_key3 or settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
+    timeout=_SAMBANOVA_TIMEOUT,
 )
 
 scoring_client3 = AsyncOpenAI(
-    api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+    api_key=settings.sambanova_api_key5 or settings.sambanova_api_key4 or settings.sambanova_api_key3 or settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
+    timeout=_SAMBANOVA_TIMEOUT,
 )
 
 scoring_client4 = AsyncOpenAI(
-    api_key=settings.groq_api_key6 or settings.groq_api_key5 or settings.groq_api_key3 or settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
+    api_key=settings.sambanova_api_key6 or settings.sambanova_api_key5 or settings.sambanova_api_key3 or settings.sambanova_api_key,
+    base_url=_SAMBANOVA_BASE,
     max_retries=0,
+    timeout=_SAMBANOVA_TIMEOUT,
 )
 
 # ─── Multi-model fallback helpers ─────────────────────────────────────────────
@@ -240,7 +248,7 @@ def _parse_score_json(raw: str) -> dict:
 
 
 async def _call_groq_scoring(messages: list, label: str = "") -> str:
-    """Try key2 models first, then key3 models automatically when key2 quota is exhausted."""
+    """Try scoring keys (key3→key4→key5→key6) with Cerebras models, rotate on rate limit."""
     chains = [
         ("key3", scoring_client),
         ("key4", scoring_client2),
@@ -249,7 +257,7 @@ async def _call_groq_scoring(messages: list, label: str = "") -> str:
     ]
     last_error: Exception = RuntimeError(f"[scoring:{label}] all scoring chains exhausted")
     for chain_name, chain_client in chains:
-        for model in settings.groq_scoring_models:
+        for model in settings.sambanova_scoring_models:
             try:
                 resp = await chain_client.chat.completions.create(
                     model=model,
@@ -257,7 +265,7 @@ async def _call_groq_scoring(messages: list, label: str = "") -> str:
                     temperature=0.0,
                     response_format={"type": "json_object"},
                 )
-                if chain_name != "key2" or model != settings.groq_smart_models[0]:
+                if chain_name != "key3" or model != settings.sambanova_scoring_models[0]:
                     logger.info("[scoring:%s] succeeded with %s/%s", label, chain_name, model)
                 return resp.choices[0].message.content
             except Exception as e:
@@ -354,7 +362,7 @@ async def score_candidate(
     """
     Returns {"candidate_id": ..., "score": float, "summary": str}
     """
-    if not settings.groq_api_key:
+    if not settings.sambanova_api_key:
         return {
             "candidate_id": candidate_id,
             "score": 50.0,
