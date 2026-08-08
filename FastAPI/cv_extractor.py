@@ -271,6 +271,29 @@ def extract_text_from_pdf(content: bytes) -> tuple[str, str]:
     return _clean_text(raw_text), "pdfplumber"
 
 
+def _extract_with_docx(content: bytes) -> str:
+    """
+    Extract plain text from a .docx file using python-docx.
+    Reads paragraphs and table cells so no content is missed.
+    """
+    from docx import Document
+
+    doc = Document(io.BytesIO(content))
+    parts: list[str] = []
+
+    for para in doc.paragraphs:
+        if para.text.strip():
+            parts.append(para.text.strip())
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.text.strip():
+                    parts.append(cell.text.strip())
+
+    return "\n".join(parts)
+
+
 def extract_text_from_bytes(content: bytes, filename: str) -> tuple[str, str]:
     """
     Extract text from an uploaded file.
@@ -279,11 +302,29 @@ def extract_text_from_bytes(content: bytes, filename: str) -> tuple[str, str]:
         (text, method) — method identifies the extraction path used.
 
     Supported formats:
-        .pdf  → native extraction (pdfplumber) or OCR (pytesseract) automatically
-        other → UTF-8 decode (plain text, .txt, etc.)
+        .pdf        → pdfplumber (native) or pytesseract (OCR)
+        .docx       → python-docx
+        .doc        → python-docx attempt (works for most modern .doc files)
+        other       → UTF-8 decode (plain text, .txt, etc.)
     """
-    if filename.lower().endswith(".pdf"):
+    lower = filename.lower()
+
+    if lower.endswith(".pdf"):
         return extract_text_from_pdf(content)
+
+    if lower.endswith(".docx"):
+        try:
+            return _clean_text(_extract_with_docx(content)), "docx"
+        except Exception as e:
+            logger.error("DOCX extraction failed: %s", e)
+            return "", "docx"
+
+    if lower.endswith(".doc"):
+        try:
+            return _clean_text(_extract_with_docx(content)), "doc"
+        except Exception as e:
+            logger.warning("DOC extraction failed (%s) — legacy .doc binary format may not be supported", e)
+            return "", "doc"
 
     # Plain-text fallback (.txt, .csv, etc.)
     try:
