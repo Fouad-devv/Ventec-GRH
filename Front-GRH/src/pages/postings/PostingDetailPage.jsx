@@ -1006,26 +1006,26 @@ export const PostingDetailPage = () => {
                 )}
               </div>
               {applications.length > 0 && (
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex flex-col gap-1.5 shrink-0 w-32">
+                  <button
+                    onClick={() => setConfirmDeleteAll(true)}
+                    title="Supprimer toutes les candidatures"
+                    className="w-full flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                  >
+                    <MdDelete className="w-3.5 h-3.5 shrink-0" />
+                    <span>Tout supprimer</span>
+                  </button>
                   <button
                     onClick={() => { setSelectionMode((v) => !v); setSelectedApps(new Set()); }}
                     title={selectionMode ? 'Annuler la sélection' : 'Sélectionner des candidatures'}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                    className={`w-full flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       selectionMode
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                         : 'border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     <MdCheck className="w-3.5 h-3.5 shrink-0" />
-                    <span className="hidden sm:inline">{selectionMode ? 'Annuler' : 'Sélectionner'}</span>
-                  </button>
-                  <button
-                    onClick={() => setConfirmDeleteAll(true)}
-                    title="Supprimer toutes les candidatures"
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors whitespace-nowrap"
-                  >
-                    <MdDelete className="w-3.5 h-3.5 shrink-0" />
-                    <span className="hidden sm:inline">Tout supprimer</span>
+                    <span>{selectionMode ? 'Annuler' : 'Sélectionner'}</span>
                   </button>
                 </div>
               )}
