@@ -226,6 +226,9 @@ const UsersTab = ({ api }) => {
   const [deleteUser, setDeleteUser] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
 
+  const [search, setSearch]         = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+
   const [selectionMode, setSelectionMode]               = useState(false);
   const [selectedIds, setSelectedIds]                   = useState(new Set());
   const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
@@ -286,7 +289,7 @@ const UsersTab = ({ api }) => {
   };
 
   const handleDeleteAll = async () => {
-    const items = [...users];
+    const items = [...filtered];
     setDeletingBulk(true);
     try {
       await Promise.all(items.map((u) => api.deleteUser(u.id)));
@@ -300,7 +303,16 @@ const UsersTab = ({ api }) => {
     }
   };
 
-  const allSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
+  const filtered = users.filter((u) => {
+    const q = search.toLowerCase();
+    const matchSearch = !q ||
+      `${u.firstName ?? ''} ${u.lastName ?? ''}`.toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q);
+    const matchRole = !roleFilter || u.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  const allSelected = filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -312,33 +324,52 @@ const UsersTab = ({ api }) => {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {users.length} utilisateur{users.length !== 1 ? 's' : ''}
+          {filtered.length} utilisateur{filtered.length !== 1 ? 's' : ''}
         </p>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => setConfirmDeleteAll(true)}
-              disabled={users.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <MdDelete className="w-3.5 h-3.5" /> Tout supprimer
-            </button>
-            <button
-              onClick={() => { setSelectionMode((v) => !v); setSelectedIds(new Set()); }}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                selectionMode
-                  ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
-                  : 'border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              <MdCheck className="w-3.5 h-3.5" /> Sélectionner
-            </button>
-          </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
+        >
+          <MdPersonAdd className="w-4 h-4" /> Ajouter un utilisateur
+        </button>
+      </div>
+
+      <div className="flex gap-3 mb-4 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Nom ou email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Tous les rôles</option>
+          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <div className="flex gap-1.5">
           <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
+            onClick={() => setConfirmDeleteAll(true)}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <MdPersonAdd className="w-4 h-4" /> Ajouter un utilisateur
+            <MdDelete className="w-3.5 h-3.5" /> Tout supprimer
+          </button>
+          <button
+            onClick={() => { setSelectionMode((v) => !v); setSelectedIds(new Set()); }}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+              selectionMode
+                ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                : 'border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <MdCheck className="w-3.5 h-3.5" /> Sélectionner
           </button>
         </div>
       </div>
@@ -356,7 +387,7 @@ const UsersTab = ({ api }) => {
                 {selectedIds.size} sélectionné{selectedIds.size !== 1 ? 's' : ''}
               </span>
               <button
-                onClick={() => setSelectedIds(allSelected ? new Set() : new Set(users.map((u) => u.id)))}
+                onClick={() => setSelectedIds(allSelected ? new Set() : new Set(filtered.map((u) => u.id)))}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
               >
                 {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
@@ -389,7 +420,11 @@ const UsersTab = ({ api }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {users.map((u) => {
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={selectionMode ? 6 : 6} className="text-center py-10 text-slate-400">Aucun utilisateur trouvé</td>
+                  </tr>
+                ) : filtered.map((u) => {
                   const isSelected = selectedIds.has(u.id);
                   return (
                     <tr
@@ -512,7 +547,7 @@ const UsersTab = ({ api }) => {
               <h3 className="font-semibold text-slate-900 dark:text-white">Supprimer tous les utilisateurs</h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-              Supprimer <span className="font-semibold text-slate-900 dark:text-white">{users.length} utilisateur{users.length !== 1 ? 's' : ''}</span> ?
+              Supprimer <span className="font-semibold text-slate-900 dark:text-white">{filtered.length} utilisateur{filtered.length !== 1 ? 's' : ''}</span> affiché{filtered.length !== 1 ? 's' : ''} ?
             </p>
             <p className="text-xs text-red-500 mb-5">Cette action est irréversible et supprime aussi les comptes Keycloak associés.</p>
             <div className="flex gap-2 justify-end">
