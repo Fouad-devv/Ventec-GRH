@@ -153,7 +153,7 @@ export const PostingsPage = () => {
       {showCreate && (
         <CreatePostingModal
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); load(); }}
+          onCreated={(id) => { setShowCreate(false); navigate(`/app/postings/${id}`); }}
           axios={axios}
         />
       )}

@@ -60,7 +60,7 @@ public class PostingService {
                 .maxAge(req.maxAge())
                 .freeFilterPrompt(req.freeFilterPrompt())
                 .deadline(req.deadline())
-                .status("DRAFT")
+                .status("PUBLISHED")
                 .createdBy(user)
                 .build();
         return toResponse(jobPostingRepository.save(posting));

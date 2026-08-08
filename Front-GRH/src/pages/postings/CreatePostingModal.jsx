@@ -82,7 +82,7 @@ export const CreatePostingModal = ({ onClose, onCreated, axios }) => {
       }
 
       showToast('Offre créée avec succès');
-      onCreated();
+      onCreated(postingId);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la création.');
       showToast('Erreur lors de la création de l\'offre', 'error');
