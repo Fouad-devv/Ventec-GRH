@@ -95,6 +95,17 @@ public class ApplicationService {
         // Auto-generate document checklist when candidate is hired
         if ("HIRED".equals(req.status()) && !"HIRED".equals(previousStatus)) {
             triggerChecklistGeneration(app);
+            // Complete any scheduled interview when candidate is hired
+            try {
+                interviewRepository.findByApplicationId(app.getId()).stream()
+                        .filter(i -> "SCHEDULED".equals(i.getStatus()))
+                        .forEach(i -> {
+                            i.setStatus("COMPLETED");
+                            interviewRepository.save(i);
+                        });
+            } catch (Exception e) {
+                log.warn("Failed to complete interview for hired application {}: {}", id, e.getMessage());
+            }
         }
 
         // Notify manager when candidate is shortlisted
