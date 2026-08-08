@@ -759,36 +759,73 @@ export const PostingDetailPage = () => {
               </button>
             </>
           )}
-          <button
-            onClick={async () => {
-              setGeneratingFiche(true);
-              try {
-                const res = await pApi.exportFicheFonction(id);
-                const url = URL.createObjectURL(res.data);
-                Object.assign(document.createElement('a'), { href: url, download: `fiche-fonction-${id}.docx` }).click();
-                URL.revokeObjectURL(url);
-              } finally {
-                setGeneratingFiche(false);
-              }
-            }}
-            disabled={generatingFiche}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {generatingFiche ? (
-              <>
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Génération en cours…
-              </>
-            ) : (
-              <>
-                <MdAutoAwesome className="w-4 h-4" />
-                Fiche de fonction
-              </>
-            )}
-          </button>
+          {posting.ficheFonctionPath ? (
+            <button
+              onClick={async () => {
+                setGeneratingFiche(true);
+                try {
+                  const res = await pApi.exportFicheFonction(id);
+                  const disposition = res.headers?.['content-disposition'] || '';
+                  const match = disposition.match(/filename="?([^"]+)"?/);
+                  const ext = posting.ficheFonctionPath?.split('.').pop() || 'pdf';
+                  const filename = match ? match[1] : `fiche-fonction-${id}.${ext}`;
+                  const url = URL.createObjectURL(res.data);
+                  Object.assign(document.createElement('a'), { href: url, download: filename }).click();
+                  URL.revokeObjectURL(url);
+                } finally {
+                  setGeneratingFiche(false);
+                }
+              }}
+              disabled={generatingFiche}
+              className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {generatingFiche ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Téléchargement…
+                </>
+              ) : (
+                <>
+                  <MdDownload className="w-4 h-4" />
+                  Exporter la fiche
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                setGeneratingFiche(true);
+                try {
+                  const res = await pApi.exportFicheFonction(id);
+                  const url = URL.createObjectURL(res.data);
+                  Object.assign(document.createElement('a'), { href: url, download: `fiche-fonction-${id}.docx` }).click();
+                  URL.revokeObjectURL(url);
+                } finally {
+                  setGeneratingFiche(false);
+                }
+              }}
+              disabled={generatingFiche}
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {generatingFiche ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Génération en cours…
+                </>
+              ) : (
+                <>
+                  <MdAutoAwesome className="w-4 h-4" />
+                  Fiche de fonction
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setConfirmDelete(true)}
             className="p-2 rounded-xl border border-red-200 dark:border-red-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"

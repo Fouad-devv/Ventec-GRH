@@ -11,6 +11,7 @@ import com.ventec.grh_backend.DTO.response.PostingHistoryResponse;
 import com.ventec.grh_backend.service.AiServiceClient;
 import com.ventec.grh_backend.service.ExportService;
 import com.ventec.grh_backend.service.PostingService;
+import com.ventec.grh_backend.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,7 +19,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.core.io.Resource;
 import jakarta.validation.Valid;
+import java.nio.file.Paths;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +45,7 @@ public class PostingController {
     private final PostingService postingService;
     private final AiServiceClient aiServiceClient;
     private final ExportService exportService;
+    private final StorageService storageService;
 
     @Operation(summary = "Historique des offres", description = "Liste toutes les offres avec leur historique de statut")
     @GetMapping("/history")
@@ -129,10 +133,31 @@ public class PostingController {
         return ResponseEntity.ok(postingService.duplicatePosting(id, auth));
     }
 
-    @Operation(summary = "Exporter la fiche de fonction en DOCX",
-               description = "Télécharge la fiche de fonction générée par l'IA ou uploadée manuellement au format Word. Requiert qu'une fiche soit déjà attachée à l'offre")
+    @Operation(summary = "Exporter la fiche de fonction",
+               description = "Retourne le fichier importé si disponible, sinon génère un DOCX via l'IA.")
     @GetMapping("/{id}/export/fiche-fonction")
     public ResponseEntity<byte[]> exportFicheFonction(@Parameter(description = "ID de l'offre") @PathVariable UUID id) {
+        String path = postingService.getPosting(id).ficheFonctionPath();
+        if (path != null) {
+            try {
+                Resource resource = storageService.loadAsResource(path);
+                String rawName = Paths.get(path).getFileName().toString();
+                // Strip the UUID prefix added by StorageService (uuid_originalname)
+                String filename = rawName.contains("_") ? rawName.substring(rawName.indexOf('_') + 1) : rawName;
+                String lower = path.toLowerCase();
+                MediaType mediaType = lower.endsWith(".pdf")  ? MediaType.APPLICATION_PDF
+                        : lower.endsWith(".docx") ? MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                        : lower.endsWith(".doc")  ? MediaType.parseMediaType("application/msword")
+                        : MediaType.APPLICATION_OCTET_STREAM;
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                        .contentType(mediaType)
+                        .body(resource.getInputStream().readAllBytes());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read stored fiche de fonction", e);
+            }
+        }
+        // No stored file — generate with AI
         byte[] content = exportService.exportFicheFonctionDocx(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
