@@ -531,6 +531,7 @@ export const PostingDetailPage = () => {
           appApi.getByPosting(id)
             .then((r) => setApplications(r.data || []))
             .catch(console.error);
+          setTimeout(() => setActiveFilterJob(null), 5000);
         }
       } catch (e) {
         console.error('Filter poll error:', e);
@@ -816,22 +817,30 @@ export const PostingDetailPage = () => {
             </div>
           </div>
         ) : activeFilterJob.status === 'DONE' ? (
-          <div className="flex items-center gap-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4 shadow-sm">
-            <MdCheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
-                Filtrage terminé
-              </p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-                Les candidats ont été classés et les statuts mis à jour automatiquement.
-              </p>
+          <div className="overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 shadow-sm">
+            <div className="flex items-center gap-4 p-4">
+              <MdCheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                  Filtrage terminé
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  Les candidats ont été classés et les statuts mis à jour automatiquement.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveFilterJob(null)}
+                className="p-1 rounded-lg text-emerald-400 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors shrink-0"
+              >
+                <MdClose className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setActiveFilterJob(null)}
-              className="p-1 rounded-lg text-emerald-400 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors shrink-0"
-            >
-              <MdClose className="w-4 h-4" />
-            </button>
+            <div className="h-1 bg-emerald-100 dark:bg-emerald-900">
+              <div
+                className="h-full bg-emerald-400 dark:bg-emerald-500"
+                style={{ animation: 'shrink-progress 5s linear forwards' }}
+              />
+            </div>
           </div>
         ) : activeFilterJob.status === 'FAILED' ? (
           <div className="flex items-center gap-4 rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 shadow-sm">

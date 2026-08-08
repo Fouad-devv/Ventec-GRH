@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@keyframes shrink-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
 .dot-pattern {
   background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.06) 1px, transparent 0);
   background-size: 28px 28px;
