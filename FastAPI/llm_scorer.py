@@ -184,7 +184,90 @@ def _eliminatory_check(
 client = AsyncOpenAI(
     api_key=settings.groq_api_key,
     base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
 )
+
+# Scoring accounts (key3, key4, key5) — separate from extraction (key1, key2)
+scoring_client = AsyncOpenAI(
+    api_key=settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+)
+
+scoring_client2 = AsyncOpenAI(
+    api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+)
+
+scoring_client3 = AsyncOpenAI(
+    api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+)
+
+scoring_client4 = AsyncOpenAI(
+    api_key=settings.groq_api_key6 or settings.groq_api_key5 or settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+)
+
+# ─── Multi-model fallback helpers ─────────────────────────────────────────────
+
+_SKIP_SCORING_SIGNALS = (
+    "429", "rate limit", "too many requests", "rate_limit",
+    "json_validate_failed", "max completion tokens",
+    "decommissioned", "model_decommissioned",
+    "404", "not found", "model_not_found", "does not exist",
+    "402", "payment", "billing", "subscription",
+)
+
+
+def _parse_score_json(raw: str) -> dict:
+    """Extract JSON from LLM scoring response, with regex fallback for truncated output."""
+    raw = raw.strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+    m = re.search(r'\{[^{}]*"score"[^{}]*\}', raw, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group())
+        except json.JSONDecodeError:
+            pass
+    raise json.JSONDecodeError("No valid JSON found in scoring response", raw, 0)
+
+
+async def _call_groq_scoring(messages: list, label: str = "") -> str:
+    """Try key2 models first, then key3 models automatically when key2 quota is exhausted."""
+    chains = [
+        ("key3", scoring_client),
+        ("key4", scoring_client2),
+        ("key5", scoring_client3),
+        ("key6", scoring_client4),
+    ]
+    last_error: Exception = RuntimeError(f"[scoring:{label}] all scoring chains exhausted")
+    for chain_name, chain_client in chains:
+        for model in settings.groq_scoring_models:
+            try:
+                resp = await chain_client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0.0,
+                    response_format={"type": "json_object"},
+                )
+                if chain_name != "key2" or model != settings.groq_smart_models[0]:
+                    logger.info("[scoring:%s] succeeded with %s/%s", label, chain_name, model)
+                return resp.choices[0].message.content
+            except Exception as e:
+                if any(sig in str(e).lower() for sig in _SKIP_SCORING_SIGNALS):
+                    logger.warning("[scoring:%s] Skipping %s/%s — %s", label, chain_name, model, str(e)[:120])
+                    last_error = e
+                    continue
+                raise
+    raise last_error
+
 
 SYSTEM_PROMPT = """Tu es un assistant RH STRICT chargé d'évaluer des candidats pour Ventec Maroc.
 
@@ -396,17 +479,14 @@ async def score_candidate(
 CONTENU DU CV (informations personnelles supprimées) :
 {cv_text[:6000]}"""
 
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
+
     try:
-        response = await client.chat.completions.create(
-            model=settings.groq_model_smart,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.0,
-            response_format={"type": "json_object"},
-        )
-        data = json.loads(response.choices[0].message.content)
+        raw = await _call_groq_scoring(messages, label=candidate_id)
+        data = _parse_score_json(raw)
         score = float(data.get("score", 50))
         summary = str(data.get("summary", ""))
 
@@ -476,17 +556,19 @@ async def score_multiple_candidates(
     Returns: [{"candidate_id": str, "score": float, "summary": str}, ...]
     """
     import asyncio
-    tasks = [
-        score_candidate(
-            cv_text=c.get("cv_text", ""),
-            job_description=job_description,
-            requirements=requirements,
-            candidate_id=c["candidate_id"],
-            extracted_job_data=extracted_job_data,
-            free_filter_prompt=free_filter_prompt,
-            experience_years=c.get("experience_years"),
-            min_experience=min_experience,
-        )
-        for c in candidates
-    ]
-    return await asyncio.gather(*tasks)
+    sem = asyncio.Semaphore(10)
+
+    async def _score_with_sem(c: dict) -> dict:
+        async with sem:
+            return await score_candidate(
+                cv_text=c.get("cv_text", ""),
+                job_description=job_description,
+                requirements=requirements,
+                candidate_id=c["candidate_id"],
+                extracted_job_data=extracted_job_data,
+                free_filter_prompt=free_filter_prompt,
+                experience_years=c.get("experience_years"),
+                min_experience=min_experience,
+            )
+
+    return await asyncio.gather(*[_score_with_sem(c) for c in candidates])

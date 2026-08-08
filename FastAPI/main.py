@@ -155,7 +155,40 @@ async def _send_callback(url: str, status: str, results: list, error_message: st
 _groq_client = AsyncOpenAI(
     api_key=settings.groq_api_key,
     base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
 ) if settings.groq_api_key else None
+
+# Second Groq account for extraction — separate TPM limits
+_groq_client2 = AsyncOpenAI(
+    api_key=settings.groq_api_key2 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+) if settings.groq_api_key else None
+
+# key3/key4/key5 — dedicated to Tier-1 fast extraction (llama-3.1-8b-instant only)
+_groq_client3 = AsyncOpenAI(
+    api_key=settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+) if settings.groq_api_key else None
+
+_groq_client4 = AsyncOpenAI(
+    api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+) if settings.groq_api_key else None
+
+_groq_client5 = AsyncOpenAI(
+    api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+    max_retries=0,
+) if settings.groq_api_key else None
+
+# Tier-1 fast extraction: key1+key2+key3+key4+key5 (8B models only)
+_extraction_fast_clients = [c for c in [_groq_client, _groq_client2, _groq_client3, _groq_client4, _groq_client5] if c is not None]
+
+# Tier-2 smart extraction: key1+key2 only (70B models, JSON-mode)
+_extraction_clients = [c for c in [_groq_client, _groq_client2] if c is not None]
 
 
 def _require_groq():
@@ -297,6 +330,15 @@ async def extract_cv_file(file: UploadFile = File(...)):
 
 _JSON_BLOCK_RE = re.compile(r'\{[\s\S]*\}')
 
+# Errors that mean "this model can't serve the request right now — try the next one"
+_SKIP_MODEL_SIGNALS = (
+    "429", "rate limit", "too many requests", "rate_limit",
+    "json_validate_failed", "max completion tokens",
+    "decommissioned", "model_decommissioned",
+    "404", "not found", "model_not_found", "does not exist",
+    "402", "payment", "billing", "subscription",
+)
+
 
 def _parse_cv_json(raw: str) -> dict:
     """Parse JSON from a Groq response, with markdown-fence fallback."""
@@ -326,23 +368,68 @@ def _build_cv_result(data: dict) -> dict:
     }
 
 
+async def _call_groq(
+    client,
+    models: list,
+    messages: list,
+    use_json_format: bool = False,
+    label: str = "",
+) -> str:
+    """
+    Try each model across all clients in sequence.
+    client can be a single AsyncOpenAI instance or a list of instances.
+    Moves to the next model/client on 429, decommissioned, or not_found.
+    Re-raises immediately on 5xx / connection errors.
+    """
+    clients = client if isinstance(client, list) else [client]
+    last_error: Exception = RuntimeError(f"[{label}] all extraction chains exhausted")
+    for i, c in enumerate(clients):
+        key_label = f"key{i + 1}"
+        for model in models:
+            try:
+                kwargs: dict = {"model": model, "messages": messages, "temperature": 0.0}
+                if use_json_format:
+                    kwargs["response_format"] = {"type": "json_object"}
+                resp = await c.chat.completions.create(**kwargs)
+                if i > 0 or model != models[0]:
+                    logger.info("[%s] CV extraction succeeded with %s/%s", label, key_label, model)
+                return resp.choices[0].message.content
+            except Exception as e:
+                e_lower = str(e).lower()
+                if any(sig in e_lower for sig in _SKIP_MODEL_SIGNALS):
+                    logger.warning("[%s] Skipping %s/%s — %s", label, key_label, model, str(e)[:120])
+                    last_error = e
+                    continue
+                raise
+    raise last_error
+
+
 async def _run_cv_extraction_full(text: str, source: str = "native") -> dict:
     """
-    Extended CV extraction: name, email, phone + standard fields.
-    Uses the fast model (8B) for all CVs — cheap and fast.
-    Falls back to the smart model (70B) ONLY if the fast model returns
-    unparseable JSON (rare, only for very complex/garbled CVs).
-    Transient API errors (429, 5xx, timeouts) bubble up to
-    _extract_full_with_retry which handles retries.
+    Full CV extraction with a two-tier multi-model fallback chain.
+
+    Tier 1 — fast (8B class), no JSON-mode, input capped at 4 000 chars:
+      llama-3.1-8b-instant → gemma2-9b-it → llama3-8b-8192 → llama-3.2-11b-vision-preview
+
+    Tier 2 — smart (70B class), JSON-mode, full text — only if Tier 1 returns
+    unparseable JSON (rare; happens for very rich/long CVs):
+      llama-3.3-70b-versatile → llama-3.3-70b-specdec → deepseek-r1-distill-llama-70b → qwen-qwq-32b
+
+    Within each tier, models are tried left-to-right on 429 / json_validate_failed.
+    5xx / connection errors bubble up to _extract_full_with_retry for backoff retries.
     """
     client = _require_groq()
-    ocr_note = ""
-    if source == "ocr":
-        ocr_note = "\nATTENTION : texte extrait par OCR, peut contenir des erreurs.\n"
-    prompt = f"""Tu es un expert RH en analyse de CVs. Extrait les informations suivantes.
-{ocr_note}
+    ocr_note = (
+        "\nATTENTION : texte extrait par OCR, peut contenir des erreurs.\n"
+        if source == "ocr" else ""
+    )
+
+    prompt_base = (
+        "Tu es un expert RH en analyse de CVs. Extrait les informations suivantes.\n"
+        + ocr_note
+        + """
 Retourne UNIQUEMENT un objet JSON valide :
-{{
+{
   "first_name": "<prénom ou null>",
   "last_name": "<nom de famille ou null>",
   "email": "<adresse email valide contenant @ ou null — NE JAMAIS mettre un lien LinkedIn, URL ou numéro de téléphone>",
@@ -352,7 +439,7 @@ Retourne UNIQUEMENT un objet JSON valide :
   "education": "<diplôme le plus élevé ou null>",
   "current_position": "<dernier poste occupé ou null>",
   "location": "<ville/pays ou null>"
-}}
+}
 Règles strictes :
 - skills : max 15, sans doublons
 - experience_years : UNIQUEMENT les années d'expérience professionnelle RÉMUNÉRÉE (CDI, CDD, contrat permanent, freelance). NE PAS compter : stages (stage d'initiation, PFE, stage de fin d'études), projets académiques, activités associatives/clubs, bénévolat, projets personnels. Un candidat encore en formation qui a seulement effectué des stages → experience_years = 0.
@@ -366,46 +453,29 @@ EXEMPLES CRITIQUES pour experience_years :
 • Étudiant avec PFE + clubs + projets académiques → experience_years: 0
 
 CV :
-{text[:12000]}
 """
-    # ── Step 1: fast model (8B) — no response_format ────────────────────────
-    # Groq's JSON enforcement (response_format) can trigger json_validate_failed
-    # for long CVs when the model's completion budget runs out before the JSON
-    # closes. Dropping response_format avoids this entirely; _parse_cv_json
-    # recovers JSON from raw text via regex.
-    # We also cap input at 4 000 chars — enough to cover any CV's critical
-    # section (name, contact, skills, first experience) without overwhelming
-    # the small model.
-    fast_prompt = prompt.replace(f"{text[:12000]}", f"{text[:4000]}", 1)
+    )
+
+    # ── Tier 1: fast chain (8B) ── no JSON-mode, 4 000-char cap ─────────────
+    fast_msgs = [{"role": "user", "content": prompt_base + text[:4000]}]
     try:
-        response = await client.chat.completions.create(
-            model=settings.groq_model_fast,
-            messages=[{"role": "user", "content": fast_prompt}],
-            temperature=0.0,
-        )
-        raw = response.choices[0].message.content
+        raw = await _call_groq(_extraction_fast_clients, settings.groq_fast_models, fast_msgs,
+                               use_json_format=False, label="fast")
         try:
             return _build_cv_result(_parse_cv_json(raw))
         except _json.JSONDecodeError:
-            logger.warning(
-                "Fast model returned unparseable JSON — falling back to smart model. "
-                "Preview: %s", raw[:200],
-            )
-    except Exception as e:
-        e_str = str(e)
-        if "json_validate_failed" in e_str or "max completion tokens" in e_str.lower():
-            logger.warning("Fast model hit JSON token limit — falling back to smart model: %s", e_str[:150])
+            logger.warning("Tier-1 fast chain returned unparseable JSON — escalating to Tier-2 smart chain")
+    except Exception as fast_err:
+        e_lower = str(fast_err).lower()
+        if any(sig in e_lower for sig in _SKIP_MODEL_SIGNALS):
+            logger.warning("Tier-1 fast chain exhausted (%s) — escalating to Tier-2 smart chain", str(fast_err)[:80])
         else:
-            raise  # 429 / 5xx / connection → _extract_full_with_retry handles retries
+            raise
 
-    # ── Step 2: smart model (70B) — only on JSON failure ─────────────────────
-    response = await client.chat.completions.create(
-        model=settings.groq_model_smart,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.0,
-        response_format={"type": "json_object"},
-    )
-    raw = response.choices[0].message.content
+    # ── Tier 2: smart chain (70B) ── JSON-mode, full text ────────────────────
+    smart_msgs = [{"role": "user", "content": prompt_base + text[:12000]}]
+    raw = await _call_groq(_extraction_clients, settings.groq_smart_models, smart_msgs,
+                           use_json_format=True, label="smart")
     return _build_cv_result(_parse_cv_json(raw))
 
 
