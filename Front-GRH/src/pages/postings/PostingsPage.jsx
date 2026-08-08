@@ -19,7 +19,7 @@ export const PostingsPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(null); // posting object
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = () => {
@@ -104,48 +104,48 @@ export const PostingsPage = () => {
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm min-w-[640px]">
-            <thead className="bg-slate-50 dark:bg-slate-800">
-              <tr>
-                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Titre</th>
-                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Département</th>
-                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Type</th>
-                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Statut</th>
-                <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Date limite</th>
-                <th className="px-3 py-2.5 sm:px-4 sm:py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtered.length === 0 ? (
+            <table className="w-full text-xs sm:text-sm min-w-[640px]">
+              <thead className="bg-slate-50 dark:bg-slate-800">
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-slate-400">Aucune offre trouvée</td>
+                  <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Titre</th>
+                  <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Département</th>
+                  <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Type</th>
+                  <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Statut</th>
+                  <th className="text-left px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 font-medium">Date limite</th>
+                  <th className="px-3 py-2.5 sm:px-4 sm:py-3" />
                 </tr>
-              ) : filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                  onClick={() => navigate(`/app/postings/${p.id}`)}
-                >
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-white">{p.title}</td>
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">{p.department || '—'}</td>
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">{p.contractType || '—'}</td>
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3"><StatusBadge status={p.status} /></td>
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">
-                    {p.deadline ? new Date(p.deadline).toLocaleDateString('fr-FR') : '—'}
-                  </td>
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-right">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(p); }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      title="Supprimer"
-                    >
-                      <MdDelete className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-10 text-slate-400">Aucune offre trouvée</td>
+                  </tr>
+                ) : filtered.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                    onClick={() => navigate(`/app/postings/${p.id}`)}
+                  >
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-white">{p.title}</td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">{p.department || '—'}</td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">{p.contractType || '—'}</td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3"><StatusBadge status={p.status} /></td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400">
+                      {p.deadline ? new Date(p.deadline).toLocaleDateString('fr-FR') : '—'}
+                    </td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(p); }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        title="Supprimer"
+                      >
+                        <MdDelete className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
