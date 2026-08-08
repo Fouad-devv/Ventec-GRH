@@ -526,6 +526,8 @@ export const PostingDetailPage = () => {
         setActiveFilterJob(job);
         if (job.status === 'DONE' || job.status === 'FAILED') {
           stopPolling();
+          // Optimistically clear NEW status so button disables instantly
+          setApplications((prev) => prev.map((a) => a.status === 'NEW' ? { ...a, status: 'SCREENING' } : a));
           appApi.getByPosting(id)
             .then((r) => setApplications(r.data || []))
             .catch(console.error);
@@ -533,7 +535,7 @@ export const PostingDetailPage = () => {
       } catch (e) {
         console.error('Filter poll error:', e);
       }
-    }, 3000);
+    }, 1000);
   };
 
   useEffect(() => () => stopPolling(), []);
@@ -693,6 +695,8 @@ export const PostingDetailPage = () => {
   if (!posting) return <div className="p-6 text-slate-400">Offre introuvable</div>;
 
   const latestFilter = filterJobs[0];
+  const newApps = applications.filter(a => a.status === 'NEW');
+  const isFilterActive = activeFilterJob && ['RUNNING', 'PENDING'].includes(activeFilterJob.status);
   const scoredApps = [...applications].sort((a, b) => (b.aiScore ?? -1) - (a.aiScore ?? -1));
 
   return (
@@ -732,18 +736,19 @@ export const PostingDetailPage = () => {
               </button>
               <button
                 onClick={handleFilter}
-                disabled={filtering}
-                className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors shadow-sm"
+                disabled={filtering || isFilterActive || newApps.length === 0}
+                title={newApps.length === 0 && !isFilterActive ? 'Aucun nouveau candidat à filtrer' : undefined}
+                className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
-                {filtering ? (
+                {(filtering || isFilterActive) ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Filtrage…
+                    Filtrage en cours…
                   </>
                 ) : (
                   <>
                     <MdAutoAwesome className="w-4 h-4" />
-                    Lancer le filtre IA
+                    Lancer le filtre IA{newApps.length > 0 ? ` (${newApps.length})` : ''}
                   </>
                 )}
               </button>
@@ -1243,7 +1248,7 @@ export const PostingDetailPage = () => {
           postingId={id}
           pApi={pApi}
           onClose={() => setImportOpen(false)}
-          onSuccess={() => { load(); }}
+          onSuccess={() => appApi.getByPosting(id).then((r) => setApplications(r.data || [])).catch(console.error)}
         />
       )}
     </div>
