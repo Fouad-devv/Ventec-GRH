@@ -13,8 +13,10 @@ import {
   MdKeyboardArrowDown,
   MdHistory,
   MdEventNote,
+  MdLock,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 const navItems = [
   { to: '/app/dashboard', icon: MdDashboard, label: 'Tableau de bord' },
@@ -38,6 +40,7 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
   const displayRole = hasRole('ADMIN') ? 'Admin' : 'RH';
 
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [tooltip, setTooltip] = useState(null);
 
   useEffect(() => {
@@ -159,8 +162,15 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
                 </p>
               </div>
             </div>
-            {/* Logout */}
-            <div className="px-4 py-3">
+            {/* Actions */}
+            <div className="px-4 py-3 space-y-2">
+              <button
+                onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.10] rounded-xl transition-all duration-200"
+              >
+                <MdLock className="w-4 h-4" />
+                Changer le mot de passe
+              </button>
               <button
                 onClick={logout}
                 className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl transition-all duration-200 shadow-sm shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/40 hover:scale-[1.03] active:scale-[0.97]"
@@ -214,6 +224,11 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
         </button>
 
       </div>
+
+      {/* Change password modal */}
+      {showChangePassword && (
+        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
 
       {/* Fixed tooltip — escapes overflow-hidden */}
       {tooltip && !expanded && (
