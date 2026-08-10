@@ -44,7 +44,7 @@ export const ChangePasswordModal = ({ onClose }) => {
   const api = accountApi(axios);
   const { showToast } = useToast();
 
-  const [form, setForm] = useState({ newPassword: '', confirmPassword: '' });
+  const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -66,6 +66,7 @@ export const ChangePasswordModal = ({ onClose }) => {
     setLoading(true);
     try {
       await api.changePassword({
+        currentPassword: form.currentPassword,
         newPassword: form.newPassword,
         confirmPassword: form.confirmPassword,
       });
@@ -107,6 +108,13 @@ export const ChangePasswordModal = ({ onClose }) => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
           <PasswordField
+            id="currentPassword"
+            label="Mot de passe actuel"
+            value={form.currentPassword}
+            onChange={set('currentPassword')}
+            placeholder="••••••••"
+          />
+          <PasswordField
             id="newPassword"
             label="Nouveau mot de passe"
             value={form.newPassword}
@@ -137,7 +145,7 @@ export const ChangePasswordModal = ({ onClose }) => {
             </button>
             <button
               type="submit"
-              disabled={loading || !form.newPassword || !form.confirmPassword}
+              disabled={loading || !form.currentPassword || !form.newPassword || !form.confirmPassword}
               className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-sm shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Enregistrement…' : 'Enregistrer'}
