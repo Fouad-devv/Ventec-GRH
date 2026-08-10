@@ -26,16 +26,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
-/**
- * Polls the configured Gmail inbox via IMAP and automatically creates
- * candidate + application records from inbound job-application emails.
- *
- * Activation: set EMAIL_POLL_ENABLED=true in .env (disabled by default).
- *
- * For every processed email a record is saved in the email_candidatures table
- * (status: MATCHED | DUPLICATE | NO_MATCH | NO_PDF) so HR can track what the
- * system received and acted on.
- */
 @Service
 @ConditionalOnProperty(name = "email.poll.enabled", havingValue = "true")
 @RequiredArgsConstructor
@@ -65,56 +55,45 @@ public class InboundEmailService {
     private final FilterService              filterService;
     private final ObjectMapper               objectMapper;
 
-    // ── Scheduled polling ────────────────────────────────────────────────────
+    // ── IMAP polling ──────────────────────────────────────────────────────────
 
-    @Scheduled(fixedDelayString = "${email.poll.interval-ms:300000}")
+    @Scheduled(fixedDelayString = "${email.poll.interval-ms:5000}")
     public void pollInbox() {
-        if (imapUser == null || imapUser.isBlank()) {
-            log.warn("[InboundEmail] IMAP_USER not configured — skipping poll");
-            return;
-        }
-
-        List<JobPosting> postings = jobPostingRepository
-                .findByStatus("PUBLISHED", Pageable.unpaged())
-                .getContent();
-
-        if (postings.isEmpty()) {
-            log.debug("[InboundEmail] No published postings — skipping poll");
-            return;
-        }
-
-        Properties props = new Properties();
-        props.put("mail.store.protocol", "imaps");
-        props.put("mail.imaps.ssl.enable", "true");
-        props.put("mail.imaps.connectiontimeout", "15000");
-        props.put("mail.imaps.timeout", "15000");
-
-        Session session = Session.getInstance(props);
+        Store store = null;
+        Folder inbox = null;
         try {
-            Store store = session.getStore("imaps");
+            Properties props = new Properties();
+            props.put("mail.store.protocol", "imaps");
+            props.put("mail.imaps.ssl.enable", "true");
+            props.put("mail.imaps.connectiontimeout", "15000");
+            props.put("mail.imaps.timeout", "15000");
+
+            Session session = Session.getInstance(props);
+            store = session.getStore("imaps");
             store.connect(imapHost, imapPort, imapUser, imapPassword);
-            try {
-                Folder inbox = store.getFolder("INBOX");
-                inbox.open(Folder.READ_WRITE);
-                try {
-                    Message[] messages = inbox.search(
-                            new FlagTerm(new Flags(Flags.Flag.SEEN), false));
-                    log.info("[InboundEmail] {} unseen message(s) to process", messages.length);
-                    for (Message message : messages) {
-                        try {
-                            processMessage(message, postings);
-                        } catch (Exception e) {
-                            log.warn("[InboundEmail] Error on message: {}", e.getMessage());
-                        }
-                    }
-                } finally {
-                    inbox.close(false);
-                }
-            } finally {
-                store.close();
+
+            inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_WRITE);
+
+            Message[] messages = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
+            if (messages.length == 0) return;
+
+            log.info("[InboundEmail] {} unseen message(s) to process", messages.length);
+            List<JobPosting> postings = jobPostingRepository
+                    .findByStatus("PUBLISHED", Pageable.unpaged()).getContent();
+            if (postings.isEmpty()) {
+                log.debug("[InboundEmail] No published postings — skipping");
+                return;
+            }
+            for (Message message : messages) {
+                try { processMessage(message, postings); }
+                catch (Exception e) { log.warn("[InboundEmail] Error on message: {}", e.getMessage()); }
             }
         } catch (Exception e) {
-            log.error("[InboundEmail] IMAP connection failed: {}", e.getMessage());
+            log.warn("[InboundEmail] Poll error: {}", e.getMessage());
+        } finally {
+            if (inbox != null) { try { inbox.close(false); } catch (Exception ignored) {} }
+            if (store  != null) { try { store.close();     } catch (Exception ignored) {} }
         }
     }
 
@@ -140,12 +119,13 @@ public class InboundEmailService {
         String subject = message.getSubject();
         if (subject == null || subject.isBlank()) return;
 
-        // Determine the email's actual received time
+        // Mark SEEN immediately so the next poll doesn't pick it up again
+        message.setFlag(Flags.Flag.SEEN, true);
+
         OffsetDateTime receivedAt = message.getReceivedDate() != null
                 ? message.getReceivedDate().toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime()
                 : OffsetDateTime.now();
 
-        // Extract sender
         Address[] fromAddrs = message.getFrom();
         if (fromAddrs == null || fromAddrs.length == 0) return;
         InternetAddress from = (InternetAddress) fromAddrs[0];
@@ -153,24 +133,19 @@ public class InboundEmailService {
         if (senderEmail == null || senderEmail.isBlank()) return;
         String senderName = from.getPersonal();
 
-        // Pre-filter: silently skip emails from known automated/no-reply senders
         if (!isJobApplicationEmail(senderEmail)) {
             log.debug("[InboundEmail] Skipped automated email from <{}> '{}'", senderEmail, subject);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
-        // Require a PDF — no CV, no processing
         byte[] pdfBytes = extractFirstPdf(message);
         if (pdfBytes == null || pdfBytes.length == 0) {
             log.info("[InboundEmail] No PDF from <{}> '{}' — saved as NO_PDF", senderEmail, subject);
             saveRecord(senderEmail, senderName, subject, "NO_PDF", null,
                     null, null, null, null, receivedAt);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
-        // Build compact posting list for AI matching
         List<Map<String, Object>> postingInfos = postings.stream().map(p -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", p.getId().toString());
@@ -183,7 +158,6 @@ public class InboundEmailService {
             return m;
         }).toList();
 
-        // AI match: which posting does this subject correspond to?
         Map<?, ?> matchResult;
         try {
             matchResult = aiServiceClient.matchPosting(subject, postingInfos).block();
@@ -191,14 +165,12 @@ public class InboundEmailService {
             log.warn("[InboundEmail] AI match error for '{}': {}", subject, e.getMessage());
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", 0.0,
                     null, null, null, null, receivedAt);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
         if (matchResult == null) {
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", 0.0,
                     null, null, null, null, receivedAt);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
@@ -211,7 +183,6 @@ public class InboundEmailService {
                     String.format("%.2f", confidence));
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", confidence,
                     null, null, null, null, receivedAt);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
@@ -222,7 +193,6 @@ public class InboundEmailService {
             log.warn("[InboundEmail] Invalid posting_id '{}' from AI", postingIdRaw);
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", confidence,
                     null, null, null, null, receivedAt);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
@@ -231,10 +201,9 @@ public class InboundEmailService {
                 .findFirst().orElse(null);
         if (posting == null) return;
 
-        log.info("[InboundEmail] Matched '{}' → '{}' (confidence={})",
+        log.info("[InboundEmail] Matched '{}' to '{}' (confidence={})",
                 subject, posting.getTitle(), String.format("%.2f", confidence));
 
-        // Default name from email display name — will be overridden by CV extraction
         String firstName = "Candidat";
         String lastName  = "Inconnu";
         if (senderName != null && !senderName.isBlank()) {
@@ -243,26 +212,22 @@ public class InboundEmailService {
             if (parts.length > 1) lastName = capitalize(parts[1]);
         }
 
-        // Persist CV file with a temp name based on sender (unique per email)
         String safeName   = senderEmail.replaceAll("[^a-zA-Z0-9._-]", "_");
         String cvFileName = "email_" + safeName + "_" + System.currentTimeMillis() + ".pdf";
         String cvPath     = storageService.storeBytes(pdfBytes, cvFileName, "cvs");
 
-        // AI extraction of structured CV data (name, email, skills, etc. all come from the CV)
         String  skillsJson      = null;
         Integer experienceYears = null;
         String  education       = null;
         String  currentPosition = null;
         String  location        = null;
         String  cvExtractedText = null;
-        String  cvEmail         = null;   // email address found inside the CV itself
+        String  cvEmail         = null;
         try {
             Map<?, ?> extracted = aiServiceClient.extractCvFullFromBytes(pdfBytes, cvFileName).block();
             if (extracted != null) {
-                // Name always comes from the CV, not the email header
                 if (extracted.get("first_name") instanceof String fn && !fn.isBlank()) firstName = fn;
                 if (extracted.get("last_name")  instanceof String ln && !ln.isBlank()) lastName  = ln;
-                // Email address written in the CV (identifies the actual candidate)
                 if (extracted.get("email")        instanceof String em && !em.isBlank()) cvEmail  = em;
                 if (extracted.get("skills") instanceof List<?> sl)
                     skillsJson = objectMapper.writeValueAsString(sl);
@@ -276,15 +241,13 @@ public class InboundEmailService {
             log.warn("[InboundEmail] CV extraction failed for <{}>: {}", senderEmail, e.getMessage());
         }
 
-        // Guard: mirror the same student-detection logic used in PostingService.importCvs()
-        // so that experienceYears is corrected the same way for both paths.
         if (experienceYears != null && experienceYears > 0) {
-            String posLc = currentPosition != null ? currentPosition.toLowerCase() : "";
-            String eduLc = education      != null ? education.toLowerCase()        : "";
+            String posLc     = currentPosition != null ? currentPosition.toLowerCase() : "";
+            String eduLc     = education       != null ? education.toLowerCase()       : "";
             String cvSnippet = cvExtractedText != null ? cvExtractedText.toLowerCase() : "";
             boolean looksLikeStudent =
                 posLc.contains("stagiaire") || posLc.contains("stage") ||
-                posLc.contains("étudiant")  || posLc.contains("student") ||
+                posLc.contains("etudiant")  || posLc.contains("student") ||
                 posLc.contains("en formation") || posLc.contains("apprenti") ||
                 (eduLc.contains("en cours") && cvSnippet.contains("stage")
                     && !cvSnippet.contains("cdi") && !cvSnippet.contains("cdd"));
@@ -294,10 +257,6 @@ public class InboundEmailService {
             }
         }
 
-        // Identity key: use the email found inside the CV if available,
-        // otherwise fall back to the sender's email address.
-        // This correctly handles the case where one Gmail account forwards
-        // CVs of different people — each gets their own candidate record.
         final String  candidateEmail   = (cvEmail != null) ? cvEmail : senderEmail;
         final String  fFirstName       = firstName;
         final String  fLastName        = lastName;
@@ -312,7 +271,6 @@ public class InboundEmailService {
         log.info("[InboundEmail] Candidate identity resolved: CV email='{}', sender='{}'",
                 cvEmail != null ? cvEmail : "(none — using sender)", senderEmail);
 
-        // Find or create the Candidate by their own email (from CV, not email header)
         Candidate candidate = candidateRepository.findByEmail(candidateEmail).orElseGet(() ->
                 candidateRepository.save(Candidate.builder()
                         .firstName(fFirstName)
@@ -328,26 +286,22 @@ public class InboundEmailService {
                         .build())
         );
 
-        // Always refresh CV text and ALL extracted fields so scorer uses the latest CV data.
-        // This mirrors PostingService: whenever the raw text changes, we re-sync every field
-        // derived from it (experience, skills, education, position, location).
         boolean dirty = false;
         if (candidate.getCvPath() == null) { candidate.setCvPath(fCvPath); dirty = true; }
         if (fCvExtractedText != null && !fCvExtractedText.equals(candidate.getCvExtractedText())) {
             candidate.setCvExtractedText(fCvExtractedText);
             candidate.setCvPath(fCvPath);
-            if (fExp  != null) candidate.setExperienceYears(fExp);
+            if (fExp    != null) candidate.setExperienceYears(fExp);
             if (fSkills != null) candidate.setSkills(fSkills);
-            if (fEdu  != null) candidate.setEducation(fEdu);
-            if (fPos  != null) candidate.setCurrentPosition(fPos);
-            if (fLoc  != null) candidate.setLocation(fLoc);
+            if (fEdu    != null) candidate.setEducation(fEdu);
+            if (fPos    != null) candidate.setCurrentPosition(fPos);
+            if (fLoc    != null) candidate.setLocation(fLoc);
             dirty = true;
         }
         if (dirty) candidateRepository.save(candidate);
 
         String fullName = candidate.getFirstName() + " " + candidate.getLastName();
 
-        // Guard: skip duplicate application for the same candidate + posting pair
         if (applicationRepository.findByCandidateIdAndJobPostingId(
                 candidate.getId(), posting.getId()).isPresent()) {
             log.info("[InboundEmail] Duplicate from <{}> for '{}' — skipped",
@@ -355,18 +309,15 @@ public class InboundEmailService {
             saveRecord(senderEmail, fullName, subject, "DUPLICATE", confidence,
                     posting.getId(), posting.getTitle(),
                     candidate.getId(), fullName, receivedAt);
-            message.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
-        // Create application
         applicationRepository.save(Application.builder()
                 .candidate(candidate)
                 .jobPosting(posting)
                 .status("NEW")
                 .build());
 
-        // Trigger AI scoring for this posting
         try {
             filterService.requestFilter(posting.getId(), null);
         } catch (Exception e) {
@@ -374,15 +325,11 @@ public class InboundEmailService {
                     posting.getId(), e.getMessage());
         }
 
-        // Persist the email candidature record (senderEmail kept for audit trail)
         saveRecord(senderEmail, fullName, subject, "MATCHED", confidence,
                 posting.getId(), posting.getTitle(),
                 candidate.getId(), fullName, receivedAt);
 
-        // Mark email as read
-        message.setFlag(Flags.Flag.SEEN, true);
-
-        log.info("[InboundEmail] Application created: {} <{}> → '{}' (confidence={})",
+        log.info("[InboundEmail] Application created: {} <{}> to '{}' (confidence={})",
                 fullName, senderEmail, posting.getTitle(), String.format("%.2f", confidence));
     }
 
