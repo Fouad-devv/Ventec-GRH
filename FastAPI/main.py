@@ -247,7 +247,7 @@ Format attendu :
 
 Règles strictes :
 - skills : compétences techniques (langages, frameworks, outils, certifications) ET soft skills — maximum 15, sans doublons
-- experience_years : UNIQUEMENT les années d'expérience professionnelle RÉMUNÉRÉE (CDI, CDD, contrat permanent, freelance). NE PAS compter : stages (stage d'initiation, PFE, stage de fin d'études), projets académiques, activités associatives/clubs, bénévolat. Un étudiant qui n'a que des stages → 0. Si non précisé, déduis-le uniquement des dates des postes salariés. EXEMPLES : étudiant avec "Stage d'initiation 2 mois" → 0 ; "CDI 2 ans" → 2 ; "1 an CDD + stage 6 mois" → 1.
+- experience_years : UNIQUEMENT les années d'expérience professionnelle RÉMUNÉRÉE (CDI, CDD, contrat permanent, freelance). NE PAS compter : stages (stage d'initiation, PFE, stage de fin d'études), projets académiques, activités associatives/clubs, bénévolat. Un étudiant qui n'a que des stages → 0. Si non précisé, déduis-le uniquement des dates des postes salariés. ARRONDI : arrondir à l'entier le plus proche (6 mois ou plus → 1 an ; 18 mois → 2 ans). EXEMPLES : étudiant avec "Stage d'initiation 2 mois" → 0 ; "CDI 2 ans" → 2 ; "CDD 6 mois" → 1 ; "1 an CDD + stage 6 mois" → 1.
 - education : diplôme principal (ex. "Master Informatique", "Licence Gestion", "Bac+5 Ingénieur") — le plus haut obtenu
 - current_position : poste exact tel qu'il apparaît dans le CV
 - location : ville et pays si disponibles (ex. "Alger, Algérie")
@@ -506,13 +506,14 @@ Retourne UNIQUEMENT un objet JSON valide :
 }
 Règles strictes :
 - skills : max 15, sans doublons
-- experience_years : UNIQUEMENT les années d'expérience professionnelle RÉMUNÉRÉE (CDI, CDD, contrat permanent, freelance). NE PAS compter : stages (stage d'initiation, PFE, stage de fin d'études), projets académiques, activités associatives/clubs, bénévolat, projets personnels. Un candidat encore en formation qui a seulement effectué des stages → experience_years = 0.
+- experience_years : UNIQUEMENT les années d'expérience professionnelle RÉMUNÉRÉE (CDI, CDD, contrat permanent, freelance). NE PAS compter : stages (stage d'initiation, PFE, stage de fin d'études), projets académiques, activités associatives/clubs, bénévolat, projets personnels. Un candidat encore en formation qui a seulement effectué des stages → experience_years = 0. ARRONDI : arrondir à l'entier le plus proche (6 mois ou plus → 1 an ; 18 mois → 2 ans).
 - email : doit obligatoirement contenir "@", sinon retourner null
 - Retourner QUE le JSON, sans texte avant ou après
 
 EXEMPLES CRITIQUES pour experience_years :
 • Étudiant en école d'ingénieurs avec uniquement "Stage d'initiation 2 mois" → experience_years: 0
 • Candidat avec "CDI 2 ans chez Société X" → experience_years: 2
+• Candidat avec "CDD 6 mois" → experience_years: 1 (arrondi à l'entier le plus proche)
 • Candidat avec "1 an CDD + Stage de 6 mois" → experience_years: 1 (stage non compté)
 • Étudiant avec PFE + clubs + projets académiques → experience_years: 0
 

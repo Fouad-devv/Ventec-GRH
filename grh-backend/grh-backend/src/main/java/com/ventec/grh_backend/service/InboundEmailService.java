@@ -276,6 +276,24 @@ public class InboundEmailService {
             log.warn("[InboundEmail] CV extraction failed for <{}>: {}", senderEmail, e.getMessage());
         }
 
+        // Guard: mirror the same student-detection logic used in PostingService.importCvs()
+        // so that experienceYears is corrected the same way for both paths.
+        if (experienceYears != null && experienceYears > 0) {
+            String posLc = currentPosition != null ? currentPosition.toLowerCase() : "";
+            String eduLc = education      != null ? education.toLowerCase()        : "";
+            String cvSnippet = cvExtractedText != null ? cvExtractedText.toLowerCase() : "";
+            boolean looksLikeStudent =
+                posLc.contains("stagiaire") || posLc.contains("stage") ||
+                posLc.contains("étudiant")  || posLc.contains("student") ||
+                posLc.contains("en formation") || posLc.contains("apprenti") ||
+                (eduLc.contains("en cours") && cvSnippet.contains("stage")
+                    && !cvSnippet.contains("cdi") && !cvSnippet.contains("cdd"));
+            if (looksLikeStudent) {
+                log.info("[InboundEmail] Student pattern detected — resetting experienceYears to 0");
+                experienceYears = 0;
+            }
+        }
+
         // Identity key: use the email found inside the CV if available,
         // otherwise fall back to the sender's email address.
         // This correctly handles the case where one Gmail account forwards
@@ -310,12 +328,19 @@ public class InboundEmailService {
                         .build())
         );
 
-        // Always refresh CV text so scorer uses the latest uploaded CV
+        // Always refresh CV text and ALL extracted fields so scorer uses the latest CV data.
+        // This mirrors PostingService: whenever the raw text changes, we re-sync every field
+        // derived from it (experience, skills, education, position, location).
         boolean dirty = false;
         if (candidate.getCvPath() == null) { candidate.setCvPath(fCvPath); dirty = true; }
         if (fCvExtractedText != null && !fCvExtractedText.equals(candidate.getCvExtractedText())) {
             candidate.setCvExtractedText(fCvExtractedText);
             candidate.setCvPath(fCvPath);
+            if (fExp  != null) candidate.setExperienceYears(fExp);
+            if (fSkills != null) candidate.setSkills(fSkills);
+            if (fEdu  != null) candidate.setEducation(fEdu);
+            if (fPos  != null) candidate.setCurrentPosition(fPos);
+            if (fLoc  != null) candidate.setLocation(fLoc);
             dirty = true;
         }
         if (dirty) candidateRepository.save(candidate);

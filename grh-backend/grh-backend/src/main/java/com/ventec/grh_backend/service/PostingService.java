@@ -321,20 +321,50 @@ public class PostingService {
                 }
 
                 final Map<?, ?> d = data;
-                Candidate candidate = Candidate.builder()
-                        .firstName(firstName)
-                        .lastName(lastName)
-                        .email(d != null ? (String) d.get("email") : null)
-                        .phone(d != null ? (String) d.get("phone") : null)
-                        .location(d != null ? (String) d.get("location") : null)
-                        .cvPath(cvPath)
-                        .cvExtractedText(d != null ? (String) d.get("cv_text") : null)
-                        .skills(skillsJson)
-                        .experienceYears(experienceYears)
-                        .education(d != null ? (String) d.get("education") : null)
-                        .currentPosition(d != null ? (String) d.get("current_position") : null)
-                        .build();
-                candidate = candidateRepository.save(candidate);
+                final String extractedEmail    = d != null ? (String) d.get("email")            : null;
+                final String extractedCvText   = d != null ? (String) d.get("cv_text")          : null;
+                final String extractedEdu      = d != null ? (String) d.get("education")         : null;
+                final String extractedPosition = d != null ? (String) d.get("current_position") : null;
+                final String extractedLocation = d != null ? (String) d.get("location")         : null;
+                final String extractedPhone    = d != null ? (String) d.get("phone")            : null;
+
+                // Deduplicate: if a candidate with the same email already exists (e.g. created via
+                // inbound email), update their record with the fresh extraction data instead of
+                // creating a duplicate. This ensures one candidate record is shared between both
+                // import paths, and the extraction result is consistent.
+                Candidate existing = (extractedEmail != null && !extractedEmail.isBlank())
+                        ? candidateRepository.findByEmail(extractedEmail).orElse(null)
+                        : null;
+
+                Candidate candidate;
+                if (existing != null) {
+                    existing.setFirstName(firstName);
+                    existing.setLastName(lastName);
+                    existing.setCvPath(cvPath);
+                    if (extractedCvText   != null) existing.setCvExtractedText(extractedCvText);
+                    if (skillsJson        != null) existing.setSkills(skillsJson);
+                    if (experienceYears   != null) existing.setExperienceYears(experienceYears);
+                    if (extractedEdu      != null) existing.setEducation(extractedEdu);
+                    if (extractedPosition != null) existing.setCurrentPosition(extractedPosition);
+                    if (extractedLocation != null) existing.setLocation(extractedLocation);
+                    if (extractedPhone    != null) existing.setPhone(extractedPhone);
+                    candidate = candidateRepository.save(existing);
+                } else {
+                    candidate = Candidate.builder()
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .email(extractedEmail)
+                            .phone(extractedPhone)
+                            .location(extractedLocation)
+                            .cvPath(cvPath)
+                            .cvExtractedText(extractedCvText)
+                            .skills(skillsJson)
+                            .experienceYears(experienceYears)
+                            .education(extractedEdu)
+                            .currentPosition(extractedPosition)
+                            .build();
+                    candidate = candidateRepository.save(candidate);
+                }
 
                 final Candidate savedCandidate = candidate;
                 Application app = applicationRepository
