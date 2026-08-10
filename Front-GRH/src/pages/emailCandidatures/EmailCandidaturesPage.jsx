@@ -1,0 +1,492 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  MdEmail, MdRefresh, MdCheckCircle, MdWarning,
+  MdError, MdPictureAsPdf, MdInbox, MdDelete,
+} from 'react-icons/md';
+import useAxiosPrivate from '../../api/useAxiosPrivate';
+import { emailCandidaturesApi } from '../../api/emailCandidatures';
+import { usePageActions } from '../../context/HeaderContext';
+
+// ── Status config ─────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG = {
+  MATCHED: {
+    label: 'Candidature créée',
+    icon: MdCheckCircle,
+    classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  },
+  DUPLICATE: {
+    label: 'Déjà candidaté',
+    icon: MdWarning,
+    classes: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  },
+  NO_MATCH: {
+    label: 'Aucune offre trouvée',
+    icon: MdError,
+    classes: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+  },
+  NO_PDF: {
+    label: 'CV manquant',
+    icon: MdPictureAsPdf,
+    classes: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  },
+};
+
+const StatusBadge = ({ status }) => {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.NO_MATCH;
+  const Icon = cfg.icon;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${cfg.classes}`}>
+      <Icon className="w-3.5 h-3.5 shrink-0" />
+      {cfg.label}
+    </span>
+  );
+};
+
+// ── Date helper ───────────────────────────────────────────────────────────────
+
+const fmt = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
+
+// ── Summary card ──────────────────────────────────────────────────────────────
+
+const SummaryCard = ({ label, value, colorClass }) => (
+  <div className="bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] rounded-2xl px-5 py-4">
+    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{label}</p>
+    <p className={`text-2xl font-bold ${colorClass}`}>{value}</p>
+  </div>
+);
+
+// ── Confirm modal ─────────────────────────────────────────────────────────────
+
+const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.08] w-full max-w-sm p-6 space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+          <MdDelete className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+        </div>
+        <div>
+          <p className="font-semibold text-slate-900 dark:text-white text-sm">{title}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{message}</p>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-1">
+        <button
+          onClick={onCancel}
+          disabled={loading}
+          className="px-4 py-2 text-sm rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+        >
+          Annuler
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          className="px-4 py-2 text-sm rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium flex items-center gap-2 transition-colors disabled:opacity-60"
+        >
+          {loading
+            ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            : <MdDelete className="w-4 h-4" />}
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ── Checkbox ──────────────────────────────────────────────────────────────────
+
+const Checkbox = ({ checked, indeterminate = false, onChange, className = '' }) => (
+  <input
+    type="checkbox"
+    checked={checked}
+    ref={(el) => { if (el) el.indeterminate = indeterminate; }}
+    onChange={onChange}
+    className={`w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 bg-white dark:bg-slate-800 cursor-pointer accent-blue-600 ${className}`}
+  />
+);
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export const EmailCandidaturesPage = () => {
+  const axios    = useAxiosPrivate();
+  const api      = emailCandidaturesApi(axios);
+  const navigate = useNavigate();
+
+  const [items, setItems]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  // Selection
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Confirm states
+  const [confirmDelete,   setConfirmDelete]   = useState(null);   // { id, label }
+  const [confirmSelected, setConfirmSelected] = useState(false);
+  const [confirmAll,      setConfirmAll]       = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setSelectedIds(new Set());
+    api.getAll()
+      .then((r) => setItems(r.data))
+      .catch((e) => console.error('EmailCandidatures load error:', e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // ── Selection helpers ─────────────────────────────────────────────────────
+
+  const allSelected   = items.length > 0 && selectedIds.size === items.length;
+  const someSelected  = selectedIds.size > 0 && selectedIds.size < items.length;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((i) => i.id)));
+    }
+  };
+
+  const toggleOne = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // ── Delete handlers ───────────────────────────────────────────────────────
+
+  const handleDeleteOne = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(confirmDelete.id);
+      setItems((prev) => prev.filter((i) => i.id !== confirmDelete.id));
+      setSelectedIds((prev) => { const n = new Set(prev); n.delete(confirmDelete.id); return n; });
+      setConfirmDelete(null);
+    } catch (e) {
+      console.error('Delete error:', e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    setDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => api.delete(id)));
+      setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+      setSelectedIds(new Set());
+      setConfirmSelected(false);
+    } catch (e) {
+      console.error('Bulk delete error:', e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      await api.deleteAll();
+      setItems([]);
+      setSelectedIds(new Set());
+      setConfirmAll(false);
+    } catch (e) {
+      console.error('Delete all error:', e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // ── Header actions ────────────────────────────────────────────────────────
+
+  usePageActions(
+    <div className="flex items-center gap-2">
+      {selectedIds.size > 0 && (
+        <button
+          onClick={() => setConfirmSelected(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors"
+        >
+          <MdDelete className="w-4 h-4" />
+          Supprimer ({selectedIds.size})
+        </button>
+      )}
+      {items.length > 0 && selectedIds.size === 0 && (
+        <button
+          onClick={() => setConfirmAll(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+        >
+          <MdDelete className="w-4 h-4" />
+          Tout supprimer
+        </button>
+      )}
+      <button
+        onClick={load}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+      >
+        <MdRefresh className="w-4 h-4" />
+        Actualiser
+      </button>
+    </div>
+  );
+
+  // Stats
+  const total   = items.length;
+  const matched = items.filter((i) => i.status === 'MATCHED').length;
+  const noMatch = items.filter((i) => i.status === 'NO_MATCH').length;
+  const noPdf   = items.filter((i) => i.status === 'NO_PDF').length;
+
+  return (
+    <div className="space-y-6">
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <SummaryCard label="Total reçus"          value={total}   colorClass="text-slate-900 dark:text-white" />
+        <SummaryCard label="Candidatures créées"  value={matched} colorClass="text-emerald-600 dark:text-emerald-400" />
+        <SummaryCard label="Sans offre trouvée"   value={noMatch} colorClass="text-rose-600 dark:text-rose-400" />
+        <SummaryCard label="Sans CV joint"        value={noPdf}   colorClass="text-orange-600 dark:text-orange-400" />
+      </div>
+
+      {/* Selection toolbar — shown when rows are selected */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl">
+          <MdEmail className="w-4 h-4 text-blue-500 shrink-0" />
+          <p className="text-sm font-medium text-blue-700 dark:text-blue-300 flex-1">
+            {selectedIds.size} entrée{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+          </p>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs text-blue-500 dark:text-blue-400 hover:underline"
+          >
+            Désélectionner tout
+          </button>
+          <button
+            onClick={() => setConfirmSelected(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-colors"
+          >
+            <MdDelete className="w-3.5 h-3.5" />
+            Supprimer la sélection
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] rounded-2xl overflow-hidden">
+
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400 dark:text-slate-600">
+            <MdInbox className="w-12 h-12" />
+            <p className="text-sm font-medium">Aucun email traité pour le moment</p>
+            <p className="text-xs">Les emails reçus apparaîtront ici après le prochain scan IMAP</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200/80 dark:border-white/[0.06] bg-slate-50/80 dark:bg-white/[0.02]">
+                  {/* Select-all checkbox */}
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={allSelected}
+                      indeterminate={someSelected}
+                      onChange={toggleAll}
+                    />
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reçu le</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Expéditeur</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Objet</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Offre correspondante</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Candidat</th>
+                  <th className="w-12 px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
+                {items.map((item) => {
+                  const isSelected = selectedIds.has(item.id);
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`transition-colors group ${
+                        isSelected
+                          ? 'bg-blue-50/60 dark:bg-blue-900/10'
+                          : 'hover:bg-slate-50/80 dark:hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      {/* Row checkbox */}
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => toggleOne(item.id)}
+                        />
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
+                        {fmt(item.receivedAt)}
+                      </td>
+
+                      {/* Sender */}
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-800 dark:text-slate-200 text-sm leading-tight">
+                          {item.senderName || item.senderEmail}
+                        </p>
+                        {item.senderName && (
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                            {item.senderEmail}
+                          </p>
+                        )}
+                      </td>
+
+                      {/* Subject */}
+                      <td className="px-4 py-3 max-w-xs">
+                        <p className="text-slate-700 dark:text-slate-300 truncate" title={item.subject}>
+                          {item.subject}
+                        </p>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <StatusBadge status={item.status} />
+                          {item.confidence != null && item.status !== 'NO_PDF' && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 pl-0.5">
+                              Confiance : {Math.round(item.confidence * 100)}%
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Matched posting */}
+                      <td className="px-4 py-3">
+                        {item.matchedPostingId ? (
+                          <button
+                            onClick={() => navigate(`/app/postings/${item.matchedPostingId}`)}
+                            className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left"
+                          >
+                            {item.matchedPostingTitle || "Voir l'offre"}
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 text-xs italic">
+                            {item.status === 'NO_MATCH'
+                              ? 'Aucune offre ne correspond à cet objet'
+                              : item.status === 'NO_PDF'
+                              ? 'CV manquant — non traité'
+                              : '—'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Candidate */}
+                      <td className="px-4 py-3">
+                        {item.candidateId ? (
+                          <button
+                            onClick={() => navigate(`/app/candidates/${item.candidateId}`)}
+                            className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left"
+                          >
+                            {item.candidateName || 'Voir le candidat'}
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 text-xs">—</span>
+                        )}
+                      </td>
+
+                      {/* Delete row button */}
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setConfirmDelete({ id: item.id, label: item.subject })}
+                          className="p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Supprimer cette entrée"
+                        >
+                          <MdDelete className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Alert banners */}
+      {noMatch > 0 && (
+        <div className="flex items-start gap-3 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-2xl">
+          <MdError className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+              {noMatch} email{noMatch > 1 ? 's' : ''} sans offre correspondante
+            </p>
+            <p className="text-xs text-rose-600/80 dark:text-rose-400/80 mt-0.5">
+              Ces candidatures n'ont pas pu être rattachées à une offre d'emploi.
+              Vérifiez que les offres concernées sont bien publiées, ou créez-les si elles n'existent pas encore.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {noPdf > 0 && (
+        <div className="flex items-start gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl">
+          <MdPictureAsPdf className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+              {noPdf} email{noPdf > 1 ? 's' : ''} sans CV en pièce jointe
+            </p>
+            <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-0.5">
+              Ces emails ont été reçus mais ne contiennent pas de fichier PDF.
+              Le candidat doit renvoyer son email avec son CV en pièce jointe (format PDF).
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm modals */}
+      {confirmDelete && (
+        <ConfirmModal
+          title="Supprimer cette entrée ?"
+          message={`"${confirmDelete.label}" sera supprimée définitivement de l'historique.`}
+          onConfirm={handleDeleteOne}
+          onCancel={() => setConfirmDelete(null)}
+          loading={deleting}
+        />
+      )}
+
+      {confirmSelected && (
+        <ConfirmModal
+          title={`Supprimer ${selectedIds.size} entrée${selectedIds.size > 1 ? 's' : ''} ?`}
+          message="Les entrées sélectionnées seront supprimées définitivement. Cette action est irréversible."
+          onConfirm={handleDeleteSelected}
+          onCancel={() => setConfirmSelected(false)}
+          loading={deleting}
+        />
+      )}
+
+      {confirmAll && (
+        <ConfirmModal
+          title="Supprimer tout l'historique ?"
+          message="Toutes les entrées de candidatures email seront supprimées définitivement. Cette action est irréversible."
+          onConfirm={handleDeleteAll}
+          onCancel={() => setConfirmAll(false)}
+          loading={deleting}
+        />
+      )}
+
+    </div>
+  );
+};

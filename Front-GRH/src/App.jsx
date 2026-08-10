@@ -13,6 +13,7 @@ import { NotificationsPage } from './pages/notifications/NotificationsPage';
 import { AdminPage } from './pages/admin/AdminPage';
 import { HistoryPage } from './pages/postings/HistoryPage';
 import { InterviewsPage } from './pages/interviews/InterviewsPage';
+import { EmailCandidaturesPage } from './pages/emailCandidatures/EmailCandidaturesPage';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="interviews" element={<InterviewsPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="email-candidatures" element={<EmailCandidaturesPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
     </Routes>

@@ -133,3 +133,22 @@ class GenerateFicheFonctionResponse(BaseModel):
     interlocuteurs_internes: List[str]
     interlocuteurs_externes: List[str]
     interimaire: str = ""
+
+
+# ── Match email subject to job posting (inbound email pipeline) ─────────────
+class PostingInfo(BaseModel):
+    id: str
+    title: str
+    department: Optional[str] = None
+    description: Optional[str] = None
+
+
+class MatchPostingRequest(BaseModel):
+    subject: str
+    postings: List[PostingInfo]
+
+
+class MatchPostingResponse(BaseModel):
+    posting_id: Optional[str] = None
+    posting_title: Optional[str] = None
+    confidence: float = 0.0

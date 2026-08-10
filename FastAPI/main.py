@@ -6,6 +6,7 @@ Handles:
   - POST /generate-description         — generate job posting description + requirements
   - POST /generate-interview-questions — generate interview questions for a candidate
   - POST /generate-checklist           — generate required document checklist
+  - POST /match-posting                — match inbound email subject to the right job posting
 """
 import asyncio
 import json as _json
@@ -28,6 +29,7 @@ from models import (
     GenerateChecklistRequest, GenerateChecklistResponse, ChecklistItem,
     GenerateFicheFonctionRequest, GenerateFicheFonctionResponse, CompetenceCritere, ActivityItem,
     ExtractJobPostingResponse,
+    MatchPostingRequest, MatchPostingResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -1098,3 +1100,117 @@ Format JSON attendu :
     except Exception as e:
         logger.error("Cerebras checklist generation failed: %s — returning default", e)
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
+
+
+# ── Inbound email: match candidature subject to the right job posting ─────────
+
+@app.post("/match-posting", response_model=MatchPostingResponse)
+async def match_posting(req: MatchPostingRequest):
+    """
+    Given the subject of an incoming candidature email and the list of open job
+    postings, returns which posting best matches and a confidence score [0-1].
+
+    Called by the Spring Boot IMAP listener to automatically route inbound CVs
+    to the correct job posting and trigger AI scoring.
+    """
+    if not req.postings:
+        return MatchPostingResponse()
+
+    # ── Programmatic domain pre-check ─────────────────────────────────────────
+    # If every posting's title shares zero domain keywords with the subject,
+    # short-circuit and return NO_MATCH before wasting an LLM call.
+    # This catches the "only one posting, wrong domain" false-match problem.
+    _STOP_WORDS = {
+        "candidature", "candidat", "objet", "poste", "pour", "de", "du",
+        "le", "la", "les", "un", "une", "des", "en", "et", "au", "aux",
+        "je", "ma", "mon", "offre", "emploi", "stage",
+    }
+
+    def _domain_tokens(text: str) -> set[str]:
+        return {
+            w for w in re.split(r'[\s\-_/,;.]+', text.lower())
+            if len(w) >= 3 and w not in _STOP_WORDS
+        }
+
+    subject_tokens = _domain_tokens(req.subject)
+    if subject_tokens:
+        any_overlap = any(
+            subject_tokens & _domain_tokens(p.title + " " + (p.department or ""))
+            for p in req.postings
+        )
+        if not any_overlap:
+            logger.info(
+                "match-posting '%s' → NO domain overlap with any posting — returning NO_MATCH",
+                req.subject[:80],
+            )
+            return MatchPostingResponse()
+    # ─────────────────────────────────────────────────────────────────────────
+
+    postings_list = "\n".join(
+        f"{i + 1}. [id={p.id}] {p.title}"
+        + (f" — Département : {p.department}" if p.department else "")
+        + (f"\n   {p.description[:250]}" if p.description else "")
+        for i, p in enumerate(req.postings)
+    )
+
+    prompt = f"""Tu es un système RH chargé de trier les candidatures reçues par email.
+
+Voici l'objet de l'email de candidature reçu :
+"{req.subject}"
+
+Voici la liste des offres d'emploi actuellement ouvertes :
+{postings_list}
+
+Ta tâche : identifier l'offre dont le DOMAINE MÉTIER correspond à l'objet de l'email.
+
+RÈGLES STRICTES — à respecter absolument :
+1. Ne retourne un posting_id QUE si l'objet de l'email est clairement lié au domaine du poste.
+   Exemples de correspondance valide :
+   - "Candidature développeur web" → poste "Développeur web full stack" ✅
+   - "Candidature RH / ressources humaines" → poste "Responsable RH" ✅
+   - "Candidature comptable" → poste "Comptable junior" ✅
+   Exemples de NON-correspondance :
+   - "Candidature RH" → poste "Développeur web" ❌ (domaines différents)
+   - "Candidature informatique" → poste "Responsable RH" ❌ (domaines différents)
+
+2. Si plusieurs offres sont disponibles mais qu'aucune ne correspond au domaine mentionné
+   dans l'objet → retourne null. Ne jamais forcer un match par défaut.
+
+3. La confiance doit refléter la pertinence réelle du domaine :
+   - 0.9+ : correspondance explicite et directe (même intitulé de poste)
+   - 0.75–0.89 : correspondance claire mais formulation différente
+   - 0.65–0.74 : correspondance probable mais ambiguë
+   - < 0.65 : doute trop fort → retourner null
+
+Réponds UNIQUEMENT en JSON valide, sans texte autour, dans ce format exact :
+{{"posting_id": "uuid-exact-de-l-offre", "posting_title": "titre exact", "confidence": 0.85}}
+
+Si aucune offre ne correspond au domaine de l'email, retourne :
+{{"posting_id": null, "posting_title": null, "confidence": 0.0}}"""
+
+    try:
+        raw = await _call_with_fallback(
+            [{"role": "user", "content": prompt}],
+            model_type="smart",
+            use_json=True,
+            label="match-posting",
+            temperature=0.0,
+        )
+        data = _json.loads(raw)
+        posting_id    = data.get("posting_id")
+        posting_title = data.get("posting_title")
+        confidence    = float(data.get("confidence", 0.0))
+        logger.info(
+            "match-posting '%s' → posting_id=%s confidence=%.2f",
+            req.subject[:80], posting_id, confidence,
+        )
+        return MatchPostingResponse(
+            posting_id=posting_id,
+            posting_title=posting_title,
+            confidence=confidence,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("match-posting failed for '%s': %s", req.subject[:80], e)
+        return MatchPostingResponse()

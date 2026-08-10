@@ -8,8 +8,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.Environment;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class GrhBackendApplication implements ApplicationListener<ApplicationReadyEvent> {
 
 	private static final Logger logger = LoggerFactory.getLogger(GrhBackendApplication.class);

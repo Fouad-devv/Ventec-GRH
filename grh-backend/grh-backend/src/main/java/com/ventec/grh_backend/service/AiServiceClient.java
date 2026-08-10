@@ -189,4 +189,15 @@ public class AiServiceClient {
                 .retrieve()
                 .bodyToMono(Map.class);
     }
+
+    public Mono<Map> matchPosting(String subject, List<Map<String, Object>> postings) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("subject", subject);
+        payload.put("postings", postings);
+        return aiWebClient.post()
+                .uri("/match-posting")
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class);
+    }
 }
