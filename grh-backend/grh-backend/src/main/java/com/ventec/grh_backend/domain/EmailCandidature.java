@@ -48,6 +48,10 @@ public class EmailCandidature {
     @Column(name = "received_at", nullable = false, updatable = false)
     private OffsetDateTime receivedAt;
 
+    /** RFC 2822 Message-ID — globally unique per email, used to deduplicate across restarts. */
+    @Column(name = "message_id", unique = true)
+    private String messageId;
+
     @PrePersist
     void prePersist() {
         if (receivedAt == null) receivedAt = OffsetDateTime.now();

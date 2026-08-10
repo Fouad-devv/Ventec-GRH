@@ -12,7 +12,6 @@ import com.ventec.grh_backend.repository.JobPostingRepository;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMultipart;
-import jakarta.mail.search.FlagTerm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +43,14 @@ public class InboundEmailService {
     @Value("${imap.password}")
     private String imapPassword;
 
+    /**
+     * Last IMAP UID we have seen. -1 = not yet initialized.
+     * On the very first poll we advance the cursor to the current inbox max without
+     * processing anything, so historical inbox messages are never touched.
+     * On every subsequent poll only UID > lastUID (genuinely new) messages are fetched.
+     */
+    private volatile long lastUID = -1;
+
     private static final double CONFIDENCE_THRESHOLD = 0.65;
 
     private final JobPostingRepository       jobPostingRepository;
@@ -57,7 +64,7 @@ public class InboundEmailService {
 
     // ── IMAP polling ──────────────────────────────────────────────────────────
 
-    @Scheduled(fixedDelayString = "${email.poll.interval-ms:5000}")
+    @Scheduled(fixedDelayString = "${email.poll.interval-ms:30000}")
     public void pollInbox() {
         Store store = null;
         Folder inbox = null;
@@ -73,22 +80,46 @@ public class InboundEmailService {
             store.connect(imapHost, imapPort, imapUser, imapPassword);
 
             inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_WRITE);
+            inbox.open(Folder.READ_ONLY);
 
-            Message[] messages = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
-            if (messages.length == 0) return;
+            UIDFolder uidFolder = (UIDFolder) inbox;
 
-            log.info("[InboundEmail] {} unseen message(s) to process", messages.length);
-            List<JobPosting> postings = jobPostingRepository
-                    .findByStatus("PUBLISHED", Pageable.unpaged()).getContent();
-            if (postings.isEmpty()) {
-                log.debug("[InboundEmail] No published postings — skipping");
+            // First poll ever: initialize the cursor to the current inbox max and exit.
+            // This skips all historical messages — only emails arriving after service
+            // start will be processed.
+            if (lastUID == -1) {
+                Message[] all = inbox.getMessages();
+                if (all.length > 0) {
+                    lastUID = uidFolder.getUID(all[all.length - 1]);
+                } else {
+                    lastUID = 0;
+                }
+                log.info("[InboundEmail] UID cursor initialized at {} — {} historical message(s) skipped",
+                        lastUID, all.length > 0 ? inbox.getMessageCount() : 0);
                 return;
             }
-            for (Message message : messages) {
+
+            // Normal poll: fetch only messages whose UID is strictly greater than the cursor.
+            Message[] newMessages = uidFolder.getMessagesByUID(lastUID + 1, UIDFolder.LASTUID);
+
+            if (newMessages.length == 0) return;
+
+            log.info("[InboundEmail] {} new message(s) (UID > {})", newMessages.length, lastUID);
+
+            List<JobPosting> postings = jobPostingRepository
+                    .findByStatus("PUBLISHED", Pageable.unpaged()).getContent();
+
+            long maxUID = lastUID;
+            for (Message message : newMessages) {
+                long uid = uidFolder.getUID(message);
+                maxUID = Math.max(maxUID, uid);
                 try { processMessage(message, postings); }
-                catch (Exception e) { log.warn("[InboundEmail] Error on message: {}", e.getMessage()); }
+                catch (Exception e) { log.warn("[InboundEmail] Error on message UID {}: {}", uid, e.getMessage()); }
             }
+
+            // Advance cursor only after a successful poll
+            lastUID = maxUID;
+
         } catch (Exception e) {
             log.warn("[InboundEmail] Poll error: {}", e.getMessage());
         } finally {
@@ -102,9 +133,14 @@ public class InboundEmailService {
     private static final List<String> NOREPLY_PATTERNS = List.of(
             "noreply", "no-reply", "no_reply", "donotreply",
             "mailer-daemon", "postmaster", "bounce@", "bounce+",
+            // marketing / transactional subdomains — e.g. info@updates.invideo.io
+            "@updates.", "@newsletter.", "@newsletters.", "@news.",
+            "@email.", "@emails.", "@mail.", "@notifications.", "@notify.", "@alerts.",
+            "@offers.", "@promo.", "@marketing.", "@campaign.", "@engage.",
+            // known marketing domains
             "@facebookmail.com", "@instagram.com", "@mail.instagram.com",
             "@tiktok.com", "@reddit.com", "@canva.com", "@engage.canva.com",
-            "@email.epidemicsound.com", "@mail.aliexpress.com"
+            "@email.epidemicsound.com", "@mail.aliexpress.com", "@invideo.io"
     );
 
     private boolean isJobApplicationEmail(String senderEmail) {
@@ -116,11 +152,18 @@ public class InboundEmailService {
     }
 
     private void processMessage(Message message, List<JobPosting> postings) throws Exception {
+        // Cheap dedup check before any AI work
+        String[] msgIdHeader = message.getHeader("Message-ID");
+        String messageId = (msgIdHeader != null && msgIdHeader.length > 0)
+                ? msgIdHeader[0].trim() : null;
+
+        if (messageId != null && emailCandidatureRepository.existsByMessageId(messageId)) {
+            log.debug("[InboundEmail] Already processed Message-ID {} — skipping", messageId);
+            return;
+        }
+
         String subject = message.getSubject();
         if (subject == null || subject.isBlank()) return;
-
-        // Mark SEEN immediately so the next poll doesn't pick it up again
-        message.setFlag(Flags.Flag.SEEN, true);
 
         OffsetDateTime receivedAt = message.getReceivedDate() != null
                 ? message.getReceivedDate().toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime()
@@ -142,7 +185,12 @@ public class InboundEmailService {
         if (pdfBytes == null || pdfBytes.length == 0) {
             log.info("[InboundEmail] No PDF from <{}> '{}' — saved as NO_PDF", senderEmail, subject);
             saveRecord(senderEmail, senderName, subject, "NO_PDF", null,
-                    null, null, null, null, receivedAt);
+                    null, null, null, null, receivedAt, messageId);
+            return;
+        }
+
+        if (postings.isEmpty()) {
+            log.debug("[InboundEmail] No published postings — skipping");
             return;
         }
 
@@ -164,13 +212,13 @@ public class InboundEmailService {
         } catch (Exception e) {
             log.warn("[InboundEmail] AI match error for '{}': {}", subject, e.getMessage());
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", 0.0,
-                    null, null, null, null, receivedAt);
+                    null, null, null, null, receivedAt, messageId);
             return;
         }
 
         if (matchResult == null) {
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", 0.0,
-                    null, null, null, null, receivedAt);
+                    null, null, null, null, receivedAt, messageId);
             return;
         }
 
@@ -182,7 +230,7 @@ public class InboundEmailService {
             log.info("[InboundEmail] No confident match for '{}' (confidence={})", subject,
                     String.format("%.2f", confidence));
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", confidence,
-                    null, null, null, null, receivedAt);
+                    null, null, null, null, receivedAt, messageId);
             return;
         }
 
@@ -192,7 +240,7 @@ public class InboundEmailService {
         } catch (Exception e) {
             log.warn("[InboundEmail] Invalid posting_id '{}' from AI", postingIdRaw);
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", confidence,
-                    null, null, null, null, receivedAt);
+                    null, null, null, null, receivedAt, messageId);
             return;
         }
 
@@ -273,16 +321,9 @@ public class InboundEmailService {
 
         Candidate candidate = candidateRepository.findByEmail(candidateEmail).orElseGet(() ->
                 candidateRepository.save(Candidate.builder()
-                        .firstName(fFirstName)
-                        .lastName(fLastName)
-                        .email(candidateEmail)
-                        .cvPath(fCvPath)
-                        .cvExtractedText(fCvExtractedText)
-                        .skills(fSkills)
-                        .experienceYears(fExp)
-                        .education(fEdu)
-                        .currentPosition(fPos)
-                        .location(fLoc)
+                        .firstName(fFirstName).lastName(fLastName).email(candidateEmail)
+                        .cvPath(fCvPath).cvExtractedText(fCvExtractedText).skills(fSkills)
+                        .experienceYears(fExp).education(fEdu).currentPosition(fPos).location(fLoc)
                         .build())
         );
 
@@ -304,19 +345,16 @@ public class InboundEmailService {
 
         if (applicationRepository.findByCandidateIdAndJobPostingId(
                 candidate.getId(), posting.getId()).isPresent()) {
-            log.info("[InboundEmail] Duplicate from <{}> for '{}' — skipped",
+            log.info("[InboundEmail] Duplicate application from <{}> for '{}' — skipped",
                     candidateEmail, posting.getTitle());
             saveRecord(senderEmail, fullName, subject, "DUPLICATE", confidence,
                     posting.getId(), posting.getTitle(),
-                    candidate.getId(), fullName, receivedAt);
+                    candidate.getId(), fullName, receivedAt, messageId);
             return;
         }
 
         applicationRepository.save(Application.builder()
-                .candidate(candidate)
-                .jobPosting(posting)
-                .status("NEW")
-                .build());
+                .candidate(candidate).jobPosting(posting).status("NEW").build());
 
         try {
             filterService.requestFilter(posting.getId(), null);
@@ -327,7 +365,7 @@ public class InboundEmailService {
 
         saveRecord(senderEmail, fullName, subject, "MATCHED", confidence,
                 posting.getId(), posting.getTitle(),
-                candidate.getId(), fullName, receivedAt);
+                candidate.getId(), fullName, receivedAt, messageId);
 
         log.info("[InboundEmail] Application created: {} <{}> to '{}' (confidence={})",
                 fullName, senderEmail, posting.getTitle(), String.format("%.2f", confidence));
@@ -339,22 +377,17 @@ public class InboundEmailService {
                             String status, Double confidence,
                             UUID postingId, String postingTitle,
                             UUID candidateId, String candidateName,
-                            OffsetDateTime receivedAt) {
+                            OffsetDateTime receivedAt, String messageId) {
         try {
             BigDecimal confDecimal = confidence != null
                     ? BigDecimal.valueOf(confidence).setScale(2, java.math.RoundingMode.HALF_UP)
                     : null;
             emailCandidatureRepository.save(EmailCandidature.builder()
-                    .senderEmail(senderEmail)
-                    .senderName(senderName)
-                    .subject(subject)
-                    .status(status)
-                    .confidence(confDecimal)
-                    .matchedPostingId(postingId)
-                    .matchedPostingTitle(postingTitle)
-                    .candidateId(candidateId)
-                    .candidateName(candidateName)
-                    .receivedAt(receivedAt)
+                    .senderEmail(senderEmail).senderName(senderName).subject(subject)
+                    .status(status).confidence(confDecimal)
+                    .matchedPostingId(postingId).matchedPostingTitle(postingTitle)
+                    .candidateId(candidateId).candidateName(candidateName)
+                    .receivedAt(receivedAt).messageId(messageId)
                     .build());
         } catch (Exception e) {
             log.warn("[InboundEmail] Failed to save email candidature record: {}", e.getMessage());
@@ -363,9 +396,7 @@ public class InboundEmailService {
 
     private byte[] extractFirstPdf(Message message) throws Exception {
         Object content = message.getContent();
-        if (content instanceof MimeMultipart mp) {
-            return extractPdfFromMultipart(mp);
-        }
+        if (content instanceof MimeMultipart mp) return extractPdfFromMultipart(mp);
         return null;
     }
 
@@ -374,16 +405,11 @@ public class InboundEmailService {
             BodyPart part = multipart.getBodyPart(i);
             String contentType = part.getContentType().toLowerCase();
             String disposition  = part.getDisposition();
-
             boolean isPdf = contentType.contains("pdf")
-                    || (part.getFileName() != null
-                        && part.getFileName().toLowerCase().endsWith(".pdf"));
+                    || (part.getFileName() != null && part.getFileName().toLowerCase().endsWith(".pdf"));
             boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(disposition)
                     || Part.INLINE.equalsIgnoreCase(disposition);
-
-            if (isPdf && isAttachment) {
-                return part.getInputStream().readAllBytes();
-            }
+            if (isPdf && isAttachment) return part.getInputStream().readAllBytes();
             if (part.getContent() instanceof MimeMultipart nested) {
                 byte[] pdf = extractPdfFromMultipart(nested);
                 if (pdf != null) return pdf;

@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface EmailCandidatureRepository extends JpaRepository<EmailCandidature, UUID> {
 
     List<EmailCandidature> findAllByOrderByReceivedAtDesc();
+
+    boolean existsByMessageId(String messageId);
 }
