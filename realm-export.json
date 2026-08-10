@@ -2615,5 +2615,6 @@
   "clientPolicies": {
     "policies": []
   },
-  "passwordPolicy": "length(8) and digits(1) and upperCase(1) and specialChars(1)"
+  "passwordPolicy": "length(8) and digits(1) and upperCase(1) and specialChars(1)",
+  "loginTheme": "ventec-grh"
 }
