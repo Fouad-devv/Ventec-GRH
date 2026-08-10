@@ -1,7 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-const PAGE_SIZE = 20;
 import {
   MdArrowBack, MdStar, MdSearch, MdDelete, MdWarning,
   MdPerson, MdFilterList, MdCheckCircle, MdClose,
@@ -12,6 +10,8 @@ import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
 import { usePageBack } from '../../context/HeaderContext';
 import { useToast } from '../../context/ToastContext';
+
+const PAGE_SIZE = 20;
 
 // ── Score badge ────────────────────────────────────────────────────────────────
 
