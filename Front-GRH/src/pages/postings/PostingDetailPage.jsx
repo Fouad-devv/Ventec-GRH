@@ -998,9 +998,16 @@ export const PostingDetailPage = () => {
             {/* Header */}
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-x-3 gap-y-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Candidatures ({applications.length})
-                </h3>
+                <button
+                  onClick={() => navigate(`/app/postings/${id}/applications`)}
+                  className="group/hdr flex items-center gap-1.5 text-left"
+                  title="Voir toutes les candidatures"
+                >
+                  <h3 className="font-semibold text-slate-900 dark:text-white group-hover/hdr:text-blue-600 dark:group-hover/hdr:text-blue-400 transition-colors">
+                    Candidatures ({applications.length})
+                  </h3>
+                  <span className="text-slate-300 dark:text-slate-600 group-hover/hdr:text-blue-400 transition-colors text-xs">↗</span>
+                </button>
                 {scoredApps.some((a) => a.aiScore != null) && (
                   <p className="text-xs text-slate-400 mt-0.5">Classées par score IA</p>
                 )}

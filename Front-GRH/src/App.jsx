@@ -12,6 +12,7 @@ import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { NotificationsPage } from './pages/notifications/NotificationsPage';
 import { AdminPage } from './pages/admin/AdminPage';
 import { HistoryPage } from './pages/postings/HistoryPage';
+import { PostingApplicationsPage } from './pages/postings/PostingApplicationsPage';
 import { InterviewsPage } from './pages/interviews/InterviewsPage';
 import { EmailCandidaturesPage } from './pages/emailCandidatures/EmailCandidaturesPage';
 
@@ -31,6 +32,7 @@ function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="postings" element={<PostingsPage />} />
         <Route path="postings/:id" element={<PostingDetailPage />} />
+        <Route path="postings/:id/applications" element={<PostingApplicationsPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
         <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="pipeline" element={<PipelinePage />} />

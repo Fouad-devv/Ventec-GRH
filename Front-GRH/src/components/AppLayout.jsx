@@ -15,6 +15,7 @@ const getTitle = (pathname) => {
   if (pathname.startsWith('/app/documents'))     return 'Documents';
   if (pathname.startsWith('/app/notifications')) return 'Notifications';
   if (pathname.startsWith('/app/history'))              return 'Offres clôturées';
+  if (pathname.match(/^\/app\/postings\/[^/]+\/applications/)) return 'Candidatures';
   if (pathname.startsWith('/app/email-candidatures'))   return 'Candidatures email';
   if (pathname.startsWith('/app/admin'))                return 'Administration';
   return '';
