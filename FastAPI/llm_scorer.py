@@ -489,10 +489,32 @@ async def score_candidate(
     #   gap 1 yr  → cap 65  |  gap 2 yrs → cap 55
     #   gap 3 yrs → cap 45  |  gap 4+ yrs → cap 35
     #   meets minimum → no cap (LLM scores freely; more exp above min = higher score)
+    #
+    # EXCEPTION: if the posting explicitly accepts beginners (débutant, sans expérience,
+    # première expérience, 0 an…), skip the penalty entirely regardless of min_experience.
+    _BEGINNER_RE = re.compile(
+        r'\b(d[eé]butant[e]?s?|sans\s+exp[eé]rience|exp[eé]rience\s+non\s+requise?'
+        r'|premi[eè]re?\s+exp[eé]rience|0\s*an|0\s*ann[eé]e)\b',
+        re.IGNORECASE | re.UNICODE,
+    )
+    _beginner_ok = False
+    if extracted_job_data:
+        try:
+            _req_exp_text = json.loads(extracted_job_data).get("required_experience") or ""
+            if _BEGINNER_RE.search(_req_exp_text):
+                _beginner_ok = True
+                logger.info(
+                    "Candidate %s — posting accepts beginners ('%s'), skipping experience cap",
+                    candidate_id, _req_exp_text[:80],
+                )
+        except Exception:
+            pass
+
     experience_cap = None
     experience_gap = None
     if (
-        min_experience is not None and min_experience > 0
+        not _beginner_ok
+        and min_experience is not None and min_experience > 0
         and experience_years is not None
         and experience_years < min_experience
     ):
@@ -596,6 +618,15 @@ CONTENU DU CV (informations personnelles supprimées) :
                         f"(écart de {experience_gap} an(s)) — score plafonné à {experience_cap}/100."
                     )
                     summary = summary.rstrip().rstrip('.') + fact
+
+        # ── Minimum floor for non-eliminated candidates ───────────────────────
+        # A score of 0 means eliminated (student, wrong level, wrong field, HR criteria).
+        # Any candidate who passed all eliminatory checks must score at least 40
+        # so they land in SCREENING, not REJECTED — rejection is reserved for eliminated candidates.
+        _SCREENING_FLOOR = 40
+        if score > 0:
+            score = max(score, _SCREENING_FLOOR)
+        # ─────────────────────────────────────────────────────────────────────
 
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
     except Exception as e:
