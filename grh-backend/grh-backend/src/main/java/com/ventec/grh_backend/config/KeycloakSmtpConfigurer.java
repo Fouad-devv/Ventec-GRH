@@ -42,43 +42,40 @@ public class KeycloakSmtpConfigurer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!StringUtils.hasText(smtpHost) || !StringUtils.hasText(smtpUser)) {
-            log.info("[Keycloak SMTP] No SMTP config found — skipping.");
-            return;
-        }
         try {
             RealmRepresentation realm = keycloakAdmin.realm(keycloakRealm).toRepresentation();
 
-            Map<String, String> smtp = new HashMap<>();
+            // Always apply login theme
+            realm.setLoginTheme("ventec-grh");
 
-            // From
-            smtp.put("from", mailFrom);
-            smtp.put("fromDisplayName", "Ventec-GRH");
-            smtp.put("replyTo", mailFrom);
-            smtp.put("replyToDisplayName", "Ventec-GRH");
-            smtp.put("envelopeFrom", mailFrom);
+            // Apply SMTP only if configured
+            if (StringUtils.hasText(smtpHost) && StringUtils.hasText(smtpUser)) {
+                Map<String, String> smtp = new HashMap<>();
+                smtp.put("from", mailFrom);
+                smtp.put("fromDisplayName", "Ventec-GRH");
+                smtp.put("replyTo", mailFrom);
+                smtp.put("replyToDisplayName", "Ventec-GRH");
+                smtp.put("envelopeFrom", mailFrom);
+                smtp.put("host", smtpHost);
+                smtp.put("port", smtpPort);
+                smtp.put("ssl", "false");
+                smtp.put("starttls", "true");
+                smtp.put("auth", "true");
+                smtp.put("user", smtpUser);
+                smtp.put("password", smtpPassword);
+                smtp.put("connectionTimeout", "10000");
+                smtp.put("timeout", "10000");
+                smtp.put("writeTimeout", "10000");
+                realm.setSmtpServer(smtp);
+                log.info("[Keycloak] SMTP configured → {}:{} (from: {})", smtpHost, smtpPort, mailFrom);
+            } else {
+                log.info("[Keycloak] No SMTP config found — skipping SMTP.");
+            }
 
-            // Connection
-            smtp.put("host", smtpHost);
-            smtp.put("port", smtpPort);
-            smtp.put("ssl", "false");
-            smtp.put("starttls", "true");
-
-            // Authentication
-            smtp.put("auth", "true");
-            smtp.put("user", smtpUser);
-            smtp.put("password", smtpPassword);
-
-            // Timeouts (ms)
-            smtp.put("connectionTimeout", "10000");
-            smtp.put("timeout", "10000");
-            smtp.put("writeTimeout", "10000");
-
-            realm.setSmtpServer(smtp);
             keycloakAdmin.realm(keycloakRealm).update(realm);
-            log.info("[Keycloak SMTP] Configured → {}:{} (from: {})", smtpHost, smtpPort, mailFrom);
+            log.info("[Keycloak] Realm '{}' updated — loginTheme: ventec-grh", keycloakRealm);
         } catch (Exception e) {
-            log.warn("[Keycloak SMTP] Failed to configure SMTP: {}", e.getMessage());
+            log.warn("[Keycloak] Failed to configure realm: {}", e.getMessage());
         }
     }
 }
