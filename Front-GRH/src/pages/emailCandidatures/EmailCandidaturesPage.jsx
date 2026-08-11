@@ -617,37 +617,6 @@ export const EmailCandidaturesPage = () => {
         )}
       </div>
 
-      {/* Alert banners */}
-      {noMatch > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-2xl">
-          <MdError className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
-              {noMatch} email{noMatch > 1 ? 's' : ''} sans offre correspondante
-            </p>
-            <p className="text-xs text-rose-600/80 dark:text-rose-400/80 mt-0.5">
-              Ces candidatures n'ont pas pu être rattachées à une offre d'emploi.
-              Vérifiez que les offres concernées sont bien publiées, ou créez-les si elles n'existent pas encore.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {noPdf > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl">
-          <MdPictureAsPdf className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
-              {noPdf} email{noPdf > 1 ? 's' : ''} sans CV en pièce jointe
-            </p>
-            <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-0.5">
-              Ces emails ont été reçus mais ne contiennent pas de fichier PDF.
-              Le candidat doit renvoyer son email avec son CV en pièce jointe (format PDF).
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Confirm modals */}
       {confirmDelete && (
         <ConfirmModal
