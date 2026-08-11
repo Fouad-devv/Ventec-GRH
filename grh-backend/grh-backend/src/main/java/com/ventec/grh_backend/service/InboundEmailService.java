@@ -162,9 +162,6 @@ public class InboundEmailService {
             return;
         }
 
-        String subject = message.getSubject();
-        if (subject == null || subject.isBlank()) return;
-
         OffsetDateTime receivedAt = message.getReceivedDate() != null
                 ? message.getReceivedDate().toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime()
                 : OffsetDateTime.now();
@@ -175,6 +172,13 @@ public class InboundEmailService {
         String senderEmail = from.getAddress();
         if (senderEmail == null || senderEmail.isBlank()) return;
         String senderName = from.getPersonal();
+
+        String subject = message.getSubject();
+        if (subject == null || subject.isBlank()) {
+            saveRecord(senderEmail, senderName, "(sans objet)", "NO_SUBJECT", null,
+                    null, null, null, null, receivedAt, messageId);
+            return;
+        }
 
         if (!isJobApplicationEmail(senderEmail)) {
             log.debug("[InboundEmail] Skipped automated email from <{}> '{}'", senderEmail, subject);

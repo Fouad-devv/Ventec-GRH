@@ -1130,13 +1130,15 @@ async def match_posting(req: MatchPostingRequest):
     def _domain_tokens(text: str) -> set[str]:
         return {
             w for w in re.split(r'[\s\-_/,;.]+', text.lower())
-            if len(w) >= 3 and w not in _STOP_WORDS
+            if len(w) >= 2 and w not in _STOP_WORDS
         }
 
     subject_tokens = _domain_tokens(req.subject)
     if subject_tokens:
         any_overlap = any(
-            subject_tokens & _domain_tokens(p.title + " " + (p.department or ""))
+            subject_tokens & _domain_tokens(
+                p.title + " " + (p.department or "") + " " + (p.description or "")[:300]
+            )
             for p in req.postings
         )
         if not any_overlap:

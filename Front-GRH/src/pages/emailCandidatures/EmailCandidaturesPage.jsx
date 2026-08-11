@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MdEmail, MdRefresh, MdCheckCircle, MdWarning,
-  MdError, MdPictureAsPdf, MdInbox, MdDelete,
+  MdError, MdPictureAsPdf, MdInbox, MdDelete, MdSubject,
 } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { emailCandidaturesApi } from '../../api/emailCandidatures';
@@ -31,6 +31,11 @@ const STATUS_CONFIG = {
     icon: MdPictureAsPdf,
     classes: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
   },
+  NO_SUBJECT: {
+    label: 'Objet manquant',
+    icon: MdError,
+    classes: 'bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300',
+  },
 };
 
 const StatusBadge = ({ status }) => {
@@ -55,12 +60,24 @@ const fmt = (iso) => {
   });
 };
 
-// ── Summary card ──────────────────────────────────────────────────────────────
+// ── Stat card (same style as dashboard) ──────────────────────────────────────
 
-const SummaryCard = ({ label, value, colorClass }) => (
-  <div className="bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] rounded-2xl px-5 py-4">
-    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-    <p className={`text-2xl font-bold ${colorClass}`}>{value}</p>
+const StatCard = ({ icon: Icon, label, value, gradient, numGradient, sub }) => (
+  <div className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 cursor-default">
+    <div className={`absolute inset-x-0 top-0 h-[3px] group-hover:h-[5px] bg-gradient-to-r ${gradient} transition-all duration-300`} />
+    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-[0.05] dark:group-hover:opacity-[0.1] transition-opacity duration-300`} />
+    <div className="relative flex items-start justify-between gap-3 pt-1">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">{label}</p>
+        <p className={`text-3xl font-extrabold mt-1.5 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
+          {value ?? '—'}
+        </p>
+        {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 truncate">{sub}</p>}
+      </div>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+    </div>
   </div>
 );
 
@@ -242,20 +259,57 @@ export const EmailCandidaturesPage = () => {
   );
 
   // Stats
-  const total   = items.length;
-  const matched = items.filter((i) => i.status === 'MATCHED').length;
-  const noMatch = items.filter((i) => i.status === 'NO_MATCH').length;
-  const noPdf   = items.filter((i) => i.status === 'NO_PDF').length;
+  const todayStr  = new Date().toDateString();
+  const isToday   = (iso) => iso && new Date(iso).toDateString() === todayStr;
+
+  const totalToday   = items.filter((i) => isToday(i.receivedAt)).length;
+  const matchedToday = items.filter((i) => i.status === 'MATCHED' && isToday(i.receivedAt)).length;
+  const noMatch      = items.filter((i) => i.status === 'NO_MATCH').length;
+  const noPdf        = items.filter((i) => i.status === 'NO_PDF').length;
+  const noSubject    = items.filter((i) => i.status === 'NO_SUBJECT').length;
 
   return (
     <div className="space-y-6">
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <SummaryCard label="Total reçus"          value={total}   colorClass="text-slate-900 dark:text-white" />
-        <SummaryCard label="Candidatures créées"  value={matched} colorClass="text-emerald-600 dark:text-emerald-400" />
-        <SummaryCard label="Sans offre trouvée"   value={noMatch} colorClass="text-rose-600 dark:text-rose-400" />
-        <SummaryCard label="Sans CV joint"        value={noPdf}   colorClass="text-orange-600 dark:text-orange-400" />
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <StatCard
+          icon={MdEmail}
+          label="Total reçus"
+          value={totalToday}
+          sub="aujourd'hui"
+          gradient="from-blue-500 to-blue-700"
+          numGradient="from-blue-900 to-blue-600 dark:from-blue-300 dark:to-blue-500"
+        />
+        <StatCard
+          icon={MdCheckCircle}
+          label="Candidatures créées"
+          value={matchedToday}
+          sub="aujourd'hui"
+          gradient="from-emerald-500 to-emerald-700"
+          numGradient="from-emerald-900 to-emerald-600 dark:from-emerald-300 dark:to-emerald-500"
+        />
+        <StatCard
+          icon={MdError}
+          label="Sans offre trouvée"
+          value={noMatch}
+          gradient="from-rose-500 to-rose-700"
+          numGradient="from-rose-900 to-rose-600 dark:from-rose-300 dark:to-rose-500"
+        />
+        <StatCard
+          icon={MdPictureAsPdf}
+          label="Sans CV joint"
+          value={noPdf}
+          gradient="from-orange-500 to-orange-700"
+          numGradient="from-orange-900 to-orange-600 dark:from-orange-300 dark:to-orange-500"
+        />
+        <StatCard
+          icon={MdSubject}
+          label="Sans objet"
+          value={noSubject}
+          gradient="from-slate-400 to-slate-600"
+          numGradient="from-slate-700 to-slate-500 dark:from-slate-300 dark:to-slate-400"
+        />
       </div>
 
       {/* Selection toolbar — shown when rows are selected */}
@@ -387,6 +441,8 @@ export const EmailCandidaturesPage = () => {
                               ? 'Aucune offre ne correspond à cet objet'
                               : item.status === 'NO_PDF'
                               ? 'CV manquant — non traité'
+                              : item.status === 'NO_SUBJECT'
+                              ? 'Objet manquant — impossible de traiter'
                               : '—'}
                           </span>
                         )}
