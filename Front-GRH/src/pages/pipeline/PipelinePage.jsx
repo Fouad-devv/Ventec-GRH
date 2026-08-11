@@ -523,6 +523,11 @@ export const PipelinePage = () => {
                     </p>
                     <ScoreBadge score={app.aiScore} />
                   </div>
+                  {!app.candidateEmail && (
+                    <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400">
+                      <MdWarning className="w-2.5 h-2.5" /> Candidat sans email
+                    </span>
+                  )}
                   {app.status === 'INTERVIEW' && !app.scheduledInterviewId && (
                     <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                       <MdWarning className="w-2.5 h-2.5" /> Non planifié
