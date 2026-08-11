@@ -132,8 +132,12 @@ public class ApplicationService {
 
     private void triggerChecklistGeneration(Application app) {
         try {
-            var posting   = app.getJobPosting();
-            var candidate = app.getCandidate();
+            // Re-fetch from DB to avoid Hibernate lazy-proxy returning null fields
+            var posting = jobPostingRepository.findById(app.getJobPosting().getId())
+                    .orElseThrow(() -> new NotFoundException("JobPosting not found"));
+            var candidate = candidateRepository.findById(app.getCandidate().getId())
+                    .orElseThrow(() -> new NotFoundException("Candidate not found"));
+
             String candidateName    = candidate.getFirstName() + " " + candidate.getLastName();
             String candidateProfile = deriveProfile(candidate);
 
@@ -194,8 +198,11 @@ public class ApplicationService {
      */
     private boolean isProfileConflict(String name, String profile) {
         String lower = name.toLowerCase();
-        if ("expérimenté".equals(profile) && lower.contains("attestation de stage")) return true;
-        if (!"expérimenté".equals(profile) && lower.contains("certificat de travail")) return true;
+        // Match both singular "attestation de stage" and plural "attestations de stage"
+        boolean isStageDoc      = lower.contains("attestation") && lower.contains("stage");
+        boolean isCertifTravail = lower.contains("certificat de travail");
+        if ("expérimenté".equals(profile) && isStageDoc)      return true;
+        if (!"expérimenté".equals(profile) && isCertifTravail) return true;
         return false;
     }
 
