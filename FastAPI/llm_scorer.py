@@ -322,6 +322,13 @@ CRITÈRES ÉLIMINATOIRES AUTOMATIQUES :
   NE JAMAIS rejeter un candidat ayant un "Diplôme d'Ingénieur d'État" d'une de ces écoles
   sous prétexte que le terme "école d'ingénieur" n'est pas écrit mot pour mot dans le CV.
 
+⚠️ RÈGLE ABSOLUE — EXPÉRIENCE EXCÉDENTAIRE (score ≠ 0) :
+  Un candidat ayant PLUS d'expérience que le maximum mentionné dans les exigences
+  (exemple : 14 ans d'expérience pour un poste qui demande "3 à 5 ans") N'EST JAMAIS éliminé.
+  Dépasser le maximum d'expérience est un atout ou neutre — ce n'est JAMAIS un critère d'élimination.
+  Seul un manque d'expérience (en dessous du minimum requis) peut réduire le score via pénalisation
+  progressive. Ne jamais donner score = 0 pour cause d'excès d'expérience.
+
 ══════════════════════════════════════════════════════
 ÉTAPE 2 — ÉVALUATION DES COMPÉTENCES (seulement si étape 1 est 100% passée)
 ══════════════════════════════════════════════════════
@@ -409,11 +416,9 @@ async def score_candidate(
                     f"Des intitulés différents mais de niveau équivalent SATISFONT le critère."
                 )
             if parsed.get("required_experience"):
-                if min_experience is not None and min_experience > 0:
-                    # Exact min handled by the explicit warning below — keep as info only
-                    skill_parts.append(f"Expérience attendue : {parsed['required_experience']}")
-                else:
-                    elim_parts.append(f"⛔ EXPÉRIENCE ÉLIMINATOIRE : {parsed['required_experience']}")
+                # Always informational — exceeding the maximum is NEVER eliminatory.
+                # Under-minimum is handled separately by the experience_cap logic below.
+                skill_parts.append(f"Expérience attendue : {parsed['required_experience']}")
 
             if parsed.get("required_skills"):
                 skill_parts.append("Compétences requises : " + ", ".join(parsed["required_skills"]))
