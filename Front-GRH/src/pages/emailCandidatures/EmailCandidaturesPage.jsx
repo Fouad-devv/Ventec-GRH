@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MdEmail, MdRefresh, MdCheckCircle, MdWarning,
@@ -63,19 +63,19 @@ const fmt = (iso) => {
 // ── Stat card (same style as dashboard) ──────────────────────────────────────
 
 const StatCard = ({ icon: Icon, label, value, gradient, numGradient, sub }) => (
-  <div className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 cursor-default">
-    <div className={`absolute inset-x-0 top-0 h-[3px] group-hover:h-[5px] bg-gradient-to-r ${gradient} transition-all duration-300`} />
+  <div className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-2 py-3 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-transparent transition-all duration-300 cursor-default">
+    <div className={`absolute inset-x-0 top-0 h-[2px] group-hover:h-[3px] bg-gradient-to-r ${gradient} transition-all duration-300`} />
     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-[0.05] dark:group-hover:opacity-[0.1] transition-opacity duration-300`} />
-    <div className="relative flex items-start justify-between gap-3 pt-1">
+    <div className="relative flex items-center justify-between gap-2 pt-0.5">
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">{label}</p>
-        <p className={`text-3xl font-extrabold mt-1.5 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
+        <p className={`text-2xl font-extrabold mt-1 leading-none tabular-nums bg-gradient-to-br ${numGradient} bg-clip-text text-transparent`}>
           {value ?? '—'}
         </p>
-        {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 truncate">{sub}</p>}
+        {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 truncate">{sub}</p>}
       </div>
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
-        <Icon className="w-5 h-5 text-white" />
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br ${gradient} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
+        <Icon className="w-4 h-4 text-white" />
       </div>
     </div>
   </div>
@@ -141,6 +141,10 @@ export const EmailCandidaturesPage = () => {
   const [loading, setLoading]   = useState(true);
   const [deleting, setDeleting] = useState(false);
 
+  // Filters
+  const [filterStatus,  setFilterStatus]  = useState('');
+  const [filterPosting, setFilterPosting] = useState('');
+
   // Selection
   const [selectedIds, setSelectedIds] = useState(new Set());
 
@@ -160,16 +164,44 @@ export const EmailCandidaturesPage = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // ── Filters & derived data ────────────────────────────────────────────────
+
+  const postingOptions = useMemo(() => {
+    const seen = new Set();
+    const opts = [];
+    for (const item of items) {
+      if (item.matchedPostingTitle && !seen.has(item.matchedPostingTitle)) {
+        seen.add(item.matchedPostingTitle);
+        opts.push(item.matchedPostingTitle);
+      }
+    }
+    return opts.sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const filteredItems = useMemo(() => items.filter((item) => {
+    if (filterStatus  && item.status              !== filterStatus)  return false;
+    if (filterPosting && item.matchedPostingTitle !== filterPosting) return false;
+    return true;
+  }), [items, filterStatus, filterPosting]);
+
   // ── Selection helpers ─────────────────────────────────────────────────────
 
-  const allSelected   = items.length > 0 && selectedIds.size === items.length;
-  const someSelected  = selectedIds.size > 0 && selectedIds.size < items.length;
+  const allSelected  = filteredItems.length > 0 && filteredItems.every((i) => selectedIds.has(i.id));
+  const someSelected = filteredItems.some((i) => selectedIds.has(i.id)) && !allSelected;
 
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds(new Set());
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredItems.forEach((i) => next.delete(i.id));
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(items.map((i) => i.id)));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredItems.forEach((i) => next.add(i.id));
+        return next;
+      });
     }
   };
 
@@ -269,7 +301,7 @@ export const EmailCandidaturesPage = () => {
   const noSubject    = items.filter((i) => i.status === 'NO_SUBJECT').length;
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -312,6 +344,45 @@ export const EmailCandidaturesPage = () => {
         />
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="text-sm rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+        >
+          <option value="">Tous les statuts</option>
+          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+            <option key={key} value={key}>{cfg.label}</option>
+          ))}
+        </select>
+
+        <select
+          value={filterPosting}
+          onChange={(e) => setFilterPosting(e.target.value)}
+          className="text-sm rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+        >
+          <option value="">Toutes les offres</option>
+          {postingOptions.map((title) => (
+            <option key={title} value={title}>{title}</option>
+          ))}
+        </select>
+
+        {(filterStatus || filterPosting) && (
+          <>
+            <button
+              onClick={() => { setFilterStatus(''); setFilterPosting(''); }}
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline"
+            >
+              Réinitialiser
+            </button>
+            <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
+              {filteredItems.length} résultat{filteredItems.length !== 1 ? 's' : ''}
+            </span>
+          </>
+        )}
+      </div>
+
       {/* Selection toolbar — shown when rows are selected */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl">
@@ -342,11 +413,17 @@ export const EmailCandidaturesPage = () => {
           <div className="flex items-center justify-center py-24">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : items.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400 dark:text-slate-600">
             <MdInbox className="w-12 h-12" />
-            <p className="text-sm font-medium">Aucun email traité pour le moment</p>
-            <p className="text-xs">Les emails reçus apparaîtront ici après le prochain scan IMAP</p>
+            <p className="text-sm font-medium">
+              {items.length === 0 ? 'Aucun email traité pour le moment' : 'Aucun résultat pour ces filtres'}
+            </p>
+            <p className="text-xs">
+              {items.length === 0
+                ? 'Les emails reçus apparaîtront ici après le prochain scan IMAP'
+                : 'Modifiez ou réinitialisez les filtres pour voir les entrées'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -371,7 +448,7 @@ export const EmailCandidaturesPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const isSelected = selectedIds.has(item.id);
                   return (
                     <tr
