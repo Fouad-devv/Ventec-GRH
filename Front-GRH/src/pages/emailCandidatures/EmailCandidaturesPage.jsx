@@ -503,14 +503,7 @@ export const EmailCandidaturesPage = () => {
 
                       {/* Status */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge status={item.status} />
-                          {item.confidence != null && item.status !== 'NO_PDF' && (
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 pl-0.5">
-                              Confiance : {Math.round(item.confidence * 100)}%
-                            </span>
-                          )}
-                        </div>
+                        <StatusBadge status={item.status} />
                       </td>
 
                       {/* Matched posting */}
