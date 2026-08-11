@@ -280,7 +280,7 @@ public class InboundEmailService {
             if (extracted != null) {
                 if (extracted.get("first_name") instanceof String fn && !fn.isBlank()) firstName = fn;
                 if (extracted.get("last_name")  instanceof String ln && !ln.isBlank()) lastName  = ln;
-                if (extracted.get("email")        instanceof String em && !em.isBlank()) cvEmail  = em;
+                if (extracted.get("email") instanceof String em && isValidEmail(em)) cvEmail = em;
                 if (extracted.get("skills") instanceof List<?> sl)
                     skillsJson = objectMapper.writeValueAsString(sl);
                 if (extracted.get("experience_years") instanceof Number n) experienceYears = n.intValue();
@@ -320,8 +320,11 @@ public class InboundEmailService {
         final String  fCvPath          = cvPath;
         final String  fCvExtractedText = cvExtractedText;
 
-        log.info("[InboundEmail] Candidate identity resolved: CV email='{}', sender='{}'",
-                cvEmail != null ? cvEmail : "(none — using sender)", senderEmail);
+        if (cvEmail != null) {
+            log.info("[InboundEmail] Candidate email from CV: <{}>", cvEmail);
+        } else {
+            log.info("[InboundEmail] No valid email in CV — falling back to sender: <{}>", senderEmail);
+        }
 
         Candidate candidate = candidateRepository.findByEmail(candidateEmail).orElseGet(() ->
                 candidateRepository.save(Candidate.builder()
@@ -425,5 +428,12 @@ public class InboundEmailService {
     private String capitalize(String s) {
         if (s == null || s.isBlank()) return s;
         return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
+    }
+
+    /** Accepts only strings that look like real email addresses (local@domain.tld).
+     *  Rejects AI hallucinations such as "null", "N/A", "non renseigné", etc. */
+    private boolean isValidEmail(String email) {
+        if (email == null || email.isBlank()) return false;
+        return email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]{2,}$");
     }
 }
