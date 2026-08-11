@@ -17,7 +17,6 @@ const EditUserModal = ({ user, onSave, onClose }) => {
     firstName:  user.firstName  ?? '',
     lastName:   user.lastName   ?? '',
     role:       user.role       ?? 'RH',
-    department: user.department ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -68,7 +67,6 @@ const EditUserModal = ({ user, onSave, onClose }) => {
               {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
-          {inp('department', 'Département', 'ex : RH, Finance, IT…')}
           {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
@@ -129,21 +127,16 @@ const DeleteConfirmModal = ({ user, onConfirm, onClose }) => {
 
 /* ── Add user modal ─────────────────────────────────────── */
 const AddUserModal = ({ onSave, onClose }) => {
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', role: 'RH', department: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', role: 'RH' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.');
-      return;
-    }
     setSaving(true);
     try {
-      const { confirmPassword, ...payload } = form;
-      await onSave(payload);
+      await onSave(form);
       onClose();
     } catch (err) {
       setError(err?.response?.data?.message || "Erreur lors de l'ajout de l'utilisateur.");
@@ -184,10 +177,6 @@ const AddUserModal = ({ onSave, onClose }) => {
             {field('lastName',  'Nom',    'Dupont',  true)}
           </div>
           {field('email', 'Email', 'utilisateur@ventec.dz', true, 'email')}
-          <div className="grid grid-cols-2 gap-3">
-            {field('password',        'Mot de passe',    '6 caractères min.', true, 'password')}
-            {field('confirmPassword', 'Confirmer',       '••••••',            true, 'password')}
-          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rôle *</label>
             <select
@@ -198,8 +187,6 @@ const AddUserModal = ({ onSave, onClose }) => {
               {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
-          {field('department', 'Département', 'ex : RH, Finance, IT…')}
-
           {error && <p className="text-xs text-red-500">{error}</p>}
 
           <div className="flex gap-3 pt-2">
@@ -414,7 +401,6 @@ const UsersTab = ({ api }) => {
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Utilisateur</th>
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Email</th>
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Rôle</th>
-                  <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Département</th>
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Statut</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -454,7 +440,6 @@ const UsersTab = ({ api }) => {
                           {u.role ?? '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{u.department || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                           {u.active ? 'Actif' : 'Inactif'}

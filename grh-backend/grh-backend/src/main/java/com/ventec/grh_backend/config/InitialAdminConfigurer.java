@@ -28,9 +28,6 @@ public class InitialAdminConfigurer implements ApplicationRunner {
     @Value("${INIT_ADMIN_LASTNAME:}")
     private String lastName;
 
-    @Value("${INIT_ADMIN_PASSWORD:}")
-    private String password;
-
     @Value("${INIT_ADMIN_DEPARTMENT:Direction}")
     private String department;
 
@@ -41,8 +38,8 @@ public class InitialAdminConfigurer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!StringUtils.hasText(email) || !StringUtils.hasText(password)) {
-            log.info("[InitAdmin] No INIT_ADMIN_* vars set — skipping initial admin creation.");
+        if (!StringUtils.hasText(email)) {
+            log.info("[InitAdmin] No INIT_ADMIN_EMAIL set — skipping initial admin creation.");
             return;
         }
         if (userRepository.existsByRole("ADMIN")) {
@@ -51,7 +48,7 @@ public class InitialAdminConfigurer implements ApplicationRunner {
         }
         try {
             adminService.createUser(new CreateUserRequest(
-                    firstName, lastName, email, password, "ADMIN", department
+                    firstName, lastName, email, "ADMIN", department
             ));
             log.info("[InitAdmin] Initial admin created successfully: {}", email);
             log.info("[InitAdmin] The user will be prompted to change their password on first login.");
