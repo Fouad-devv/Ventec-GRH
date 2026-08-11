@@ -134,22 +134,24 @@ public class ApplicationService {
         try {
             var posting   = app.getJobPosting();
             var candidate = app.getCandidate();
-            String candidateName = candidate.getFirstName() + " " + candidate.getLastName();
+            String candidateName    = candidate.getFirstName() + " " + candidate.getLastName();
+            String candidateProfile = deriveProfile(candidate);
+
+            log.info("Checklist generation — candidate='{}' profile='{}'", candidateName, candidateProfile);
 
             Map result = aiServiceClient.generateChecklist(
                     posting.getTitle(), posting.getContractType(),
-                    posting.getDepartment(), candidateName
+                    posting.getDepartment(), candidateName, candidateProfile
             ).block();
 
             if (result == null || !result.containsKey("documents")) return;
 
-            // FastAPI now returns [{name, copies, observation}] — add tracking fields
+            // FastAPI returns [{name, copies, observation}] — add tracking fields
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> rawDocs = (List<Map<String, Object>>) result.get("documents");
-            boolean isExperienced = candidate.getExperienceYears() != null && candidate.getExperienceYears() > 0;
             List<Map<String, Object>> checklistItems = rawDocs.stream()
                     .filter(doc -> !isExcludedDocument(String.valueOf(doc.getOrDefault("name", ""))))
-                    .filter(doc -> !isExperienceConflict(String.valueOf(doc.getOrDefault("name", "")), isExperienced))
+                    .filter(doc -> !isProfileConflict(String.valueOf(doc.getOrDefault("name", "")), candidateProfile))
                     .map(doc -> {
                         Map<String, Object> m = new java.util.HashMap<>(doc);
                         m.putIfAbsent("required", true);
@@ -185,13 +187,37 @@ public class ApplicationService {
         return EXCLUDED_DOC_PATTERNS.stream().anyMatch(lower::contains);
     }
 
-    /** Returns true if the document should be dropped based on the candidate's experience level. */
-    private boolean isExperienceConflict(String name, boolean isExperienced) {
+    /**
+     * Drops profile-incompatible documents regardless of what the AI returned.
+     *   expérimenté → keep "certificat de travail", drop "attestation de stage"
+     *   stagiaire / débutant → keep "attestation de stage", drop "certificat de travail"
+     */
+    private boolean isProfileConflict(String name, String profile) {
         String lower = name.toLowerCase();
-        // Experienced → no stage certificate; non-experienced → no work certificate
-        if (isExperienced  && lower.contains("attestation de stage")) return true;
-        if (!isExperienced && lower.contains("certificat de travail")) return true;
+        if ("expérimenté".equals(profile) && lower.contains("attestation de stage")) return true;
+        if (!"expérimenté".equals(profile) && lower.contains("certificat de travail")) return true;
         return false;
+    }
+
+    /**
+     * Derives the candidate professional profile from CV data.
+     *   expérimenté — has real job history (experienceYears > 0)
+     *   stagiaire   — only internship experience (experienceYears == 0 but stage keywords in position)
+     *   débutant    — fresh graduate, no professional experience at all
+     */
+    private String deriveProfile(com.ventec.grh_backend.domain.Candidate candidate) {
+        Integer exp = candidate.getExperienceYears();
+        if (exp != null && exp > 0) return "expérimenté";
+
+        String pos = candidate.getCurrentPosition();
+        if (pos != null) {
+            String posLc = pos.toLowerCase();
+            if (posLc.contains("stage") || posLc.contains("stagiaire") ||
+                posLc.contains("intern") || posLc.contains("apprenti")) {
+                return "stagiaire";
+            }
+        }
+        return "débutant";
     }
 
     private void notifyManagerShortlist(Application app) {

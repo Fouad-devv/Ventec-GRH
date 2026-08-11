@@ -129,12 +129,14 @@ public class AiServiceClient {
     }
 
     public Mono<Map> generateChecklist(String jobTitle, String contractType,
-                                        String department, String candidateName) {
+                                        String department, String candidateName,
+                                        String candidateProfile) {
         Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("job_title", jobTitle != null ? jobTitle : "");
-        if (contractType != null)   payload.put("contract_type", contractType);
-        if (department != null)     payload.put("department", department);
-        if (candidateName != null)  payload.put("candidate_name", candidateName);
+        if (contractType != null)      payload.put("contract_type", contractType);
+        if (department != null)        payload.put("department", department);
+        if (candidateName != null)     payload.put("candidate_name", candidateName);
+        if (candidateProfile != null)  payload.put("candidate_profile", candidateProfile);
         return aiWebClient.post()
                 .uri("/generate-checklist")
                 .bodyValue(payload)
