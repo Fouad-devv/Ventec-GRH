@@ -486,7 +486,7 @@ export const EmailCandidaturesPage = () => {
 
                       {/* Subject */}
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="text-slate-700 dark:text-slate-300 truncate" title={item.subject}>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 truncate" title={item.subject}>
                           {item.subject}
                         </p>
                       </td>
