@@ -3,10 +3,20 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # ── Groq API keys — PRIMARY provider ─��──────────────────────────────────
+    # ── Gemini API keys — PRIMARY provider ───────────────────────────────────
+    # key1 + key2       → extraction & generation tasks
+    # key3 + key4 + key5 + key6 → scoring / filtrage IA
+    gemini_api_key:  str = ""
+    gemini_api_key2: str = ""
+    gemini_api_key3: str = ""
+    gemini_api_key4: str = ""
+    gemini_api_key5: str = ""
+    gemini_api_key6: str = ""
+
+    # ── Groq API keys — FALLBACK #1 ──────────────────────────────────────────
     # key1 + key2       → Tier-2 smart extraction (70B, JSON-mode)
-    # key1 + key2 + key3 + key4 + key5 → Tier-1 fast extraction (8B)
-    # key3 + key4 + key5 + key6 → scoring (filtrage IA)
+    # key1–5            → Tier-1 fast extraction (8B)
+    # key3–6            → scoring (filtrage IA)
     groq_api_key:  str = ""
     groq_api_key2: str = ""
     groq_api_key3: str = ""
@@ -14,10 +24,9 @@ class Settings(BaseSettings):
     groq_api_key5: str = ""
     groq_api_key6: str = ""
 
-    # ── SambaNova API keys — FALLBACK provider ──���────────────────────────────
-    # Used automatically when Groq hits rate limits (429) or any error
+    # ── SambaNova API keys — FALLBACK #2 ─────────────────────────────────────
     # key1 + key2  → extraction fallback
-    # key3 + key4 + key5 + key6 → scoring fallback
+    # key3–6       → scoring fallback
     sambanova_api_key:  str = ""
     sambanova_api_key2: str = ""
     sambanova_api_key3: str = ""
@@ -27,43 +36,60 @@ class Settings(BaseSettings):
 
     backend_url: str
 
-    # ── Groq model shortcuts (single-call endpoints) ─────────────────────────
-    groq_model_fast:  str = "llama-3.1-8b-instant"      # 8B  — ~560 t/s
-    groq_model_smart: str = "llama-3.3-70b-versatile"   # 70B — ~280 t/s
+    # ── Gemini model chains (confirmed working via OpenAI-compat endpoint) ────
+    gemini_model_fast:  str = "gemini-flash-lite-latest"
+    gemini_model_smart: str = "gemini-flash-latest"
 
-    # ── Groq extraction chains ───────────────────────────────────────────────
+    gemini_fast_models: List[str] = [
+        "gemini-flash-lite-latest",  # fastest, cheapest
+        "gemini-flash-latest",       # fallback
+        "gemini-3.5-flash-lite",     # last resort
+    ]
+    gemini_smart_models: List[str] = [
+        "gemini-flash-latest",       # best quality
+        "gemini-3.5-flash",          # fallback
+        "gemini-3.1-flash-lite",     # last resort
+    ]
+    gemini_scoring_models: List[str] = [
+        "gemini-3.5-flash",          # best quality
+        "gemini-3.6-flash",          # fallback
+        "gemini-3.1-flash-lite",     # lightweight fallback
+    ]
+
+    # ── Groq model chains ─────────────────────────────────────────────────────
+    groq_model_fast:  str = "llama-3.1-8b-instant"
+    groq_model_smart: str = "llama-3.3-70b-versatile"
+
     groq_fast_models: List[str] = [
-        "llama-3.1-8b-instant",   # 8B  — ~560 t/s ✅
-        "openai/gpt-oss-20b",     # 20B — ~1000 t/s ✅
+        "llama-3.1-8b-instant",
+        "openai/gpt-oss-20b",
     ]
     groq_smart_models: List[str] = [
-        "llama-3.3-70b-versatile",  # 70B  — best quality ✅
-        "openai/gpt-oss-120b",      # 120B — high quality ✅
+        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-120b",
     ]
     groq_scoring_models: List[str] = [
-        "llama-3.3-70b-versatile",  # 70B  — best quality ✅
-        "openai/gpt-oss-120b",      # 120B ✅
-        "openai/gpt-oss-20b",       # 20B  — fast fallback ✅
+        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
     ]
 
-    # ── SambaNova model shortcuts (single-call endpoints) ────────────────────
+    # ── SambaNova model chains ────────────────────────────────────────────────
     # NOTE: gpt-oss-120b is a reasoning model on SambaNova — breaks JSON mode.
-    # NOTE: Meta-Llama-3.1-8B-Instruct is deprecated on SambaNova.
     sambanova_model_fast:  str = "Meta-Llama-3.3-70B-Instruct"
     sambanova_model_smart: str = "Meta-Llama-3.3-70B-Instruct"
 
-    # ── SambaNova fallback chains ────────────────────────────────────────────
     sambanova_fast_models: List[str] = [
-        "Meta-Llama-3.3-70B-Instruct",  # 70B — 1.7s, JSON mode ✅
-        "gemma-4-31B-it",               # 31B — 5.3s last resort
+        "Meta-Llama-3.3-70B-Instruct",
+        "gemma-4-31B-it",
     ]
     sambanova_smart_models: List[str] = [
-        "Meta-Llama-3.3-70B-Instruct",  # 70B — best quality ✅
-        "gemma-4-31B-it",               # 31B — last resort
+        "Meta-Llama-3.3-70B-Instruct",
+        "gemma-4-31B-it",
     ]
     sambanova_scoring_models: List[str] = [
-        "Meta-Llama-3.3-70B-Instruct",  # 70B — best quality ✅
-        "gemma-4-31B-it",               # 31B — last resort
+        "Meta-Llama-3.3-70B-Instruct",
+        "gemma-4-31B-it",
     ]
 
     class Config:

@@ -154,7 +154,21 @@ async def _send_callback(url: str, status: str, results: list, error_message: st
     logger.error("All callback attempts failed for %s", url)
 
 
-# ── Groq — PRIMARY ──────────────────────────────────────────────────────────
+# ── Gemini — PRIMARY ──────────────────────────────────────────────────────────
+_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+_gemini_client = AsyncOpenAI(
+    api_key=settings.gemini_api_key, base_url=_GEMINI_BASE, max_retries=0,
+) if settings.gemini_api_key else None
+_gemini_client2 = AsyncOpenAI(
+    api_key=settings.gemini_api_key2 or settings.gemini_api_key, base_url=_GEMINI_BASE, max_retries=0,
+) if settings.gemini_api_key else None
+
+# Extraction: both Gemini keys for fast & smart tiers
+_gemini_extraction_clients = [c for c in [_gemini_client, _gemini_client2] if c is not None]
+
+
+# ── Groq — FALLBACK #1 ────────────────────────────────────────────────────────
 _GROQ_BASE = "https://api.groq.com/openai/v1"
 
 _groq_client = AsyncOpenAI(
@@ -173,14 +187,12 @@ _groq_client5 = AsyncOpenAI(
     api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
 ) if settings.groq_api_key else None
 
-# Tier-1 fast: key1-5 (8B models, no JSON-mode)
+# Tier-1 fast: key1-5 (8B models)  |  Tier-2 smart: key1-2 (70B, JSON-mode)
 _extraction_fast_clients = [c for c in [_groq_client, _groq_client2, _groq_client3, _groq_client4, _groq_client5] if c is not None]
-# Tier-2 smart: key1-2 only (70B, JSON-mode)
-_extraction_clients = [c for c in [_groq_client, _groq_client2] if c is not None]
+_extraction_clients      = [c for c in [_groq_client, _groq_client2] if c is not None]
 
 
-# ── SambaNova — FALLBACK ──────────────────────────────────────────────────────
-# Activated automatically when all Groq chains hit rate limits or errors.
+# ── SambaNova — FALLBACK #2 ───────────────────────────────────────────────────
 # Default SDK connect timeout (5s) is too short from some regions — use 120s.
 _SAMBANOVA_BASE = "https://api.sambanova.ai/v1"
 _SAMBANOVA_TIMEOUT = 120.0
@@ -196,10 +208,15 @@ _extraction_fast_fallback = [c for c in [_sambanova_client, _sambanova_client2] 
 _extraction_fallback      = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
 
 
-def _require_groq():
-    if not _groq_client:
-        raise HTTPException(status_code=503, detail="Groq API key not configured")
-    return _groq_client
+def _require_any():
+    """Return the first available client across all providers."""
+    if _gemini_client:
+        return _gemini_client
+    if _groq_client:
+        return _groq_client
+    if _sambanova_client:
+        return _sambanova_client
+    raise HTTPException(status_code=503, detail="No LLM provider configured")
 
 
 _EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -277,7 +294,7 @@ CV :
 @app.post("/extract-cv", response_model=ExtractCvResponse)
 async def extract_cv(req: ExtractCvRequest):
     """Extracts structured data from raw CV text (already extracted by the caller)."""
-    if not settings.groq_api_key and not settings.sambanova_api_key:
+    if not settings.gemini_api_key and not settings.groq_api_key and not settings.sambanova_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     if not req.text or not req.text.strip():
@@ -299,7 +316,7 @@ async def extract_cv_file(file: UploadFile = File(...)):
     - Scanned PDF → pytesseract OCR at 300 DPI (automatic fallback)
     - Plain text  → UTF-8 decode
     """
-    if not settings.groq_api_key and not settings.sambanova_api_key:
+    if not settings.gemini_api_key and not settings.groq_api_key and not settings.sambanova_api_key:
         return ExtractCvResponse(skills=[], experience_years=None,
                                  education=None, current_position=None, location=None)
     try:
@@ -331,13 +348,14 @@ async def extract_cv_file(file: UploadFile = File(...)):
 
 _JSON_BLOCK_RE = re.compile(r'\{[\s\S]*\}')
 
-# Errors that mean "this model can't serve the request right now — try the next one"
+# Errors that mean "this model/key can't serve now — try next key/model/provider"
 _SKIP_MODEL_SIGNALS = (
     "429", "rate limit", "too many requests", "rate_limit",
     "json_validate_failed", "max completion tokens",
     "decommissioned", "model_decommissioned",
     "404", "not found", "model_not_found", "does not exist",
     "402", "payment", "billing", "subscription",
+    "quota", "resource_exhausted", "quota_exceeded",  # Gemini quota signals
 )
 
 
@@ -369,63 +387,46 @@ def _build_cv_result(data: dict) -> dict:
     }
 
 
-async def _call_groq(
-    client,
-    models: list,
+async def _call_providers(
+    chains: list,
     messages: list,
     use_json_format: bool = False,
     label: str = "",
-    fallback_clients=None,
-    fallback_models=None,
 ) -> str:
     """
-    Try each model across all clients in sequence.
-    client can be a single AsyncOpenAI instance or a list of instances.
-    Moves to the next model/client on 429, decommissioned, or not_found.
-    If all primary (Groq) chains are exhausted, tries fallback_clients with fallback_models (SambaNova).
-    Re-raises immediately on 5xx / connection errors.
+    Multi-provider, multi-key, multi-model fallback engine.
+
+    chains: [(provider_name, [client, ...], [model, ...]), ...]
+      e.g. [("gemini", [c1, c2], ["gemini-flash-lite-latest", "gemini-flash-latest"]),
+            ("groq",   [c3, c4], ["llama-3.1-8b-instant"]),
+            ("samba",  [c5],     ["Meta-Llama-3.3-70B-Instruct"])]
+
+    Tries each provider's keys × models left-to-right.
+    Skips on rate-limit / quota / 404; raises immediately on 5xx / auth errors.
+    Falls through to the next provider when all keys+models of one are exhausted.
     """
-    clients = client if isinstance(client, list) else [client]
-    last_error: Exception = RuntimeError(f"[{label}] all extraction chains exhausted")
-    for i, c in enumerate(clients):
-        key_label = f"key{i + 1}"
-        for model in models:
-            try:
-                kwargs: dict = {"model": model, "messages": messages, "temperature": 0.0}
-                if use_json_format:
-                    kwargs["response_format"] = {"type": "json_object"}
-                resp = await c.chat.completions.create(**kwargs)
-                if i > 0 or model != models[0]:
-                    logger.info("[%s] CV extraction succeeded with %s/%s", label, key_label, model)
-                return resp.choices[0].message.content
-            except Exception as e:
-                e_lower = str(e).lower()
-                if any(sig in e_lower for sig in _SKIP_MODEL_SIGNALS):
-                    logger.warning("[%s] Skipping %s/%s — %s", label, key_label, model, str(e)[:120])
-                    last_error = e
-                    continue
-                raise
-    # All primary (Groq) exhausted — switch to SambaNova fallback
-    if fallback_clients and fallback_models:
-        logger.warning("[%s] Groq exhausted — switching to SambaNova fallback", label)
-        fb_clients = fallback_clients if isinstance(fallback_clients, list) else [fallback_clients]
-        for i, c in enumerate(fb_clients):
-            key_label = f"samba-key{i + 1}"
-            for model in fallback_models:
+    last_error: Exception = RuntimeError(f"[{label}] all provider chains exhausted")
+    for provider, clients_arg, models in chains:
+        active = [c for c in (clients_arg if isinstance(clients_arg, list) else [clients_arg]) if c is not None]
+        if not active:
+            continue
+        for i, c in enumerate(active):
+            for model in models:
                 try:
                     kwargs: dict = {"model": model, "messages": messages, "temperature": 0.0}
                     if use_json_format:
                         kwargs["response_format"] = {"type": "json_object"}
                     resp = await c.chat.completions.create(**kwargs)
-                    logger.info("[%s] SambaNova fallback succeeded with %s/%s", label, key_label, model)
+                    if not (i == 0 and model == models[0]):
+                        logger.info("[%s] succeeded with %s/key%d/%s", label, provider, i + 1, model)
                     return resp.choices[0].message.content
                 except Exception as e:
-                    e_lower = str(e).lower()
-                    if any(sig in e_lower for sig in _SKIP_MODEL_SIGNALS):
-                        logger.warning("[%s] Skipping fallback %s/%s — %s", label, key_label, model, str(e)[:120])
+                    if any(sig in str(e).lower() for sig in _SKIP_MODEL_SIGNALS):
+                        logger.warning("[%s] Skipping %s/key%d/%s — %s", label, provider, i + 1, model, str(e)[:120])
                         last_error = e
                         continue
                     raise
+        logger.warning("[%s] %s exhausted — trying next provider", label, provider)
     raise last_error
 
 
@@ -438,18 +439,24 @@ async def _call_with_fallback(
     temperature: float = 0.0,
 ) -> str:
     """
-    Single-call with Groq primary → SambaNova fallback.
-    Used by generate-description, interview questions, checklist, fiche de fonction, etc.
+    Single-call with Gemini (primary) → Groq → SambaNova fallback chain.
+    Used by generation endpoints (description, checklist, fiche de fonction, etc.)
     """
-    groq_model = settings.groq_model_smart if model_type == "smart" else settings.groq_model_fast
-    samba_model = settings.sambanova_model_smart if model_type == "smart" else settings.sambanova_model_fast
+    gemini_model = settings.gemini_model_smart if model_type == "smart" else settings.gemini_model_fast
+    groq_model   = settings.groq_model_smart   if model_type == "smart" else settings.groq_model_fast
+    samba_model  = settings.sambanova_model_smart if model_type == "smart" else settings.sambanova_model_fast
+
     chains = []
+    if _gemini_client:
+        chains.append(("gemini",    _gemini_client,    gemini_model))
     if _groq_client:
-        chains.append(("groq", _groq_client, groq_model))
+        chains.append(("groq",      _groq_client,      groq_model))
     if _sambanova_client:
         chains.append(("sambanova", _sambanova_client, samba_model))
+
     if not chains:
         raise HTTPException(status_code=503, detail="No LLM provider configured")
+
     last_error: Exception = RuntimeError(f"[{label}] all providers exhausted")
     for provider, c, model in chains:
         try:
@@ -457,12 +464,12 @@ async def _call_with_fallback(
             if use_json:
                 kwargs["response_format"] = {"type": "json_object"}
             resp = await c.chat.completions.create(**kwargs)
-            if provider != "groq":
-                logger.info("[%s] SambaNova fallback used", label)
+            if provider != "gemini":
+                logger.info("[%s] %s fallback used", label, provider)
             return resp.choices[0].message.content
         except Exception as e:
             if any(sig in str(e).lower() for sig in _SKIP_MODEL_SIGNALS):
-                logger.warning("[%s] %s failed — trying next provider: %s", label, provider, str(e)[:80])
+                logger.warning("[%s] %s failed — %s", label, provider, str(e)[:80])
                 last_error = e
                 continue
             raise
@@ -521,15 +528,15 @@ CV :
 """
     )
 
-    # ── Tier 1: fast chain (8B) ── no JSON-mode, 4 000-char cap ─────────────
+    # ── Tier 1: fast chain — no JSON-mode, 4 000-char cap ────────────────────
+    fast_chains = [
+        ("gemini", _gemini_extraction_clients, settings.gemini_fast_models),
+        ("groq",   _extraction_fast_clients,   settings.groq_fast_models),
+        ("samba",  _extraction_fast_fallback,  settings.sambanova_fast_models),
+    ]
     fast_msgs = [{"role": "user", "content": prompt_base + text[:4000]}]
     try:
-        raw = await _call_groq(
-            _extraction_fast_clients, settings.groq_fast_models, fast_msgs,
-            use_json_format=False, label="fast",
-            fallback_clients=_extraction_fast_fallback,
-            fallback_models=settings.sambanova_fast_models,
-        )
+        raw = await _call_providers(fast_chains, fast_msgs, use_json_format=False, label="fast")
         try:
             return _build_cv_result(_parse_cv_json(raw))
         except _json.JSONDecodeError:
@@ -541,14 +548,14 @@ CV :
         else:
             raise
 
-    # ── Tier 2: smart chain (70B) ── JSON-mode, full text ────────────────────
+    # ── Tier 2: smart chain — JSON-mode, full text ────────────────────────────
+    smart_chains = [
+        ("gemini", _gemini_extraction_clients, settings.gemini_smart_models),
+        ("groq",   _extraction_clients,        settings.groq_smart_models),
+        ("samba",  _extraction_fallback,       settings.sambanova_smart_models),
+    ]
     smart_msgs = [{"role": "user", "content": prompt_base + text[:12000]}]
-    raw = await _call_groq(
-        _extraction_clients, settings.groq_smart_models, smart_msgs,
-        use_json_format=True, label="smart",
-        fallback_clients=_extraction_fallback,
-        fallback_models=settings.sambanova_smart_models,
-    )
+    raw = await _call_providers(smart_chains, smart_msgs, use_json_format=True, label="smart")
     return _build_cv_result(_parse_cv_json(raw))
 
 
@@ -615,7 +622,7 @@ async def extract_cv_full(file: UploadFile = File(...)):
     Full CV extraction used for bulk import from job postings.
     Returns raw text + all structured fields including name and contact info.
     """
-    if not settings.groq_api_key and not settings.sambanova_api_key:
+    if not settings.gemini_api_key and not settings.groq_api_key and not settings.sambanova_api_key:
         return {"cv_text": "", "first_name": None, "last_name": None, "email": None,
                 "phone": None, "skills": [], "experience_years": None,
                 "education": None, "current_position": None, "location": None}
@@ -641,7 +648,7 @@ async def extract_job_posting(file: UploadFile = File(...)):
     Extracts structured requirements from an uploaded job posting / fiche de poste document.
     Returns skills, tools, education, experience, missions, and formatted description/requirements.
     """
-    if not settings.groq_api_key and not settings.sambanova_api_key:
+    if not settings.gemini_api_key and not settings.groq_api_key and not settings.sambanova_api_key:
         return ExtractJobPostingResponse()
     try:
         content = await file.read()
@@ -1001,7 +1008,7 @@ async def generate_checklist(req: GenerateChecklistRequest):
     Uses Groq (Llama) for context-aware personalisation.
     Falls back to the standard Ventec list if Groq is not configured or fails.
     """
-    if not _groq_client and not _sambanova_client:
+    if not _gemini_client and not _groq_client and not _sambanova_client:
         logger.warning("No LLM provider configured — returning default checklist")
         return GenerateChecklistResponse(documents=[ChecklistItem(**d) for d in _CHECKLIST_DEFAULT])
 
