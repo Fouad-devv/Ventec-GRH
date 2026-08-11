@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MdWork, MdPeople, MdAccountTree, MdCheckCircle,
-  MdWarning, MdInfo, MdTrendingUp, MdEvent, MdCalendarMonth, MdRefresh,
+  MdWarning, MdInfo, MdTrendingUp, MdEvent, MdCalendarMonth, MdRefresh, MdEmail,
 } from 'react-icons/md';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { dashboardApi } from '../../api/dashboard';
+import { emailCandidaturesApi } from '../../api/emailCandidatures';
 import { usePageActions } from '../../context/HeaderContext';
 
 /* ── Stat card ─────────────────────────────────────────── */
@@ -48,11 +49,11 @@ const Alert = ({ type, message, count, onNavigate }) => {
     return (
       <button
         onClick={onNavigate}
-        className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border ${styles.overdue} hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors text-left`}
+        className={`w-full flex items-center justify-between gap-2 px-3 h-5 rounded-lg border ${styles.overdue} hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors text-left`}
       >
-        <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5 shrink-0" />
-          <p className="text-sm font-semibold">
+        <div className="flex items-center gap-2">
+          <Icon className="w-3.5 h-3.5 shrink-0" />
+          <p className="text-xs font-semibold leading-none">
             {count} entretien{count > 1 ? 's' : ''} passé{count > 1 ? 's' : ''} sans statut — action requise
           </p>
         </div>
@@ -62,9 +63,9 @@ const Alert = ({ type, message, count, onNavigate }) => {
   }
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${styles[type]}`}>
-      <Icon className="w-5 h-5 shrink-0" />
-      <p className="text-sm font-medium">{message}</p>
+    <div className={`flex items-center gap-2 px-3 h-5 rounded-lg border ${styles[type]}`}>
+      <Icon className="w-3.5 h-3.5 shrink-0" />
+      <p className="text-xs font-medium leading-none">{message}</p>
     </div>
   );
 };
@@ -106,12 +107,14 @@ const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 export const DashboardPage = () => {
   const axios = useAxiosPrivate();
   const api = dashboardApi(axios);
+  const emailApi = emailCandidaturesApi(axios);
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [yearData, setYearData] = useState(null);
   const [yearLoading, setYearLoading] = useState(false);
+  const [emailAlertCount, setEmailAlertCount] = useState(0);
 
   const load = () => {
     setLoading(true);
@@ -122,6 +125,19 @@ export const DashboardPage = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const todayStr = new Date().toDateString();
+    emailApi.getAll()
+      .then((r) => {
+        const count = r.data.filter((item) =>
+          (item.status === 'NO_MATCH' || item.status === 'NO_SUBJECT') &&
+          item.receivedAt && new Date(item.receivedAt).toDateString() === todayStr
+        ).length;
+        setEmailAlertCount(count);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setYearLoading(true);
@@ -171,6 +187,8 @@ export const DashboardPage = () => {
     alerts.push({ type: 'success', message: `${stats.hiredThisMonth} embauche${stats.hiredThisMonth > 1 ? 's' : ''} confirmée${stats.hiredThisMonth > 1 ? 's' : ''} ce mois` });
   if ((stats?.activeJobPostings ?? 0) === 0)
     alerts.push({ type: 'warning', message: "Aucune offre d'emploi active en ce moment" });
+  if (emailAlertCount > 0)
+    alerts.push({ type: 'warning', message: `${emailAlertCount} email${emailAlertCount > 1 ? 's' : ''} de candidature non traité${emailAlertCount > 1 ? 's' : ''} aujourd'hui (sans offre ou sans objet)` });
 
   return (
     <div className="p-6 space-y-8">
@@ -207,6 +225,18 @@ export const DashboardPage = () => {
             value={stats?.interviewsThisWeek}
             gradient="from-emerald-500 to-emerald-700"
             numGradient="from-emerald-900 to-emerald-600"
+          />
+        </div>
+
+        {/* Email alert KPI */}
+        <div className="mt-4">
+          <StatCard
+            icon={MdEmail}
+            label="Emails non traités aujourd'hui"
+            value={emailAlertCount}
+            sub={emailAlertCount > 0 ? 'Sans offre correspondante ou sans objet' : 'Aucun problème détecté'}
+            gradient={emailAlertCount > 0 ? 'from-red-500 to-rose-700' : 'from-emerald-500 to-emerald-700'}
+            numGradient={emailAlertCount > 0 ? 'from-red-900 to-rose-600' : 'from-emerald-900 to-emerald-600'}
           />
         </div>
       </section>
