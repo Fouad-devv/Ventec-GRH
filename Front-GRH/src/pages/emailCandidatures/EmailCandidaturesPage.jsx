@@ -436,8 +436,8 @@ export const EmailCandidaturesPage = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto xl:overflow-x-visible">
+            <table className="w-full text-sm min-w-[700px] xl:min-w-0">
               <thead>
                 <tr className="border-b border-slate-200/80 dark:border-white/[0.06] bg-slate-50/80 dark:bg-white/[0.02]">
                   {/* Select-all checkbox */}
