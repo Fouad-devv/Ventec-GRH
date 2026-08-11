@@ -177,18 +177,8 @@ _groq_client = AsyncOpenAI(
 _groq_client2 = AsyncOpenAI(
     api_key=settings.groq_api_key2 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
 ) if settings.groq_api_key else None
-_groq_client3 = AsyncOpenAI(
-    api_key=settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
-) if settings.groq_api_key else None
-_groq_client4 = AsyncOpenAI(
-    api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
-) if settings.groq_api_key else None
-_groq_client5 = AsyncOpenAI(
-    api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0,
-) if settings.groq_api_key else None
-
-# Tier-1 fast: key1-5 (8B models)  |  Tier-2 smart: key1-2 (70B, JSON-mode)
-_extraction_fast_clients = [c for c in [_groq_client, _groq_client2, _groq_client3, _groq_client4, _groq_client5] if c is not None]
+# key3–6 are reserved for scoring in llm_scorer.py — extraction uses key1+2 only
+_extraction_fast_clients = [c for c in [_groq_client, _groq_client2] if c is not None]
 _extraction_clients      = [c for c in [_groq_client, _groq_client2] if c is not None]
 
 
@@ -392,6 +382,7 @@ async def _call_providers(
     messages: list,
     use_json_format: bool = False,
     label: str = "",
+    temperature: float = 0.0,
 ) -> str:
     """
     Multi-provider, multi-key, multi-model fallback engine.
@@ -413,7 +404,7 @@ async def _call_providers(
         for i, c in enumerate(active):
             for model in models:
                 try:
-                    kwargs: dict = {"model": model, "messages": messages, "temperature": 0.0}
+                    kwargs: dict = {"model": model, "messages": messages, "temperature": temperature}
                     if use_json_format:
                         kwargs["response_format"] = {"type": "json_object"}
                     resp = await c.chat.completions.create(**kwargs)
@@ -439,41 +430,33 @@ async def _call_with_fallback(
     temperature: float = 0.0,
 ) -> str:
     """
-    Single-call with Gemini (primary) → Groq → SambaNova fallback chain.
-    Used by generation endpoints (description, checklist, fiche de fonction, etc.)
+    Generation + match-posting endpoints.
+    Gemini (key1+2) → Groq (key1+2) → SambaNova (key1+2), full model-list fallback per provider.
+    Delegates entirely to _call_providers so key rotation and skip logic are consistent.
     """
-    gemini_model = settings.gemini_model_smart if model_type == "smart" else settings.gemini_model_fast
-    groq_model   = settings.groq_model_smart   if model_type == "smart" else settings.groq_model_fast
-    samba_model  = settings.sambanova_model_smart if model_type == "smart" else settings.sambanova_model_fast
+    gemini_models = settings.gemini_smart_models if model_type == "smart" else settings.gemini_fast_models
+    groq_models   = settings.groq_smart_models   if model_type == "smart" else settings.groq_fast_models
+    samba_models  = settings.sambanova_smart_models if model_type == "smart" else settings.sambanova_fast_models
 
-    chains = []
-    if _gemini_client:
-        chains.append(("gemini",    _gemini_client,    gemini_model))
-    if _groq_client:
-        chains.append(("groq",      _groq_client,      groq_model))
-    if _sambanova_client:
-        chains.append(("sambanova", _sambanova_client, samba_model))
+    chains: list = []
+    if _gemini_extraction_clients:
+        chains.append(("gemini", _gemini_extraction_clients, gemini_models))
+    groq_gen = [c for c in [_groq_client, _groq_client2] if c is not None]
+    if groq_gen:
+        chains.append(("groq", groq_gen, groq_models))
+    samba_gen = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
+    if samba_gen:
+        chains.append(("sambanova", samba_gen, samba_models))
 
     if not chains:
         raise HTTPException(status_code=503, detail="No LLM provider configured")
 
-    last_error: Exception = RuntimeError(f"[{label}] all providers exhausted")
-    for provider, c, model in chains:
-        try:
-            kwargs: dict = {"model": model, "messages": messages, "temperature": temperature}
-            if use_json:
-                kwargs["response_format"] = {"type": "json_object"}
-            resp = await c.chat.completions.create(**kwargs)
-            if provider != "gemini":
-                logger.info("[%s] %s fallback used", label, provider)
-            return resp.choices[0].message.content
-        except Exception as e:
-            if any(sig in str(e).lower() for sig in _SKIP_MODEL_SIGNALS):
-                logger.warning("[%s] %s failed — %s", label, provider, str(e)[:80])
-                last_error = e
-                continue
-            raise
-    raise last_error
+    return await _call_providers(
+        chains, messages,
+        use_json_format=use_json,
+        label=label,
+        temperature=temperature,
+    )
 
 
 async def _run_cv_extraction_full(text: str, source: str = "native") -> dict:

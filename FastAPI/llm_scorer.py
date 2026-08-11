@@ -195,7 +195,7 @@ _GROQ_BASE = "https://api.groq.com/openai/v1"
 scoring_client  = AsyncOpenAI(api_key=settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0) if settings.groq_api_key else None
 scoring_client2 = AsyncOpenAI(api_key=settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0) if settings.groq_api_key else None
 scoring_client3 = AsyncOpenAI(api_key=settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0) if settings.groq_api_key else None
-scoring_client4 = AsyncOpenAI(api_key=settings.groq_api_key6 or settings.groq_api_key5 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0) if settings.groq_api_key else None
+scoring_client4 = AsyncOpenAI(api_key=settings.groq_api_key6 or settings.groq_api_key5 or settings.groq_api_key4 or settings.groq_api_key3 or settings.groq_api_key, base_url=_GROQ_BASE, max_retries=0) if settings.groq_api_key else None
 
 # ── SambaNova — FALLBACK #2 scoring clients (key3–key6) ──────────────────────
 _SAMBANOVA_BASE = "https://api.sambanova.ai/v1"
@@ -204,7 +204,7 @@ _SAMBANOVA_TIMEOUT = 120.0
 _samba_scoring_client  = AsyncOpenAI(api_key=settings.sambanova_api_key3 or settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT) if settings.sambanova_api_key else None
 _samba_scoring_client2 = AsyncOpenAI(api_key=settings.sambanova_api_key4 or settings.sambanova_api_key3 or settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT) if settings.sambanova_api_key else None
 _samba_scoring_client3 = AsyncOpenAI(api_key=settings.sambanova_api_key5 or settings.sambanova_api_key4 or settings.sambanova_api_key3 or settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT) if settings.sambanova_api_key else None
-_samba_scoring_client4 = AsyncOpenAI(api_key=settings.sambanova_api_key6 or settings.sambanova_api_key5 or settings.sambanova_api_key3 or settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT) if settings.sambanova_api_key else None
+_samba_scoring_client4 = AsyncOpenAI(api_key=settings.sambanova_api_key6 or settings.sambanova_api_key5 or settings.sambanova_api_key4 or settings.sambanova_api_key3 or settings.sambanova_api_key, base_url=_SAMBANOVA_BASE, max_retries=0, timeout=_SAMBANOVA_TIMEOUT) if settings.sambanova_api_key else None
 
 # ─── Multi-model fallback helpers ─────────────────────────────────────────────
 
