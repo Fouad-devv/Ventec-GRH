@@ -198,6 +198,12 @@ _extraction_fast_fallback = [c for c in [_sambanova_client, _sambanova_client2] 
 _extraction_fallback      = [c for c in [_sambanova_client, _sambanova_client2] if c is not None]
 
 
+# Limit concurrent full CV extractions to avoid bursting the Gemini per-minute quota
+# when Spring Boot sends a bulk import of 50+ CVs simultaneously.
+# At 5 slots: 50 CVs are processed in ~10 batches instead of all at once.
+_extraction_semaphore = asyncio.Semaphore(5)
+
+
 def _require_any():
     """Return the first available client across all providers."""
     if _gemini_client:
@@ -616,7 +622,8 @@ async def extract_cv_full(file: UploadFile = File(...)):
         logger.info("Full CV extraction '%s' via %s — %d chars", filename, method, len(text))
         if not text.strip():
             raise HTTPException(status_code=422, detail="Impossible d'extraire le texte du CV.")
-        structured = await _extract_full_with_retry(text, method, filename)
+        async with _extraction_semaphore:
+            structured = await _extract_full_with_retry(text, method, filename)
         return {"cv_text": text[:50_000], **structured}
     except HTTPException:
         raise
