@@ -108,28 +108,46 @@ async def _fetch_candidates(candidate_ids: list[str]) -> list[dict]:
     Fetches anonymized candidate CV data from the public /ai/candidates endpoint.
     Returns list of {candidate_id, cv_text, experience_years}.
     Note: endpoint returns NO name, NO age, NO sex — non-discrimination by design.
+
+    Concurrency is capped at 3 to avoid saturating Spring Boot's thread pool
+    (max-size=10) when it is simultaneously processing bulk CV uploads.
+    Retries up to 5 times with exponential backoff on HTTP 429.
     """
-    results = []
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for cid in candidate_ids:
-            try:
-                resp = await client.get(f"{settings.backend_url}/ai/candidates/{cid}")
-                if resp.status_code == 200:
-                    data = resp.json()
-                    results.append({
-                        "candidate_id": cid,
-                        "cv_text": data.get("cvExtractedText") or "",
-                        "experience_years": data.get("experienceYears"),
-                        "skills": data.get("skills") or "",
-                        "education": data.get("education") or "",
-                        "current_position": data.get("currentPosition") or "",
-                    })
-                else:
-                    results.append({"candidate_id": cid, "cv_text": "", "experience_years": None})
-            except Exception as e:
-                logger.warning("Failed to fetch candidate %s: %s", cid, e)
-                results.append({"candidate_id": cid, "cv_text": "", "experience_years": None})
-    return results
+    sem = asyncio.Semaphore(3)
+
+    async def fetch_one(client: httpx.AsyncClient, cid: str) -> dict:
+        async with sem:
+            for attempt in range(5):
+                delay = 2 * (attempt + 1)  # 2s, 4s, 6s, 8s, 10s
+                try:
+                    resp = await client.get(f"{settings.backend_url}/ai/candidates/{cid}")
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        return {
+                            "candidate_id": cid,
+                            "cv_text": data.get("cvExtractedText") or "",
+                            "experience_years": data.get("experienceYears"),
+                            "skills": data.get("skills") or "",
+                            "education": data.get("education") or "",
+                            "current_position": data.get("currentPosition") or "",
+                        }
+                    elif resp.status_code == 429:
+                        logger.warning(
+                            "Backend throttled fetching candidate %s (attempt %d/5) — retrying in %ds",
+                            cid, attempt + 1, delay,
+                        )
+                        await asyncio.sleep(delay)
+                    else:
+                        logger.warning("Unexpected HTTP %d fetching candidate %s", resp.status_code, cid)
+                        return {"candidate_id": cid, "cv_text": "", "experience_years": None}
+                except Exception as e:
+                    logger.warning("Failed to fetch candidate %s: %s", cid, e)
+                    return {"candidate_id": cid, "cv_text": "", "experience_years": None}
+            logger.error("Candidate %s: backend kept returning 429 after 5 retries — scoring with empty CV", cid)
+            return {"candidate_id": cid, "cv_text": "", "experience_years": None}
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        return list(await asyncio.gather(*[fetch_one(client, cid) for cid in candidate_ids]))
 
 
 async def _send_callback(url: str, status: str, results: list, error_message: str = None):
