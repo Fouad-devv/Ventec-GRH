@@ -218,8 +218,10 @@ _SKIP_SCORING_SIGNALS = (
 )
 
 
-def _parse_score_json(raw: str) -> dict:
+def _parse_score_json(raw: str | None) -> dict:
     """Extract JSON from LLM scoring response, with regex fallback for truncated output."""
+    if not raw or not raw.strip():
+        raise json.JSONDecodeError("No valid JSON found in scoring response", raw or "", 0)
     raw = raw.strip()
     try:
         return json.loads(raw)
@@ -259,9 +261,16 @@ async def _call_scoring(messages: list, label: str = "") -> str:
                         temperature=0.0,
                         response_format={"type": "json_object"},
                     )
+                    content = resp.choices[0].message.content
+                    if not content or not content.strip():
+                        logger.warning(
+                            "[scoring:%s] %s/key%d/%s returned empty content — skipping",
+                            label, provider_name, i + 1, model,
+                        )
+                        continue
                     if not (provider_name == "Gemini" and i == 0 and model == models[0]):
                         logger.info("[scoring:%s] succeeded with %s/key%d/%s", label, provider_name, i + 1, model)
-                    return resp.choices[0].message.content
+                    return content
                 except Exception as e:
                     if any(sig in str(e).lower() for sig in _SKIP_SCORING_SIGNALS):
                         logger.warning("[scoring:%s] Skipping %s/key%d/%s — %s", label, provider_name, i + 1, model, str(e)[:120])
