@@ -224,7 +224,11 @@ def _parse_score_json(raw: str | None) -> dict:
         raise json.JSONDecodeError("No valid JSON found in scoring response", raw or "", 0)
     raw = raw.strip()
     try:
-        return json.loads(raw)
+        result = json.loads(raw)
+        if isinstance(result, dict):
+            return result
+        if isinstance(result, list) and result and isinstance(result[0], dict):
+            return result[0]
     except json.JSONDecodeError:
         pass
     m = re.search(r'\{[^{}]*"score"[^{}]*\}', raw, re.DOTALL)
@@ -389,7 +393,9 @@ async def score_candidate(
     req_edu: Optional[str] = None
     if extracted_job_data:
         try:
-            req_edu = json.loads(extracted_job_data).get("required_education")
+            _parsed_edu = json.loads(extracted_job_data)
+            if isinstance(_parsed_edu, dict):
+                req_edu = _parsed_edu.get("required_education")
         except Exception:
             pass
 
@@ -410,6 +416,8 @@ async def score_candidate(
     if extracted_job_data:
         try:
             parsed = json.loads(extracted_job_data)
+            if not isinstance(parsed, dict):
+                parsed = {}
             elim_parts = []
             skill_parts = []
 
@@ -475,7 +483,8 @@ async def score_candidate(
     _beginner_ok = False
     if extracted_job_data:
         try:
-            _req_exp_text = json.loads(extracted_job_data).get("required_experience") or ""
+            _parsed_exp = json.loads(extracted_job_data)
+            _req_exp_text = (_parsed_exp.get("required_experience") or "") if isinstance(_parsed_exp, dict) else ""
             if _BEGINNER_RE.search(_req_exp_text):
                 _beginner_ok = True
                 logger.info(
