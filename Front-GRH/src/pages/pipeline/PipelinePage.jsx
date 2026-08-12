@@ -479,30 +479,48 @@ export const PipelinePage = () => {
                 <span className="text-xs text-slate-400">{byStatus(status).length}</span>
               </div>
               {status === 'INTERVIEW' && byStatus('INTERVIEW').length > 0 && (() => {
-                const unnotified = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt).length;
+                const pendingInterview = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
+                const withEmail = pendingInterview.filter((a) => a.candidateEmail).length;
+                const noEmail = pendingInterview.length - withEmail;
+                const allNotified = pendingInterview.length === 0;
                 return (
                   <button
                     onClick={() => { setEmailResult(null); setShowInterviewConfirm(true); }}
-                    disabled={unnotified === 0}
-                    title={unnotified === 0 ? 'Tous les entretiens planifiés ont déjà été convoqués' : `Envoyer la convocation à ${unnotified} candidat(s)`}
+                    disabled={withEmail === 0}
+                    title={
+                      allNotified
+                        ? 'Tous les entretiens planifiés ont déjà été convoqués'
+                        : withEmail === 0
+                        ? `${noEmail} candidat(s) sans email — impossible d'envoyer des convocations`
+                        : `Envoyer la convocation à ${withEmail} candidat(s)`
+                    }
                     className="flex items-center justify-center gap-1 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-950 border border-cyan-200 dark:border-cyan-900"
                   >
                     <MdMail className="w-3.5 h-3.5 shrink-0" />
-                    {unnotified > 0 ? `Convoquer (${unnotified})` : 'Tous convoqués'}
+                    {allNotified ? 'Tous convoqués' : withEmail > 0 ? `Convoquer (${withEmail})` : 'Aucun email disponible'}
                   </button>
                 );
               })()}
               {status === 'REJECTED' && byStatus('REJECTED').length > 0 && (() => {
-                const unnotified = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt).length;
+                const pendingRejection = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt);
+                const withEmail = pendingRejection.filter((a) => a.candidateEmail).length;
+                const noEmail = pendingRejection.length - withEmail;
+                const allNotified = pendingRejection.length === 0;
                 return (
                   <button
                     onClick={() => { setEmailResult(null); setShowRejectionConfirm(true); }}
-                    disabled={unnotified === 0}
-                    title={unnotified === 0 ? 'Tous les candidats ont déjà été notifiés' : `Notifier ${unnotified} candidat(s)`}
+                    disabled={withEmail === 0}
+                    title={
+                      allNotified
+                        ? 'Tous les candidats ont déjà été notifiés'
+                        : withEmail === 0
+                        ? `${noEmail} candidat(s) sans email — impossible d'envoyer des emails de refus`
+                        : `Notifier ${withEmail} candidat(s)`
+                    }
                     className="flex items-center justify-center gap-1 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950 border border-red-200 dark:border-red-900"
                   >
                     <MdMail className="w-3.5 h-3.5 shrink-0" />
-                    {unnotified > 0 ? `Notifier (${unnotified})` : 'Tous notifiés'}
+                    {allNotified ? 'Tous notifiés' : withEmail > 0 ? `Notifier (${withEmail})` : 'Aucun email disponible'}
                   </button>
                 );
               })()}
@@ -628,7 +646,9 @@ export const PipelinePage = () => {
 
       {/* Interview convocation confirmation modal */}
       {showInterviewConfirm && (() => {
-        const unnotified = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt).length;
+        const pendingInterview = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
+        const withEmail = pendingInterview.filter((a) => a.candidateEmail).length;
+        const noEmailCount = pendingInterview.length - withEmail;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
@@ -639,9 +659,15 @@ export const PipelinePage = () => {
                 <div>
                   <h2 className="text-base font-semibold text-slate-900 dark:text-white">Envoyer les convocations</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">{unnotified} candidat{unnotified !== 1 ? 's' : ''}</span> recevront la convocation à leur entretien planifié.
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{withEmail} candidat{withEmail !== 1 ? 's' : ''}</span> recevront la convocation à leur entretien planifié.
                     Les candidats sans entretien planifié ou déjà convoqués seront ignorés.
                   </p>
+                  {noEmailCount > 0 && (
+                    <p className="flex items-center gap-1 mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      <MdWarning className="w-3.5 h-3.5 shrink-0" />
+                      {noEmailCount} candidat{noEmailCount !== 1 ? 's' : ''} sans email {noEmailCount !== 1 ? 'seront ignorés' : 'sera ignoré'}.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
@@ -672,7 +698,9 @@ export const PipelinePage = () => {
 
       {/* Rejection email confirmation modal */}
       {showRejectionConfirm && (() => {
-        const unnotified = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt).length;
+        const pendingRejection = byStatus('REJECTED').filter((a) => !a.rejectionEmailSentAt);
+        const withEmail = pendingRejection.filter((a) => a.candidateEmail).length;
+        const noEmailCount = pendingRejection.length - withEmail;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
@@ -683,9 +711,15 @@ export const PipelinePage = () => {
                 <div>
                   <h2 className="text-base font-semibold text-slate-900 dark:text-white">Envoyer les emails de refus</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">{unnotified} candidat{unnotified !== 1 ? 's' : ''}</span> recevront un email de refus professionnel.
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{withEmail} candidat{withEmail !== 1 ? 's' : ''}</span> recevront un email de refus professionnel.
                     Les candidats déjà notifiés seront ignorés.
                   </p>
+                  {noEmailCount > 0 && (
+                    <p className="flex items-center gap-1 mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      <MdWarning className="w-3.5 h-3.5 shrink-0" />
+                      {noEmailCount} candidat{noEmailCount !== 1 ? 's' : ''} sans email {noEmailCount !== 1 ? 'seront ignorés' : 'sera ignoré'}.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
