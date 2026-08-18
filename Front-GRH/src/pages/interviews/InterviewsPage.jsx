@@ -15,6 +15,14 @@ const isOverdue = (iv) =>
   iv.status === 'SCHEDULED' &&
   new Date(iv.scheduledAt).getTime() + (iv.durationMinutes || 60) * 60000 < Date.now();
 
+const isInProgress = (iv) => {
+  if (iv.status !== 'SCHEDULED') return false;
+  const start = new Date(iv.scheduledAt).getTime();
+  const end   = start + (iv.durationMinutes || 60) * 60000;
+  const now   = Date.now();
+  return start <= now && now < end;
+};
+
 const TYPE_MAP = {
   VIDEO:   { label: 'Visio',      cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
   PHONE:   { label: 'Téléphone',  cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
@@ -256,6 +264,7 @@ export const InterviewsPage = () => {
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatus]   = useState('ALL');
   const [typeFilter, setType]       = useState('ALL');
+  const [dateFilter, setDateFilter] = useState('ALL');
   const [selected, setSelected]     = useState(null);
 
   const load = async () => {
@@ -290,6 +299,29 @@ export const InterviewsPage = () => {
   const filtered = interviews.filter((iv) => {
     if (statusFilter !== 'ALL' && iv.status !== statusFilter) return false;
     if (typeFilter   !== 'ALL' && iv.type   !== typeFilter)   return false;
+    if (dateFilter !== 'ALL' && iv.scheduledAt) {
+      const d = new Date(iv.scheduledAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (dateFilter === 'TODAY') {
+        const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+        if (d < today || d >= tomorrow) return false;
+      } else if (dateFilter === 'THIS_WEEK') {
+        const dow = today.getDay();
+        const mon = new Date(today); mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+        const sun = new Date(mon);   sun.setDate(mon.getDate() + 7);
+        if (d < mon || d >= sun) return false;
+      } else if (dateFilter === 'NEXT_WEEK') {
+        const dow = today.getDay();
+        const mon = new Date(today); mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1) + 7);
+        const sun = new Date(mon);   sun.setDate(mon.getDate() + 7);
+        if (d < mon || d >= sun) return false;
+      } else if (dateFilter === 'THIS_MONTH') {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        if (d < start || d >= end) return false;
+      }
+    }
     if (q) {
       const candidate = `${iv.candidateFirstName || ''} ${iv.candidateLastName || ''}`.toLowerCase();
       const posting   = (iv.jobPostingTitle  || '').toLowerCase();
@@ -351,6 +383,16 @@ export const InterviewsPage = () => {
           <option value="PHONE">Téléphone</option>
           <option value="ON_SITE">Présentiel</option>
         </select>
+
+        {/* Date range */}
+        <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
+          className="text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+          <option value="ALL">Toutes les dates</option>
+          <option value="TODAY">Aujourd'hui</option>
+          <option value="THIS_WEEK">Cette semaine</option>
+          <option value="NEXT_WEEK">Semaine prochaine</option>
+          <option value="THIS_MONTH">Ce mois</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -375,7 +417,9 @@ export const InterviewsPage = () => {
                 {filtered.map((iv) => (
                   <tr key={iv.id} onClick={() => setSelected(iv)}
                     className={`border-b last:border-0 cursor-pointer transition-colors group ${
-                      isOverdue(iv)
+                      isInProgress(iv)
+                        ? 'border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/50'
+                        : isOverdue(iv)
                         ? 'border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50'
                         : 'border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     }`}>
@@ -405,6 +449,12 @@ export const InterviewsPage = () => {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <StatusBadge status={iv.status} />
+                        {isInProgress(iv) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            En cours
+                          </span>
+                        )}
                         {isOverdue(iv) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
                             En retard
