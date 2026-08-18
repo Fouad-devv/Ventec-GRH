@@ -12,6 +12,7 @@ import asyncio
 import json as _json
 import logging
 import re
+import unicodedata
 
 import httpx
 from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
@@ -370,6 +371,8 @@ _SKIP_MODEL_SIGNALS = (
     "404", "not found", "model_not_found", "does not exist",
     "402", "payment", "billing", "subscription",
     "quota", "resource_exhausted", "quota_exceeded",  # Gemini quota signals
+    "503", "service unavailable", "temporarily unavailable", "high demand",
+    "unavailable", "transient",
 )
 
 
@@ -1132,26 +1135,88 @@ async def match_posting(req: MatchPostingRequest):
     if not req.postings:
         return MatchPostingResponse()
 
-    # ── Programmatic domain pre-check ─────────────────────────────────────────
-    # If every posting's title shares zero domain keywords with the subject,
-    # short-circuit and return NO_MATCH before wasting an LLM call.
-    # This catches the "only one posting, wrong domain" false-match problem.
     _STOP_WORDS = {
         "candidature", "candidat", "objet", "poste", "pour", "de", "du",
         "le", "la", "les", "un", "une", "des", "en", "et", "au", "aux",
         "je", "ma", "mon", "offre", "emploi", "stage",
     }
 
-    def _domain_tokens(text: str) -> set[str]:
-        return {
-            w for w in re.split(r'[\s\-_/,;.]+', text.lower())
-            if len(w) >= 2 and w not in _STOP_WORDS
-        }
+    def _normalize_for_matching(text: str) -> str:
+        if not text:
+            return ""
+        value = text.lower()
+        value = unicodedata.normalize("NFKD", value)
+        value = "".join(ch for ch in value if not unicodedata.combining(ch))
+        value = value.replace("&", " and ")
+        value = value.replace("fullstack", "full stack")
+        value = value.replace("full_stack", "full stack")
+        value = value.replace("full-stack", "full stack")
+        value = value.replace("stac", "stack")
+        value = value.replace("satck", "stack")
+        value = re.sub(r"[^a-z0-9]+", " ", value)
+        return " ".join(value.split())
 
-    subject_tokens = _domain_tokens(req.subject)
+    def _match_tokens(text: str) -> set[str]:
+        normalized = _normalize_for_matching(text)
+        if not normalized:
+            return set()
+        tokens = set()
+        for token in normalized.split():
+            if len(token) < 2 or token in _STOP_WORDS:
+                continue
+            tokens.add(token)
+            if token == "developpement":
+                tokens.add("developpeur")
+            elif token == "developpeur":
+                tokens.add("developpement")
+            elif token == "web":
+                tokens.add("developpeur")
+        return tokens
+
+    def _heuristic_match(subject: str, postings: list) -> tuple[str | None, str | None, float] | None:
+        subj_norm = _normalize_for_matching(subject)
+        best = None
+        best_score = 0.0
+        for p in postings:
+            title_norm = _normalize_for_matching(p.title or "")
+            title_tokens = _match_tokens(p.title or "")
+            subject_tokens = _match_tokens(subject)
+            overlap = subject_tokens & title_tokens
+            score = 0.0
+            if overlap:
+                score = 0.9
+            elif "developpeur web" in subj_norm and ("developpeur web" in title_norm or "developpement web" in title_norm or "web" in title_norm):
+                score = 0.85
+            elif "developpement web" in subj_norm and ("developpeur web" in title_norm or "developpement web" in title_norm or "web" in title_norm):
+                score = 0.85
+            elif "web" in subj_norm and "web" in title_norm:
+                score = 0.75
+            if score > best_score:
+                best_score = score
+                best = p
+
+        if best is None or best_score < 0.75:
+            return None
+        return str(best.id), best.title, 0.85 if best_score >= 0.85 else 0.78
+
+    fallback_match = _heuristic_match(req.subject, req.postings)
+    if fallback_match is not None:
+        posting_id, posting_title, confidence = fallback_match
+        logger.info(
+            "match-posting '%s' → heuristic fallback matched '%s' (confidence=%.2f)",
+            req.subject[:80], posting_title, confidence,
+        )
+        return MatchPostingResponse(
+            posting_id=posting_id,
+            posting_title=posting_title,
+            confidence=confidence,
+        )
+
+    # ── Programmatic domain pre-check ─────────────────────────────────────────
+    subject_tokens = _match_tokens(req.subject)
     if subject_tokens:
         any_overlap = any(
-            subject_tokens & _domain_tokens(
+            subject_tokens & _match_tokens(
                 p.title + " " + (p.department or "") + " " + (p.description or "")[:300]
             )
             for p in req.postings
@@ -1184,12 +1249,12 @@ Ta tâche : identifier l'offre dont le DOMAINE MÉTIER correspond à l'objet de 
 RÈGLES STRICTES — à respecter absolument :
 1. Ne retourne un posting_id QUE si l'objet de l'email est clairement lié au domaine du poste.
    Exemples de correspondance valide :
-   - "Candidature développeur web" → poste "Développeur web full stack" ✅
-   - "Candidature RH / ressources humaines" → poste "Responsable RH" ✅
-   - "Candidature comptable" → poste "Comptable junior" ✅
+   - "Candidature développeur web" → poste "Développeur web full stack"
+   - "Candidature RH / ressources humaines" → poste "Responsable RH"
+   - "Candidature comptable" → poste "Comptable junior"
    Exemples de NON-correspondance :
-   - "Candidature RH" → poste "Développeur web" ❌ (domaines différents)
-   - "Candidature informatique" → poste "Responsable RH" ❌ (domaines différents)
+   - "Candidature RH" → poste "Développeur web"  (domaines différents)
+   - "Candidature informatique" → poste "Responsable RH"  (domaines différents)
 
 2. Si plusieurs offres sont disponibles mais qu'aucune ne correspond au domaine mentionné
    dans l'objet → retourne null. Ne jamais forcer un match par défaut.
@@ -1222,13 +1287,23 @@ Si aucune offre ne correspond au domaine de l'email, retourne :
             "match-posting '%s' → posting_id=%s confidence=%.2f",
             req.subject[:80], posting_id, confidence,
         )
-        return MatchPostingResponse(
-            posting_id=posting_id,
-            posting_title=posting_title,
-            confidence=confidence,
-        )
+        if posting_id and posting_title and confidence >= 0.0:
+            return MatchPostingResponse(
+                posting_id=posting_id,
+                posting_title=posting_title,
+                confidence=confidence,
+            )
+        return MatchPostingResponse()
     except HTTPException:
         raise
     except Exception as e:
         logger.error("match-posting failed for '%s': %s", req.subject[:80], e)
+        fallback_match = _heuristic_match(req.subject, req.postings)
+        if fallback_match is not None:
+            posting_id, posting_title, confidence = fallback_match
+            return MatchPostingResponse(
+                posting_id=posting_id,
+                posting_title=posting_title,
+                confidence=confidence,
+            )
         return MatchPostingResponse()
