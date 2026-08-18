@@ -74,6 +74,19 @@ export const CandidateDetailPage = () => {
   const [applications, setApplications] = useState([]);
   const [interviews, setInterviews] = useState({});
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(new Set());
+
+  const handleStatusChange = async (appId, newStatus) => {
+    setUpdatingStatus((prev) => new Set(prev).add(appId));
+    try {
+      await appApi.updateStatus(appId, { status: newStatus });
+      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status: newStatus } : a));
+    } catch (e) {
+      console.error('Échec mise à jour statut', e);
+    } finally {
+      setUpdatingStatus((prev) => { const s = new Set(prev); s.delete(appId); return s; });
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -239,9 +252,17 @@ export const CandidateDetailPage = () => {
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[app.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                          {STATUS_LABELS[app.status] ?? app.status}
-                        </span>
+                        <select
+                          value={app.status}
+                          onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                          disabled={updatingStatus.has(app.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border-0 cursor-pointer outline-none disabled:opacity-60 disabled:cursor-wait ${STATUS_STYLES[app.status] ?? 'bg-slate-100 text-slate-600'}`}
+                        >
+                          {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                            <option key={v} value={v}>{l}</option>
+                          ))}
+                        </select>
                         <ScoreBadge score={app.aiScore} />
                         {interviews[app.id] && (
                           <button

@@ -2,14 +2,32 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MdArrowBack, MdStar, MdSearch, MdDelete, MdWarning,
-  MdPerson, MdFilterList, MdCheckCircle, MdClose,
+  MdPerson, MdFilterList, MdCheckCircle, MdClose, MdDownload,
 } from 'react-icons/md';
-import { StatusBadge } from '../../components/StatusBadge';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
 import { applicationsApi } from '../../api/applications';
+import { candidatesApi } from '../../api/candidates';
 import { usePageBack } from '../../context/HeaderContext';
 import { useToast } from '../../context/ToastContext';
+
+const APP_STATUS_STYLES = {
+  NEW:         'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  SCREENING:   'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  SHORTLISTED: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  INTERVIEW:   'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300',
+  HIRED:       'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  REJECTED:    'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+};
+
+const APP_STATUS_LABELS = {
+  NEW:         'Nouveau',
+  SCREENING:   'En screening',
+  SHORTLISTED: 'Sélectionné',
+  INTERVIEW:   'Entretien',
+  HIRED:       'Embauché',
+  REJECTED:    'Refusé',
+};
 
 const PAGE_SIZE = 20;
 
@@ -100,15 +118,47 @@ export const PostingApplicationsPage = () => {
 
   const pApi   = postingsApi(axios);
   const appApi = applicationsApi(axios);
+  const cApi   = candidatesApi(axios);
 
-  const [posting,      setPosting]      = useState(null);
-  const [applications, setApplications] = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [page,         setPage]         = useState(1);
-  const [deleting,     setDeleting]     = useState(false);
-  const [confirmApp,   setConfirmApp]   = useState(null); // { id, name }
+  const [posting,         setPosting]         = useState(null);
+  const [applications,    setApplications]    = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [search,          setSearch]          = useState('');
+  const [statusFilter,    setStatusFilter]    = useState('ALL');
+  const [page,            setPage]            = useState(1);
+  const [deleting,        setDeleting]        = useState(false);
+  const [confirmApp,      setConfirmApp]      = useState(null);
+  const [updatingStatus,  setUpdatingStatus]  = useState(new Set());
+  const [downloadingCv,   setDownloadingCv]   = useState(new Set());
+
+  const handleStatusChange = async (appId, newStatus) => {
+    setUpdatingStatus((prev) => new Set(prev).add(appId));
+    try {
+      await appApi.updateStatus(appId, { status: newStatus });
+      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status: newStatus } : a));
+    } catch {
+      showToast('Erreur lors de la mise à jour du statut', 'error');
+    } finally {
+      setUpdatingStatus((prev) => { const s = new Set(prev); s.delete(appId); return s; });
+    }
+  };
+
+  const handleDownloadCv = async (candidateId, firstName, lastName) => {
+    setDownloadingCv((prev) => new Set(prev).add(candidateId));
+    try {
+      const res = await cApi.downloadCv(candidateId);
+      const url = URL.createObjectURL(res.data);
+      Object.assign(document.createElement('a'), {
+        href: url,
+        download: `CV-${firstName}-${lastName}.pdf`,
+      }).click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast('CV non disponible', 'error');
+    } finally {
+      setDownloadingCv((prev) => { const s = new Set(prev); s.delete(candidateId); return s; });
+    }
+  };
 
   usePageBack(
     <button
@@ -312,7 +362,27 @@ export const PostingApplicationsPage = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <StatusBadge status={app.status} />
+                      <select
+                        value={app.status}
+                        onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                        disabled={updatingStatus.has(app.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`text-xs font-semibold rounded-full px-2.5 py-1 border-0 cursor-pointer outline-none disabled:opacity-60 disabled:cursor-wait ${APP_STATUS_STYLES[app.status] ?? 'bg-slate-100 text-slate-600'}`}
+                      >
+                        {Object.entries(APP_STATUS_LABELS).map(([v, l]) => (
+                          <option key={v} value={v}>{l}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleDownloadCv(app.candidateId, app.candidateFirstName, app.candidateLastName)}
+                        disabled={downloadingCv.has(app.candidateId)}
+                        className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-wait transition-all"
+                        title="Télécharger le CV"
+                      >
+                        {downloadingCv.has(app.candidateId)
+                          ? <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+                          : <MdDownload className="w-4 h-4" />}
+                      </button>
                       <button
                         onClick={() => setConfirmApp({ id: app.id, name: `${app.candidateFirstName} ${app.candidateLastName}` })}
                         className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
