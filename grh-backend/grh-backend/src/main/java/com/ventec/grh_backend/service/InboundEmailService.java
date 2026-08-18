@@ -52,6 +52,7 @@ public class InboundEmailService {
     private volatile long lastUID = -1;
 
     private static final double CONFIDENCE_THRESHOLD = 0.65;
+    private static final int IMAP_SOCKET_TIMEOUT_MS = 60000;
 
     private final JobPostingRepository       jobPostingRepository;
     private final CandidateRepository        candidateRepository;
@@ -64,7 +65,7 @@ public class InboundEmailService {
 
     // ── IMAP polling ──────────────────────────────────────────────────────────
 
-    @Scheduled(fixedDelayString = "${email.poll.interval-ms:30000}")
+    @Scheduled(fixedDelayString = "${email.poll.interval-ms:300000}")
     public void pollInbox() {
         Store store = null;
         Folder inbox = null;
@@ -72,8 +73,9 @@ public class InboundEmailService {
             Properties props = new Properties();
             props.put("mail.store.protocol", "imaps");
             props.put("mail.imaps.ssl.enable", "true");
-            props.put("mail.imaps.connectiontimeout", "15000");
-            props.put("mail.imaps.timeout", "15000");
+            props.put("mail.imaps.connectiontimeout", String.valueOf(IMAP_SOCKET_TIMEOUT_MS));
+            props.put("mail.imaps.timeout", String.valueOf(IMAP_SOCKET_TIMEOUT_MS));
+            props.put("mail.imaps.writetimeout", String.valueOf(IMAP_SOCKET_TIMEOUT_MS));
 
             Session session = Session.getInstance(props);
             store = session.getStore("imaps");
