@@ -1,0 +1,91 @@
+name: Deploy — Test
+
+on:
+  push:
+    branches: [deployTest]
+
+jobs:
+  deploy:
+    name: Deploy to test environment
+    runs-on: ubuntu-latest
+    environment: test
+
+    steps:
+      - name: SSH → pull, write .env, restart containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: >-
+            KC_USERNAME,KC_PWD,KC_DB_URL,KC_DB_USERNAME,KC_DB_PASSWORD,
+            DB_URL,DB_USERNAME,DB_PASSWORD,
+            KEYCLOAK_REALM,KEYCLOAK_CLIENT_ID,
+            STORAGE_PATH,CORS_ALLOWED_ORIGINS,
+            SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASSWORD,MAIL_FROM,
+            IMAP_HOST,IMAP_PORT,IMAP_USER,IMAP_PASSWORD,EMAIL_POLL_ENABLED,EMAIL_POLL_INTERVAL_MS,
+            INIT_ADMIN_EMAIL,INIT_ADMIN_FIRSTNAME,INIT_ADMIN_LASTNAME,INIT_ADMIN_PASSWORD,INIT_ADMIN_DEPARTMENT,
+            GROQ_API_KEY,GROQ_API_KEY2,GROQ_API_KEY3,GROQ_API_KEY4,GROQ_API_KEY5,GROQ_API_KEY6,
+            GEMINI_API_KEY,GEMINI_API_KEY2,GEMINI_API_KEY3,GEMINI_API_KEY4,GEMINI_API_KEY5,GEMINI_API_KEY6,
+            SAMBANOVA_API_KEY,SAMBANOVA_API_KEY2,SAMBANOVA_API_KEY3,SAMBANOVA_API_KEY4,SAMBANOVA_API_KEY5,SAMBANOVA_API_KEY6,
+            AI_MODEL_NAME,VITE_KEYCLOAK_URL,VITE_API_URL
+          script: |
+            set -e
+            cd /opt/grh-test
+
+            git fetch origin deployTest
+            git reset --hard origin/deployTest
+
+            cat > .env << EOF
+            KC_USERNAME=$KC_USERNAME
+            KC_PWD=$KC_PWD
+            KC_DB_URL=$KC_DB_URL
+            KC_DB_USERNAME=$KC_DB_USERNAME
+            KC_DB_PASSWORD=$KC_DB_PASSWORD
+            DB_URL=$DB_URL
+            DB_USERNAME=$DB_USERNAME
+            DB_PASSWORD=$DB_PASSWORD
+            KEYCLOAK_REALM=$KEYCLOAK_REALM
+            KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID
+            STORAGE_PATH=$STORAGE_PATH
+            CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
+            SMTP_HOST=$SMTP_HOST
+            SMTP_PORT=$SMTP_PORT
+            SMTP_USER=$SMTP_USER
+            SMTP_PASSWORD=$SMTP_PASSWORD
+            MAIL_FROM=$MAIL_FROM
+            IMAP_HOST=$IMAP_HOST
+            IMAP_PORT=$IMAP_PORT
+            IMAP_USER=$IMAP_USER
+            IMAP_PASSWORD=$IMAP_PASSWORD
+            EMAIL_POLL_ENABLED=$EMAIL_POLL_ENABLED
+            EMAIL_POLL_INTERVAL_MS=$EMAIL_POLL_INTERVAL_MS
+            INIT_ADMIN_EMAIL=$INIT_ADMIN_EMAIL
+            INIT_ADMIN_FIRSTNAME=$INIT_ADMIN_FIRSTNAME
+            INIT_ADMIN_LASTNAME=$INIT_ADMIN_LASTNAME
+            INIT_ADMIN_PASSWORD=$INIT_ADMIN_PASSWORD
+            INIT_ADMIN_DEPARTMENT=$INIT_ADMIN_DEPARTMENT
+            GROQ_API_KEY=$GROQ_API_KEY
+            GROQ_API_KEY2=$GROQ_API_KEY2
+            GROQ_API_KEY3=$GROQ_API_KEY3
+            GROQ_API_KEY4=$GROQ_API_KEY4
+            GROQ_API_KEY5=$GROQ_API_KEY5
+            GROQ_API_KEY6=$GROQ_API_KEY6
+            GEMINI_API_KEY=$GEMINI_API_KEY
+            GEMINI_API_KEY2=$GEMINI_API_KEY2
+            GEMINI_API_KEY3=$GEMINI_API_KEY3
+            GEMINI_API_KEY4=$GEMINI_API_KEY4
+            GEMINI_API_KEY5=$GEMINI_API_KEY5
+            GEMINI_API_KEY6=$GEMINI_API_KEY6
+            SAMBANOVA_API_KEY=$SAMBANOVA_API_KEY
+            SAMBANOVA_API_KEY2=$SAMBANOVA_API_KEY2
+            SAMBANOVA_API_KEY3=$SAMBANOVA_API_KEY3
+            SAMBANOVA_API_KEY4=$SAMBANOVA_API_KEY4
+            SAMBANOVA_API_KEY5=$SAMBANOVA_API_KEY5
+            SAMBANOVA_API_KEY6=$SAMBANOVA_API_KEY6
+            AI_MODEL_NAME=$AI_MODEL_NAME
+            VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
+            VITE_API_URL=$VITE_API_URL
+            EOF
+
+            docker compose -f docker-compose.test.yml -p grh-test up -d --build
