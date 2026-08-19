@@ -21,5 +21,6 @@ public record CandidateResponse(
         OffsetDateTime updatedAt,
         List<String> jobPostingTitles,
         Double aiScore,
-        String applicationStatus
+        String applicationStatus,
+        boolean contacted
 ) {}

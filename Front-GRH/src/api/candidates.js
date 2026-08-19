@@ -16,6 +16,7 @@ export const candidatesApi = (axios) => ({
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  updateContacted: (id, contacted) => axios.patch(`${BASE}/${id}/contacted`, { contacted }),
   downloadChecklist: (candidateId, postingId) =>
     axios.get(`/checklists/candidate/${candidateId}/posting/${postingId}/export/docx`, { responseType: 'blob' }),
   downloadChecklistPdf: (candidateId, postingId) =>

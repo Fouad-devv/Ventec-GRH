@@ -393,7 +393,8 @@ public class PostingService {
                         app.getInterviewNotifiedAt(),
                         null,
                         null,
-                        savedCandidate.getExperienceYears()
+                        savedCandidate.getExperienceYears(),
+                        savedCandidate.isContacted()
                 );
                 results.add(new ImportCvResult(appResponse, fileName, aiError));
             } catch (Exception e) {

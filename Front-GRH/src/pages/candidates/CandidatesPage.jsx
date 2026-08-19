@@ -109,6 +109,17 @@ export const CandidatesPage = () => {
     </button>
   );
 
+  const handleContactedToggle = async (e, candidateId, currentContacted) => {
+    e.stopPropagation();
+    setCandidates((prev) => prev.map((c) => c.id === candidateId ? { ...c, contacted: !currentContacted } : c));
+    try {
+      await api.updateContacted(candidateId, !currentContacted);
+    } catch (err) {
+      setCandidates((prev) => prev.map((c) => c.id === candidateId ? { ...c, contacted: currentContacted } : c));
+      showToast('Erreur lors de la mise à jour', 'error');
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
@@ -270,6 +281,7 @@ export const CandidatesPage = () => {
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Offre d'emploi</th>
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Exp.</th>
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Score IA</th>
+                  <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">Contact</th>
                   <th className="text-left px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">CV</th>
                   {!selectionMode && <th className="px-4 py-3" />}
                 </tr>
@@ -277,7 +289,7 @@ export const CandidatesPage = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {candidates.length === 0 ? (
                   <tr>
-                    <td colSpan={selectionMode ? 6 : 7} className="text-center py-10 text-slate-400">Aucun candidat trouvé</td>
+                    <td colSpan={selectionMode ? 7 : 8} className="text-center py-10 text-slate-400">Aucun candidat trouvé</td>
                   </tr>
                 ) : candidates.map((c) => {
                   const isSelected = selectedIds.has(c.id);
@@ -332,6 +344,20 @@ export const CandidatesPage = () => {
                             </span>
                           );
                         })() : <span className="text-slate-400 text-xs">—</span>}
+                      </td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        {c.applicationStatus !== 'REJECTED' && (
+                          <button
+                            onClick={(e) => handleContactedToggle(e, c.id, c.contacted)}
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
+                              c.contacted
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {c.contacted ? 'Contacté' : 'Non contacté'}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         {c.cvPath ? (

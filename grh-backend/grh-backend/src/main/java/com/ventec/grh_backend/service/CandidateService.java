@@ -109,6 +109,14 @@ public class CandidateService {
         ));
     }
 
+    public CandidateResponse updateContacted(UUID id, boolean contacted) {
+        Candidate candidate = candidateRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Candidate not found: " + id));
+        candidate.setContacted(contacted);
+        return toResponse(candidateRepository.save(candidate),
+                applicationRepository.findJobPostingTitlesByCandidateId(id));
+    }
+
     public void deleteCandidate(UUID id) {
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Candidate not found: " + id));
@@ -133,7 +141,7 @@ public class CandidateService {
                 c.getSkills(), c.getExperienceYears(), c.getEducation(),
                 c.getCurrentPosition(), c.getLocation(),
                 c.getCreatedAt(), c.getUpdatedAt(),
-                jobPostingTitles, aiScore, applicationStatus
+                jobPostingTitles, aiScore, applicationStatus, c.isContacted()
         );
     }
 }

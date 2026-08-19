@@ -75,6 +75,21 @@ export const CandidateDetailPage = () => {
   const [interviews, setInterviews] = useState({});
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(new Set());
+  const [updatingContacted, setUpdatingContacted] = useState(false);
+
+  const handleContactedToggle = async () => {
+    if (!candidate || updatingContacted) return;
+    const next = !candidate.contacted;
+    setUpdatingContacted(true);
+    setCandidate((prev) => ({ ...prev, contacted: next }));
+    try {
+      await api.updateContacted(candidate.id, next);
+    } catch {
+      setCandidate((prev) => ({ ...prev, contacted: !next }));
+    } finally {
+      setUpdatingContacted(false);
+    }
+  };
 
   const handleStatusChange = async (appId, newStatus) => {
     setUpdatingStatus((prev) => new Set(prev).add(appId));
@@ -167,6 +182,21 @@ export const CandidateDetailPage = () => {
                   <p className="text-xs text-slate-400 mt-0.5">meilleur score IA</p>
                 </div>
               )}
+            </div>
+
+            {/* Contacted badge */}
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={handleContactedToggle}
+                disabled={updatingContacted}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors disabled:opacity-60 ${
+                  candidate.contacted
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {candidate.contacted ? '✓ Contacté' : 'Non contacté'}
+              </button>
             </div>
 
             {/* Contact info */}

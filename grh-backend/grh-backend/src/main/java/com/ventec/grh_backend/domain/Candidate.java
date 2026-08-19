@@ -50,6 +50,9 @@ public class Candidate {
 
     private String location;
 
+    @Column(nullable = false)
+    private boolean contacted = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

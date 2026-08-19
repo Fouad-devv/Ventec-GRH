@@ -413,7 +413,8 @@ public class ApplicationService {
                 a.getInterviewNotifiedAt(),
                 activeInterview != null ? activeInterview.getId()     : null,
                 activeInterview != null ? activeInterview.getStatus() : null,
-                a.getCandidate().getExperienceYears()
+                a.getCandidate().getExperienceYears(),
+                a.getCandidate().isContacted()
         );
     }
 }

@@ -130,6 +130,7 @@ export const PostingApplicationsPage = () => {
   const [confirmApp,      setConfirmApp]      = useState(null);
   const [updatingStatus,  setUpdatingStatus]  = useState(new Set());
   const [downloadingCv,   setDownloadingCv]   = useState(new Set());
+  const [updatingContacted, setUpdatingContacted] = useState(new Set());
 
   const handleStatusChange = async (appId, newStatus) => {
     setUpdatingStatus((prev) => new Set(prev).add(appId));
@@ -140,6 +141,24 @@ export const PostingApplicationsPage = () => {
       showToast('Erreur lors de la mise à jour du statut', 'error');
     } finally {
       setUpdatingStatus((prev) => { const s = new Set(prev); s.delete(appId); return s; });
+    }
+  };
+
+  const handleContactedToggle = async (candidateId, currentContacted) => {
+    if (updatingContacted.has(candidateId)) return;
+    setUpdatingContacted((prev) => new Set(prev).add(candidateId));
+    setApplications((prev) => prev.map((a) =>
+      a.candidateId === candidateId ? { ...a, candidateContacted: !currentContacted } : a,
+    ));
+    try {
+      await cApi.updateContacted(candidateId, !currentContacted);
+    } catch {
+      setApplications((prev) => prev.map((a) =>
+        a.candidateId === candidateId ? { ...a, candidateContacted: currentContacted } : a,
+      ));
+      showToast('Erreur lors de la mise à jour', 'error');
+    } finally {
+      setUpdatingContacted((prev) => { const s = new Set(prev); s.delete(candidateId); return s; });
     }
   };
 
@@ -361,7 +380,20 @@ export const PostingApplicationsPage = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      {app.status !== 'REJECTED' && (
+                        <button
+                          onClick={() => handleContactedToggle(app.candidateId, app.candidateContacted)}
+                          disabled={updatingContacted.has(app.candidateId)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:opacity-60 ${
+                            app.candidateContacted
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {app.candidateContacted ? '✓ Contacté' : 'Non contacté'}
+                        </button>
+                      )}
                       <select
                         value={app.status}
                         onChange={(e) => handleStatusChange(app.id, e.target.value)}
