@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -130,7 +131,8 @@ public class ApplicationService {
         return saved;
     }
 
-    private void triggerChecklistGeneration(Application app) {
+    @Async
+    public void triggerChecklistGeneration(Application app) {
         try {
             // Re-fetch from DB to avoid Hibernate lazy-proxy returning null fields
             var posting = jobPostingRepository.findById(app.getJobPosting().getId())
