@@ -16,7 +16,7 @@ from typing import Optional
 
 from openai import AsyncOpenAI
 
-from config import settings
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,6 @@ def _nfc(text: str) -> str:
 
 
 # Student patterns — written to survive both accented (NFC) and unaccented (OCR drift) text.
-# Matched against NFC-normalized text so `é/è` always precomposed before comparison.
 _STUDENT_RE = re.compile(
     r'(?:'
     r'(?:eleve|élève)\s*[-]?\s*ing[eé]nieure?'
@@ -130,7 +129,6 @@ def _school_type_eliminatory(cv_text: str, free_filter_prompt: Optional[str]) ->
         return None
     if not _SCHOOL_CONSTRAINT_RE.search(free_filter_prompt):
         return None
-    # HR requires a grande école — check if candidate studied at faculté instead
     candidate_has_grande_ecole = bool(_GRANDE_ECOLE_RE.search(cv_text))
     candidate_has_faculte = bool(_FST_RE.search(cv_text))
     if candidate_has_faculte and not candidate_has_grande_ecole:
@@ -152,8 +150,6 @@ def _eliminatory_check(
     or None if they should proceed to LLM scoring.
     Priority: student → level → school type.
     """
-    # Normalize to NFC — pdfplumber may emit NFD (decomposed accents) which
-    # breaks regex matches on precomposed chars like é, è, ê.
     cv = _nfc(cv_text)
 
     # 1. Still a student?
@@ -387,7 +383,6 @@ async def score_candidate(
     # ── Strip discriminatory criteria before any processing ─────────────────
     if free_filter_prompt:
         free_filter_prompt = _sanitize_free_prompt(free_filter_prompt)
-    # ────────────────────────────────────────────────────────────────────────
 
     # ── Deterministic eliminatory pre-check (no LLM call needed) ────────────
     req_edu: Optional[str] = None
@@ -403,7 +398,6 @@ async def score_candidate(
     if elim_reason:
         logger.info("Candidate %s eliminated deterministically: %s", candidate_id, elim_reason)
         return {"candidate_id": candidate_id, "score": 0.0, "summary": elim_reason}
-    # ────────────────────────────────────────────────────────────────────────
 
     # Build the job context block
     job_context_parts = []
@@ -433,8 +427,6 @@ async def score_candidate(
                     f"Des intitulés différents mais de niveau équivalent SATISFONT le critère."
                 )
             if parsed.get("required_experience"):
-                # Always informational — exceeding the maximum is NEVER eliminatory.
-                # Under-minimum is handled separately by the experience_cap logic below.
                 skill_parts.append(f"Expérience attendue : {parsed['required_experience']}")
 
             if parsed.get("required_skills"):
@@ -468,13 +460,6 @@ async def score_candidate(
         )
 
     # ── Experience penalty: sliding cap based on absolute gap in years ───────────
-    # Formula: max(35, 75 - gap × 10)
-    #   gap 1 yr  → cap 65  |  gap 2 yrs → cap 55
-    #   gap 3 yrs → cap 45  |  gap 4+ yrs → cap 35
-    #   meets minimum → no cap (LLM scores freely; more exp above min = higher score)
-    #
-    # EXCEPTION: if the posting explicitly accepts beginners (débutant, sans expérience,
-    # première expérience, 0 an…), skip the penalty entirely regardless of min_experience.
     _BEGINNER_RE = re.compile(
         r'\b(d[eé]butant[e]?s?|sans\s+exp[eé]rience|exp[eé]rience\s+non\s+requise?'
         r'|premi[eè]re?\s+exp[eé]rience|0\s*an|0\s*ann[eé]e)\b',
@@ -504,7 +489,6 @@ async def score_candidate(
     ):
         experience_gap = min_experience - experience_years
         experience_cap = max(35, 75 - experience_gap * 10)
-        # Insert FIRST so LLM reads it before EXIGENCES (which mention experience in text)
         job_context_parts.insert(0,
             f"RÈGLE ABSOLUE — EXPÉRIENCE (lire EN PREMIER avant toute autre instruction) :\n"
             f"  • Expérience du candidat : {experience_years} an(s)\n"
@@ -516,7 +500,6 @@ async def score_candidate(
             f"Dans le résumé, indiquez l'écart avec les valeurs exactes ci-dessus — "
             f"ne pas les recalculer depuis le CV."
         )
-    # ─────────────────────────────────────────────────────────────────────────────
 
     if not job_context_parts:
         job_context_parts.append("Aucune description du poste fournie.")
@@ -540,34 +523,24 @@ CONTENU DU CV (informations personnelles supprimées) :
 
         if experience_cap is not None:
             if score <= 0.0:
-                # Only override if the LLM wrongly treated experience as eliminatory.
-                # Legitimate eliminations (wrong domain, still enrolled, wrong field,
-                # HR-specific criteria) must stay at 0 — never convert them to penalty score.
                 summary_lower = summary.lower()
                 genuine_elimination = any(kw in summary_lower for kw in [
-                    # Domain / field mismatch
                     "domaine de formation", "domaine d'études", "domaine non pertinent",
                     "domaine ne correspond", "spécialité non pertinente",
                     "spécialité incompatible", "n'est pas pertinent", "non pertinent",
                     "sans rapport avec", "incompatible avec", "ne correspond pas",
-                    # Formation-related eliminatory criterion (LLM phrasing variants)
                     "critère éliminatoire de formation", "ne satisfait pas le critère éliminatoire",
                     "critère éliminatoire non satisfait", "critères éliminatoires",
                     "formation requise", "formation exigée", "diplôme requis",
                     "et non en informatique", "et non en génie",
-                    # Still a student (safety net if _STUDENT_RE missed it)
                     "encore étudiant", "non diplômé", "en cours de formation",
                     "en cours de cycle", "encore en cours",
-                    # Education level (safety net if deterministic check missed it)
                     "niveau de formation insuffisant", "niveau insuffisant",
                     "diplôme insuffisant", "formation insuffisante",
-                    # HR-specific eliminatory criteria
                     "critères du responsable",
-                    # School type (safety net)
                     "école d'ingénieur", "faculté",
                 ])
                 if not genuine_elimination:
-                    # LLM wrongly eliminated for experience → apply penalty cap instead
                     score = float(experience_cap)
                     summary = (
                         f"{summary.strip()} "
@@ -576,10 +549,7 @@ CONTENU DU CV (informations personnelles supprimées) :
                         f"{experience_years} an(s) d'expérience, {min_experience} an(s) requis, "
                         f"écart de {experience_gap} an(s).]"
                     )
-                # else: genuine elimination — keep score = 0
             else:
-                # Even when LLM gave a positive score, domain/field mismatch is still
-                # eliminatory — check before applying the experience cap.
                 summary_lower = summary.lower()
                 domain_elimination = any(kw in summary_lower for kw in [
                     "domaine de formation", "domaine d'études", "domaine non pertinent",
@@ -594,7 +564,6 @@ CONTENU DU CV (informations personnelles supprimées) :
                 ])
                 if domain_elimination:
                     score = 0.0
-                    # Summary already explains the elimination — no extra text needed
                 else:
                     score = min(score, experience_cap)
                     fact = (
@@ -603,14 +572,9 @@ CONTENU DU CV (informations personnelles supprimées) :
                     )
                     summary = summary.rstrip().rstrip('.') + fact
 
-        # ── Minimum floor for non-eliminated candidates ───────────────────────
-        # A score of 0 means eliminated (student, wrong level, wrong field, HR criteria).
-        # Any candidate who passed all eliminatory checks must score at least 40
-        # so they land in SCREENING, not REJECTED — rejection is reserved for eliminated candidates.
         _SCREENING_FLOOR = 40
         if score > 0:
             score = max(score, _SCREENING_FLOOR)
-        # ─────────────────────────────────────────────────────────────────────
 
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
     except Exception as e:

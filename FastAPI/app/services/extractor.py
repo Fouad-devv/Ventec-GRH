@@ -220,7 +220,6 @@ def _extract_with_ocr(content: bytes) -> str:
 
     pages_text: list[str] = []
     for i, img in enumerate(images):
-        # PSM 1 = automatic page segmentation with OSD
         # PSM 3 = fully automatic (no OSD) — better for structured CVs
         page_text = pytesseract.image_to_string(
             img,
