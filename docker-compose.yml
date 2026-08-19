@@ -22,8 +22,6 @@ services:
       KC_DB_URL: ${KC_DB_URL}
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-    ports:
-      - "8081:8080"
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /realms/master HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 15s
@@ -43,8 +41,6 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       BACKEND_URL: http://backend:5000/api
       MODEL_NAME: ${AI_MODEL_NAME}
-    ports:
-      - "8000:8000"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8000/health | grep -q UP"]
       interval: 10s
@@ -75,8 +71,6 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       MAIL_FROM: ${MAIL_FROM}
-    ports:
-      - "5000:5000"
     depends_on:
       keycloak:
         condition: service_healthy
@@ -102,8 +96,28 @@ services:
     container_name: GRH-frontend
     networks:
       - grh-network
-    ports:
-      - "5173:80"
     depends_on:
       backend:
         condition: service_healthy
+
+  # ── Nginx reverse proxy (TLS termination) ───────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: GRH-nginx
+    networks:
+      - grh-network
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8443:8443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs/prod:/etc/nginx/certs:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
