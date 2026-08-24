@@ -507,7 +507,9 @@ export const PostingDetailPage = () => {
   const [ficheUploading, setFicheUploading] = useState(false);
   const [ficheGenerating, setFicheGenerating] = useState(false);
   const [ficheDragOver, setFicheDragOver] = useState(false);
+  const [showFicheMenu, setShowFicheMenu] = useState(false);
   const ficheFileRef = useRef(null);
+  const ficheReplaceRef = useRef(null);
   const pollRef = useRef(null);
 
   const stopPolling = () => {
@@ -541,6 +543,13 @@ export const PostingDetailPage = () => {
 
   useEffect(() => () => stopPolling(), []);
 
+  useEffect(() => {
+    if (!showFicheMenu) return;
+    const close = () => setShowFicheMenu(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showFicheMenu]);
+
   const load = useCallback(() => {
     Promise.all([
       pApi.get(id),
@@ -569,8 +578,8 @@ export const PostingDetailPage = () => {
     if (!['pdf', 'doc', 'docx'].includes(ext)) return;
     setFicheUploading(true);
     try {
-      await pApi.uploadFicheFonction(id, file);
-      load();
+      const res = await pApi.uploadFicheFonction(id, file);
+      setPosting(res.data);
       showToast('Fiche de poste importée avec succès');
     } catch (e) {
       console.error(e);
@@ -583,8 +592,8 @@ export const PostingDetailPage = () => {
   const handleFicheGenerate = async () => {
     setFicheGenerating(true);
     try {
-      await pApi.generateFicheFonction(id);
-      load();
+      const res = await pApi.generateFicheFonction(id);
+      setPosting(res.data);
       showToast('Fiche de poste générée avec succès');
     } catch (e) {
       console.error(e);
@@ -760,40 +769,95 @@ export const PostingDetailPage = () => {
             </>
           )}
           {posting.ficheFonctionPath ? (
-            <button
-              onClick={async () => {
-                setGeneratingFiche(true);
-                try {
-                  const res = await pApi.exportFicheFonction(id);
-                  const disposition = res.headers?.['content-disposition'] || '';
-                  const match = disposition.match(/filename="?([^"]+)"?/);
-                  const ext = posting.ficheFonctionPath?.split('.').pop() || 'pdf';
-                  const filename = match ? match[1] : `fiche-fonction-${id}.${ext}`;
-                  const url = URL.createObjectURL(res.data);
-                  Object.assign(document.createElement('a'), { href: url, download: filename }).click();
-                  URL.revokeObjectURL(url);
-                } finally {
-                  setGeneratingFiche(false);
-                }
-              }}
-              disabled={generatingFiche}
-              className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {generatingFiche ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Téléchargement…
-                </>
-              ) : (
-                <>
-                  <MdDownload className="w-4 h-4" />
-                  Exporter la fiche
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  setGeneratingFiche(true);
+                  try {
+                    const res = await pApi.exportFicheFonction(id);
+                    const disposition = res.headers?.['content-disposition'] || '';
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    const ext = posting.ficheFonctionPath?.split('.').pop() || 'pdf';
+                    const filename = match ? match[1] : `fiche-fonction-${id}.${ext}`;
+                    const url = URL.createObjectURL(res.data);
+                    Object.assign(document.createElement('a'), { href: url, download: filename }).click();
+                    URL.revokeObjectURL(url);
+                  } finally {
+                    setGeneratingFiche(false);
+                  }
+                }}
+                disabled={generatingFiche}
+                className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {generatingFiche ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Téléchargement…
+                  </>
+                ) : (
+                  <>
+                    <MdDownload className="w-4 h-4" />
+                    Exporter la fiche
+                  </>
+                )}
+              </button>
+
+              {/* Replace fiche dropdown */}
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setShowFicheMenu((v) => !v)}
+                  disabled={ficheUploading || ficheGenerating}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {ficheUploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-slate-400/40 border-t-slate-500 rounded-full animate-spin" />
+                      Import…
+                    </>
+                  ) : ficheGenerating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
+                      Génération…
+                    </>
+                  ) : (
+                    <>
+                      <MdUploadFile className="w-4 h-4" />
+                      Remplacer
+                    </>
+                  )}
+                </button>
+                {showFicheMenu && (
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden min-w-[210px]">
+                    <button
+                      onClick={() => { setShowFicheMenu(false); ficheReplaceRef.current?.click(); }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <MdUploadFile className="w-4 h-4 text-blue-500" />
+                      Importer un fichier
+                    </button>
+                    <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                    <button
+                      onClick={() => { setShowFicheMenu(false); handleFicheGenerate(); }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <MdAutoAwesome className="w-4 h-4 text-violet-500" />
+                      Régénérer avec l'IA
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <input
+                ref={ficheReplaceRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => { handleFicheUpload(e.target.files[0]); e.target.value = ''; }}
+              />
+            </div>
           ) : (
             <button
               onClick={async () => {

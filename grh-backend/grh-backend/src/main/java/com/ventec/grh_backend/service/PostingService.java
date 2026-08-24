@@ -193,10 +193,17 @@ public class PostingService {
             throw new RuntimeException("Failed to read uploaded file", e);
         }
 
+        boolean isReplacement = posting.getFicheFonctionPath() != null;
+
         storageService.delete(posting.getFicheFonctionPath());
         posting.setFicheFonctionPath(
                 storageService.storeBytes(fileBytes, file.getOriginalFilename() != null ? file.getOriginalFilename() : "fiche.pdf", "fiches-fonction")
         );
+
+        // When replacing, clear stale extracted data so old content is never shown
+        if (isReplacement) {
+            posting.setExtractedJobData(null);
+        }
 
         // Extract structured job data using the already-read bytes
         try {
@@ -204,31 +211,30 @@ public class PostingService {
             if (extracted != null) {
                 posting.setExtractedJobData(objectMapper.writeValueAsString(extracted));
 
-                // Auto-fill description/requirements if blank
-                if ((posting.getDescription() == null || posting.getDescription().isBlank())
-                        && extracted.get("description") instanceof String desc) {
-                    posting.setDescription(desc);
+                // On replacement: always refresh from new fiche. On first upload: only fill if blank.
+                if (isReplacement || posting.getDescription() == null || posting.getDescription().isBlank()) {
+                    if (extracted.get("description") instanceof String desc && !desc.isBlank())
+                        posting.setDescription(desc);
                 }
-                if ((posting.getRequirements() == null || posting.getRequirements().isBlank())
-                        && extracted.get("requirements") instanceof String req) {
-                    posting.setRequirements(req);
+                if (isReplacement || posting.getRequirements() == null || posting.getRequirements().isBlank()) {
+                    if (extracted.get("requirements") instanceof String req && !req.isBlank())
+                        posting.setRequirements(req);
                 }
 
-                // Auto-populate skillsWeights from required_skills if the grid is empty
-                if ((posting.getSkillsWeights() == null || posting.getSkillsWeights().isBlank())
-                        && extracted.get("required_skills") instanceof List<?> skillsList
-                        && !skillsList.isEmpty()) {
-                    List<Map<String, Object>> weights = skillsList.stream()
-                            .filter(s -> s instanceof String && !((String) s).isBlank())
-                            .map(s -> {
-                                Map<String, Object> w = new java.util.LinkedHashMap<>();
-                                w.put("name", (String) s);
-                                w.put("weight", 1);
-                                return w;
-                            })
-                            .toList();
-                    if (!weights.isEmpty()) {
-                        posting.setSkillsWeights(objectMapper.writeValueAsString(weights));
+                if (extracted.get("required_skills") instanceof List<?> skillsList && !skillsList.isEmpty()) {
+                    if (isReplacement || posting.getSkillsWeights() == null || posting.getSkillsWeights().isBlank()) {
+                        List<Map<String, Object>> weights = skillsList.stream()
+                                .filter(s -> s instanceof String && !((String) s).isBlank())
+                                .map(s -> {
+                                    Map<String, Object> w = new java.util.LinkedHashMap<>();
+                                    w.put("name", (String) s);
+                                    w.put("weight", 1);
+                                    return w;
+                                })
+                                .toList();
+                        if (!weights.isEmpty()) {
+                            posting.setSkillsWeights(objectMapper.writeValueAsString(weights));
+                        }
                     }
                 }
             }
