@@ -11,6 +11,7 @@ import { PipelinePage } from './pages/pipeline/PipelinePage';
 import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { NotificationsPage } from './pages/notifications/NotificationsPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { AuditPage } from './pages/admin/AuditPage';
 import { HistoryPage } from './pages/postings/HistoryPage';
 import { PostingApplicationsPage } from './pages/postings/PostingApplicationsPage';
 import { InterviewsPage } from './pages/interviews/InterviewsPage';
@@ -42,6 +43,7 @@ function App() {
         <Route path="history" element={<HistoryPage />} />
         <Route path="email-candidatures" element={<EmailCandidaturesPage />} />
         <Route path="admin" element={<AdminPage />} />
+        <Route path="audit" element={<AuditPage />} />
       </Route>
     </Routes>
   );

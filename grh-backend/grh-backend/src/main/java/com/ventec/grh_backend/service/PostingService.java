@@ -45,6 +45,7 @@ public class PostingService {
     private final StorageService storageService;
     private final UserContextService userContextService;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
 
     public JobPostingResponse createPosting(CreateJobPostingRequest req, Authentication auth) {
         User user = userContextService.resolveUser(auth);
@@ -63,7 +64,13 @@ public class PostingService {
                 .status("PUBLISHED")
                 .createdBy(user)
                 .build();
-        return toResponse(jobPostingRepository.save(posting));
+        JobPosting saved = jobPostingRepository.save(posting);
+        auditLogService.log("JOB_POSTING_CREATED", "JOB_POSTING", saved.getId().toString(),
+                java.util.Map.of(
+                        "title", req.title() != null ? req.title() : "",
+                        "department", req.department() != null ? req.department() : ""
+                ));
+        return toResponse(saved);
     }
 
     public JobPostingResponse updatePosting(UUID id, UpdateJobPostingRequest req) {
@@ -82,7 +89,10 @@ public class PostingService {
         if (req.skillsWeights() != null) posting.setSkillsWeights(req.skillsWeights());
         if (req.status() != null) posting.setStatus(req.status());
         if (req.deadline() != null) posting.setDeadline(req.deadline());
-        return toResponse(jobPostingRepository.save(posting));
+        JobPosting saved = jobPostingRepository.save(posting);
+        auditLogService.log("JOB_POSTING_UPDATED", "JOB_POSTING", id.toString(),
+                java.util.Map.of("title", saved.getTitle() != null ? saved.getTitle() : ""));
+        return toResponse(saved);
     }
 
     public JobPostingResponse publishPosting(UUID id) {
@@ -96,7 +106,10 @@ public class PostingService {
         JobPosting posting = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
         posting.setStatus("CLOSED");
-        return toResponse(jobPostingRepository.save(posting));
+        JobPosting closed = jobPostingRepository.save(posting);
+        auditLogService.log("JOB_POSTING_CLOSED", "JOB_POSTING", id.toString(),
+                java.util.Map.of("title", closed.getTitle() != null ? closed.getTitle() : ""));
+        return toResponse(closed);
     }
 
     @Transactional(readOnly = true)
@@ -116,10 +129,12 @@ public class PostingService {
     }
 
     public void deletePosting(UUID id) {
-        if (!jobPostingRepository.existsById(id)) {
-            throw new NotFoundException("Job posting not found: " + id);
-        }
-        jobPostingRepository.deleteById(id);
+        JobPosting posting = jobPostingRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
+        String title = posting.getTitle();
+        jobPostingRepository.delete(posting);
+        auditLogService.log("JOB_POSTING_DELETED", "JOB_POSTING", id.toString(),
+                java.util.Map.of("title", title != null ? title : ""));
     }
 
     public JobPostingResponse duplicatePosting(UUID id, Authentication auth) {
@@ -138,7 +153,11 @@ public class PostingService {
                 .status("DRAFT")
                 .createdBy(user)
                 .build();
-        return toResponse(jobPostingRepository.save(copy));
+        JobPosting savedCopy = jobPostingRepository.save(copy);
+        auditLogService.log("JOB_POSTING_DUPLICATED", "JOB_POSTING", savedCopy.getId().toString(),
+                java.util.Map.of("title", savedCopy.getTitle() != null ? savedCopy.getTitle() : "",
+                        "originalId", id.toString()));
+        return toResponse(savedCopy);
     }
 
     @Transactional(readOnly = true)

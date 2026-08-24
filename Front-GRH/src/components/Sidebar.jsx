@@ -15,6 +15,7 @@ import {
   MdEventNote,
   MdLock,
   MdEmail,
+  MdSecurity,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -33,6 +34,7 @@ const navItems = [
 
 const adminItems = [
   { to: '/app/admin', icon: MdAdminPanelSettings, label: 'Administration' },
+  { to: '/app/audit', icon: MdSecurity, label: "Journal d'audit" },
 ];
 
 export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {

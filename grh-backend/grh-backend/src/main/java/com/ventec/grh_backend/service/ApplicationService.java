@@ -45,6 +45,7 @@ public class ApplicationService {
     private final InterviewRepository interviewRepository;
     private final InterviewService interviewService;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     private byte[] logoBytes;
 
@@ -92,6 +93,16 @@ public class ApplicationService {
         User updater = userRepository.findByKeycloakId(keycloakId).orElse(null);
         app.setUpdatedBy(updater);
         ApplicationResponse saved = toResponse(applicationRepository.save(app));
+
+        auditLogService.log("APPLICATION_STATUS_CHANGED", "APPLICATION", id.toString(),
+                java.util.Map.of(
+                        "candidateName", app.getCandidate().getFirstName() + " " + app.getCandidate().getLastName(),
+                        "candidateId", app.getCandidate().getId().toString(),
+                        "jobPostingTitle", app.getJobPosting().getTitle(),
+                        "jobPostingId", app.getJobPosting().getId().toString(),
+                        "oldStatus", previousStatus,
+                        "newStatus", req.status()
+                ));
 
         // Auto-generate document checklist when candidate is hired
         if ("HIRED".equals(req.status()) && !"HIRED".equals(previousStatus)) {
@@ -275,6 +286,8 @@ public class ApplicationService {
             sent++;
         }
         if (sent > 0) {
+            auditLogService.log("REJECTION_EMAILS_SENT", "JOB_POSTING", jobPostingId.toString(),
+                    java.util.Map.of("count", sent, "jobPostingTitle", postingTitle != null ? postingTitle : ""));
             try {
                 User actor = userRepository.findByKeycloakId(keycloakId).orElse(null);
                 if (actor != null) {
@@ -371,6 +384,8 @@ public class ApplicationService {
             sent++;
         }
         if (sent > 0) {
+            auditLogService.log("INTERVIEW_NOTIFICATIONS_SENT", "JOB_POSTING", jobPostingId.toString(),
+                    java.util.Map.of("count", sent, "jobPostingTitle", postingTitle != null ? postingTitle : ""));
             try {
                 User actor = userRepository.findByKeycloakId(keycloakId).orElse(null);
                 if (actor != null) {
