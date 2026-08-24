@@ -507,7 +507,6 @@ export const PostingDetailPage = () => {
   const [ficheUploading, setFicheUploading] = useState(false);
   const [ficheGenerating, setFicheGenerating] = useState(false);
   const [ficheDragOver, setFicheDragOver] = useState(false);
-  const [showFicheMenu, setShowFicheMenu] = useState(false);
   const ficheFileRef = useRef(null);
   const ficheReplaceRef = useRef(null);
   const pollRef = useRef(null);
@@ -543,12 +542,6 @@ export const PostingDetailPage = () => {
 
   useEffect(() => () => stopPolling(), []);
 
-  useEffect(() => {
-    if (!showFicheMenu) return;
-    const close = () => setShowFicheMenu(false);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, [showFicheMenu]);
 
   const load = useCallback(() => {
     Promise.all([
@@ -805,50 +798,35 @@ export const PostingDetailPage = () => {
                 )}
               </button>
 
-              {/* Replace fiche dropdown */}
-              <div className="relative" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => setShowFicheMenu((v) => !v)}
-                  disabled={ficheUploading || ficheGenerating}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {ficheUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-slate-400/40 border-t-slate-500 rounded-full animate-spin" />
-                      Import…
-                    </>
-                  ) : ficheGenerating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
-                      Génération…
-                    </>
-                  ) : (
-                    <>
-                      <MdUploadFile className="w-4 h-4" />
-                      Remplacer
-                    </>
-                  )}
-                </button>
-                {showFicheMenu && (
-                  <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden min-w-[210px]">
-                    <button
-                      onClick={() => { setShowFicheMenu(false); ficheReplaceRef.current?.click(); }}
-                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <MdUploadFile className="w-4 h-4 text-blue-500" />
-                      Importer un fichier
-                    </button>
-                    <div className="h-px bg-slate-100 dark:bg-slate-800" />
-                    <button
-                      onClick={() => { setShowFicheMenu(false); handleFicheGenerate(); }}
-                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <MdAutoAwesome className="w-4 h-4 text-violet-500" />
-                      Régénérer avec l'IA
-                    </button>
-                  </div>
+              {/* Import replacement */}
+              <button
+                onClick={() => ficheReplaceRef.current?.click()}
+                disabled={ficheUploading || ficheGenerating}
+                title="Remplacer par un fichier"
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {ficheUploading ? (
+                  <div className="w-4 h-4 border-2 border-slate-400/40 border-t-slate-500 rounded-full animate-spin" />
+                ) : (
+                  <MdUploadFile className="w-4 h-4" />
                 )}
-              </div>
+                Importer
+              </button>
+
+              {/* AI regenerate */}
+              <button
+                onClick={handleFicheGenerate}
+                disabled={ficheUploading || ficheGenerating}
+                title="Régénérer avec l'IA"
+                className="flex items-center gap-1.5 px-3 py-2 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-xl text-sm font-semibold hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {ficheGenerating ? (
+                  <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
+                ) : (
+                  <MdAutoAwesome className="w-4 h-4" />
+                )}
+                Régénérer
+              </button>
 
               <input
                 ref={ficheReplaceRef}

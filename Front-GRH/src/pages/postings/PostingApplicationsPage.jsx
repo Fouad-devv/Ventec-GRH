@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MdArrowBack, MdStar, MdSearch, MdDelete, MdWarning,
-  MdPerson, MdFilterList, MdCheckCircle, MdClose, MdDownload,
+  MdPerson, MdFilterList, MdCheckCircle, MdClose, MdDownload, MdRefresh,
 } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
@@ -260,18 +260,27 @@ export const PostingApplicationsPage = () => {
     <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
 
       {/* Page title + posting info */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-          Candidatures — {posting?.title}
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          {[posting?.department, posting?.location, posting?.contractType].filter(Boolean).join(' · ')}
-          {' · '}
-          <span className="font-medium text-slate-700 dark:text-slate-300">{applications.length} candidature{applications.length !== 1 ? 's' : ''}</span>
-          {applications.some((a) => a.aiScore != null) && (
-            <span className="ml-1 text-slate-400">— classées par score IA</span>
-          )}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            Candidatures — {posting?.title}
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {[posting?.department, posting?.location, posting?.contractType].filter(Boolean).join(' · ')}
+            {' · '}
+            <span className="font-medium text-slate-700 dark:text-slate-300">{applications.length} candidature{applications.length !== 1 ? 's' : ''}</span>
+            {applications.some((a) => a.aiScore != null) && (
+              <span className="ml-1 text-slate-400">— classées par score IA</span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={load}
+          className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0"
+          title="Actualiser"
+        >
+          <MdRefresh className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Filters row */}
