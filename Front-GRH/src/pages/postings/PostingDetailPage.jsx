@@ -1002,29 +1002,6 @@ export const PostingDetailPage = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-3 my-3">
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-                <span className="text-xs text-slate-400">ou</span>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-              </div>
-
-              <button
-                onClick={handleFicheGenerate}
-                disabled={ficheGenerating || ficheUploading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {ficheGenerating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
-                    Génération IA en cours…
-                  </>
-                ) : (
-                  <>
-                    <MdAutoAwesome className="w-4 h-4" />
-                    Générer la fiche de poste avec l'IA
-                  </>
-                )}
-              </button>
             </div>
           )}
 
