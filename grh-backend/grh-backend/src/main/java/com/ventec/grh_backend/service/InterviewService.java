@@ -39,6 +39,7 @@ public class InterviewService {
     private final MailService mailService;
     private final AiServiceClient aiServiceClient;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
 
     private static final Map<String, String> OFFICE_MAPS = new HashMap<>();
     static {
@@ -90,6 +91,14 @@ public class InterviewService {
 
         interview = interviewRepository.save(interview);
 
+        var cand = app.getCandidate();
+        auditLogService.log("INTERVIEW_SCHEDULED", "INTERVIEW", interview.getId().toString(),
+                java.util.Map.of(
+                        "candidateName", cand != null ? (cand.getFirstName() + " " + cand.getLastName()).trim() : "",
+                        "jobPostingTitle", app.getJobPosting() != null ? app.getJobPosting().getTitle() : "",
+                        "scheduledAt", req.scheduledAt() != null ? req.scheduledAt().toString() : ""
+                ));
+
         // Clear the notification stamp so the "Convoquer" button can send the convocation
         app.setInterviewNotifiedAt(null);
         applicationRepository.save(app);
@@ -102,6 +111,9 @@ public class InterviewService {
                 .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
 
         String previousStatus = interview.getStatus();
+        Application app = interview.getApplication();
+        var cand    = app != null ? app.getCandidate()  : null;
+        var posting = app != null ? app.getJobPosting() : null;
 
         boolean scheduleChanged = false;
         if (req.scheduledAt() != null)     { interview.setScheduledAt(req.scheduledAt());         scheduleChanged = true; }
@@ -122,7 +134,15 @@ public class InterviewService {
 
         InterviewResponse response = toResponse(interviewRepository.save(interview));
 
-        Application app = interview.getApplication();
+        java.util.Map<String, Object> auditDetails = new java.util.HashMap<>();
+        auditDetails.put("candidateName", cand != null ? (cand.getFirstName() + " " + cand.getLastName()).trim() : "");
+        auditDetails.put("jobPostingTitle", posting != null ? posting.getTitle() : "");
+        if (req.status() != null && !req.status().equals(previousStatus)) {
+            auditDetails.put("oldStatus", previousStatus);
+            auditDetails.put("newStatus", req.status());
+        }
+        auditLogService.log("INTERVIEW_UPDATED", "INTERVIEW", id.toString(), auditDetails);
+
         if (app != null) {
             // When scheduling details change, force the recruiter to re-send the convocation
             if (scheduleChanged && "SCHEDULED".equals(interview.getStatus())) {
@@ -203,8 +223,16 @@ public class InterviewService {
     public InterviewResponse cancelInterview(UUID id) {
         Interview interview = interviewRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
+        var app     = interview.getApplication();
+        var cand    = app != null ? app.getCandidate()  : null;
+        var posting = app != null ? app.getJobPosting() : null;
         interview.setStatus("CANCELLED");
-        return toResponse(interviewRepository.save(interview));
+        InterviewResponse response = toResponse(interviewRepository.save(interview));
+        java.util.Map<String, Object> details = new java.util.HashMap<>();
+        details.put("candidateName", cand != null ? (cand.getFirstName() + " " + cand.getLastName()).trim() : "");
+        details.put("jobPostingTitle", posting != null ? posting.getTitle() : "");
+        auditLogService.log("INTERVIEW_CANCELLED", "INTERVIEW", id.toString(), details);
+        return response;
     }
 
     private String buildInterviewEmailHtml(String firstName, String lastName, String postingTitle, Interview interview) {

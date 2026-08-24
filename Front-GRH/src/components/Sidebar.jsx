@@ -15,6 +15,7 @@ import {
   MdEventNote,
   MdLock,
   MdEmail,
+  MdSecurity,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -33,6 +34,7 @@ const navItems = [
 
 const adminItems = [
   { to: '/app/admin', icon: MdAdminPanelSettings, label: 'Administration' },
+  { to: '/app/audit', icon: MdSecurity, label: "Journal d'audit" },
 ];
 
 export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
@@ -92,7 +94,7 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-x-hidden [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}

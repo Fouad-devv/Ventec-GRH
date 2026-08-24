@@ -507,7 +507,9 @@ export const PostingDetailPage = () => {
   const [ficheUploading, setFicheUploading] = useState(false);
   const [ficheGenerating, setFicheGenerating] = useState(false);
   const [ficheDragOver, setFicheDragOver] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const ficheFileRef = useRef(null);
+  const ficheReplaceRef = useRef(null);
   const pollRef = useRef(null);
 
   const stopPolling = () => {
@@ -541,6 +543,7 @@ export const PostingDetailPage = () => {
 
   useEffect(() => () => stopPolling(), []);
 
+
   const load = useCallback(() => {
     Promise.all([
       pApi.get(id),
@@ -569,8 +572,8 @@ export const PostingDetailPage = () => {
     if (!['pdf', 'doc', 'docx'].includes(ext)) return;
     setFicheUploading(true);
     try {
-      await pApi.uploadFicheFonction(id, file);
-      load();
+      const res = await pApi.uploadFicheFonction(id, file);
+      setPosting(res.data);
       showToast('Fiche de poste importée avec succès');
     } catch (e) {
       console.error(e);
@@ -583,8 +586,8 @@ export const PostingDetailPage = () => {
   const handleFicheGenerate = async () => {
     setFicheGenerating(true);
     try {
-      await pApi.generateFicheFonction(id);
-      load();
+      const res = await pApi.generateFicheFonction(id);
+      setPosting(res.data);
       showToast('Fiche de poste générée avec succès');
     } catch (e) {
       console.error(e);
@@ -760,40 +763,80 @@ export const PostingDetailPage = () => {
             </>
           )}
           {posting.ficheFonctionPath ? (
-            <button
-              onClick={async () => {
-                setGeneratingFiche(true);
-                try {
-                  const res = await pApi.exportFicheFonction(id);
-                  const disposition = res.headers?.['content-disposition'] || '';
-                  const match = disposition.match(/filename="?([^"]+)"?/);
-                  const ext = posting.ficheFonctionPath?.split('.').pop() || 'pdf';
-                  const filename = match ? match[1] : `fiche-fonction-${id}.${ext}`;
-                  const url = URL.createObjectURL(res.data);
-                  Object.assign(document.createElement('a'), { href: url, download: filename }).click();
-                  URL.revokeObjectURL(url);
-                } finally {
-                  setGeneratingFiche(false);
-                }
-              }}
-              disabled={generatingFiche}
-              className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {generatingFiche ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Téléchargement…
-                </>
-              ) : (
-                <>
-                  <MdDownload className="w-4 h-4" />
-                  Exporter la fiche
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  setGeneratingFiche(true);
+                  try {
+                    const res = await pApi.exportFicheFonction(id);
+                    const disposition = res.headers?.['content-disposition'] || '';
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    const ext = posting.ficheFonctionPath?.split('.').pop() || 'pdf';
+                    const filename = match ? match[1] : `fiche-fonction-${id}.${ext}`;
+                    const url = URL.createObjectURL(res.data);
+                    Object.assign(document.createElement('a'), { href: url, download: filename }).click();
+                    URL.revokeObjectURL(url);
+                  } finally {
+                    setGeneratingFiche(false);
+                  }
+                }}
+                disabled={generatingFiche}
+                className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {generatingFiche ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Téléchargement…
+                  </>
+                ) : (
+                  <>
+                    <MdDownload className="w-4 h-4" />
+                    Exporter la fiche
+                  </>
+                )}
+              </button>
+
+              {/* Import replacement */}
+              <button
+                onClick={() => ficheReplaceRef.current?.click()}
+                disabled={ficheUploading || ficheGenerating}
+                title="Remplacer par un fichier"
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {ficheUploading ? (
+                  <div className="w-4 h-4 border-2 border-slate-400/40 border-t-slate-500 rounded-full animate-spin" />
+                ) : (
+                  <MdUploadFile className="w-4 h-4" />
+                )}
+                Importer
+              </button>
+
+              {/* AI regenerate */}
+              <button
+                onClick={handleFicheGenerate}
+                disabled={ficheUploading || ficheGenerating}
+                title="Régénérer avec l'IA"
+                className="flex items-center gap-1.5 px-3 py-2 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-xl text-sm font-semibold hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {ficheGenerating ? (
+                  <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
+                ) : (
+                  <MdAutoAwesome className="w-4 h-4" />
+                )}
+                Régénérer
+              </button>
+
+              <input
+                ref={ficheReplaceRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => { handleFicheUpload(e.target.files[0]); e.target.value = ''; }}
+              />
+            </div>
           ) : (
             <button
               onClick={async () => {
@@ -833,8 +876,17 @@ export const PostingDetailPage = () => {
           >
             <MdDelete className="w-4 h-4" />
           </button>
-          <button onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <MdRefresh className="w-4 h-4" />
+          <button
+            onClick={async () => {
+              setRefreshing(true);
+              try { await new Promise((res, rej) => { load(); setTimeout(res, 600); }); }
+              finally { setRefreshing(false); }
+            }}
+            disabled={refreshing}
+            title="Actualiser"
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            <MdRefresh className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -960,29 +1012,6 @@ export const PostingDetailPage = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-3 my-3">
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-                <span className="text-xs text-slate-400">ou</span>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-              </div>
-
-              <button
-                onClick={handleFicheGenerate}
-                disabled={ficheGenerating || ficheUploading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {ficheGenerating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
-                    Génération IA en cours…
-                  </>
-                ) : (
-                  <>
-                    <MdAutoAwesome className="w-4 h-4" />
-                    Générer la fiche de poste avec l'IA
-                  </>
-                )}
-              </button>
             </div>
           )}
 

@@ -83,6 +83,15 @@ public class CandidateController {
                 candidateService.updateCandidate(id, firstName, lastName, email, phone, linkedinUrl, location));
     }
 
+    @Operation(summary = "Mettre à jour le statut de contact d'un candidat")
+    @PatchMapping("/{id}/contacted")
+    public ResponseEntity<CandidateResponse> updateContacted(
+            @Parameter(description = "ID du candidat") @PathVariable UUID id,
+            @RequestBody Map<String, Boolean> body) {
+        boolean contacted = Boolean.TRUE.equals(body.get("contacted"));
+        return ResponseEntity.ok(candidateService.updateContacted(id, contacted));
+    }
+
     @Operation(summary = "Supprimer un candidat",
                description = "Supprime définitivement le candidat ainsi que son CV stocké et toutes ses candidatures. Action irréversible")
     @ApiResponse(responseCode = "204", description = "Candidat supprimé")

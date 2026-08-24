@@ -26,6 +26,7 @@ public class CandidateService {
     private final CandidateRepository candidateRepository;
     private final ApplicationRepository applicationRepository;
     private final StorageService storageService;
+    private final AuditLogService auditLogService;
 
     public CandidateResponse createCandidate(MultipartFile cv,
                                               String firstName, String lastName,
@@ -44,7 +45,13 @@ public class CandidateService {
                 .location(location)
                 .cvPath(cvPath)
                 .build();
-        return toResponse(candidateRepository.save(candidate), List.of());
+        Candidate saved = candidateRepository.save(candidate);
+        auditLogService.log("CANDIDATE_CREATED", "CANDIDATE", saved.getId().toString(),
+                java.util.Map.of(
+                        "candidateName", firstName + " " + lastName,
+                        "email", email != null ? email : ""
+                ));
+        return toResponse(saved, List.of());
     }
 
     public CandidateResponse updateCandidate(UUID id, String firstName, String lastName,
@@ -58,7 +65,10 @@ public class CandidateService {
         if (phone != null) candidate.setPhone(phone);
         if (linkedinUrl != null) candidate.setLinkedinUrl(linkedinUrl);
         if (location != null) candidate.setLocation(location);
-        return toResponse(candidateRepository.save(candidate), List.of());
+        Candidate saved = candidateRepository.save(candidate);
+        auditLogService.log("CANDIDATE_UPDATED", "CANDIDATE", id.toString(),
+                java.util.Map.of("candidateName", saved.getFirstName() + " " + saved.getLastName()));
+        return toResponse(saved, List.of());
     }
 
     @Transactional(readOnly = true)
@@ -109,11 +119,27 @@ public class CandidateService {
         ));
     }
 
+    public CandidateResponse updateContacted(UUID id, boolean contacted) {
+        Candidate candidate = candidateRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Candidate not found: " + id));
+        candidate.setContacted(contacted);
+        Candidate saved = candidateRepository.save(candidate);
+        auditLogService.log("CANDIDATE_CONTACTED_UPDATED", "CANDIDATE", id.toString(),
+                java.util.Map.of(
+                        "candidateName", saved.getFirstName() + " " + saved.getLastName(),
+                        "contacted", contacted
+                ));
+        return toResponse(saved, applicationRepository.findJobPostingTitlesByCandidateId(id));
+    }
+
     public void deleteCandidate(UUID id) {
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Candidate not found: " + id));
+        String name = candidate.getFirstName() + " " + candidate.getLastName();
         storageService.delete(candidate.getCvPath());
         candidateRepository.delete(candidate);
+        auditLogService.log("CANDIDATE_DELETED", "CANDIDATE", id.toString(),
+                java.util.Map.of("candidateName", name));
     }
 
     @Transactional(readOnly = true)
@@ -133,7 +159,7 @@ public class CandidateService {
                 c.getSkills(), c.getExperienceYears(), c.getEducation(),
                 c.getCurrentPosition(), c.getLocation(),
                 c.getCreatedAt(), c.getUpdatedAt(),
-                jobPostingTitles, aiScore, applicationStatus
+                jobPostingTitles, aiScore, applicationStatus, c.isContacted()
         );
     }
 }
