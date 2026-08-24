@@ -18,6 +18,7 @@ const ACTION_LABELS = {
   JOB_POSTING_DELETED:           'Offre supprimée',
   JOB_POSTING_CLOSED:            'Offre clôturée',
   JOB_POSTING_DUPLICATED:        'Offre dupliquée',
+  FICHE_FONCTION_GENERATED:      'Fiche de fonction générée',
   INTERVIEW_SCHEDULED:           'Entretien planifié',
   INTERVIEW_UPDATED:             'Entretien modifié',
   INTERVIEW_CANCELLED:           'Entretien annulé',
@@ -57,6 +58,7 @@ const ACTION_COLORS = {
   JOB_POSTING_DELETED:          'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   JOB_POSTING_CLOSED:           'bg-slate-100 text-slate-700 dark:bg-slate-700/40 dark:text-slate-300',
   JOB_POSTING_DUPLICATED:       'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
+  FICHE_FONCTION_GENERATED:     'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300',
   INTERVIEW_SCHEDULED:          'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
   INTERVIEW_UPDATED:            'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   INTERVIEW_CANCELLED:          'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
@@ -89,6 +91,7 @@ function formatDetails(action, detailsJson) {
       case 'JOB_POSTING_UPDATED':
       case 'JOB_POSTING_DELETED':
       case 'JOB_POSTING_CLOSED':
+      case 'FICHE_FONCTION_GENERATED':
         return d.title || '—';
       case 'JOB_POSTING_DUPLICATED':
         return `${d.title || '—'}`;

@@ -245,7 +245,10 @@ public class PostingService {
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
         storageService.delete(posting.getFicheFonctionPath());
         posting.setFicheFonctionPath(path);
-        return toResponse(jobPostingRepository.save(posting));
+        JobPosting saved = jobPostingRepository.save(posting);
+        auditLogService.log("FICHE_FONCTION_GENERATED", "JOB_POSTING", id.toString(),
+                java.util.Map.of("title", saved.getTitle() != null ? saved.getTitle() : ""));
+        return toResponse(saved);
     }
 
     public List<ImportCvResult> importCvs(UUID postingId, List<MultipartFile> files) {
