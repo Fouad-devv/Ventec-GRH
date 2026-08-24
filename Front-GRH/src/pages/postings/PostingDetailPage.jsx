@@ -507,6 +507,7 @@ export const PostingDetailPage = () => {
   const [ficheUploading, setFicheUploading] = useState(false);
   const [ficheGenerating, setFicheGenerating] = useState(false);
   const [ficheDragOver, setFicheDragOver] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const ficheFileRef = useRef(null);
   const ficheReplaceRef = useRef(null);
   const pollRef = useRef(null);
@@ -875,8 +876,17 @@ export const PostingDetailPage = () => {
           >
             <MdDelete className="w-4 h-4" />
           </button>
-          <button onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <MdRefresh className="w-4 h-4" />
+          <button
+            onClick={async () => {
+              setRefreshing(true);
+              try { await new Promise((res, rej) => { load(); setTimeout(res, 600); }); }
+              finally { setRefreshing(false); }
+            }}
+            disabled={refreshing}
+            title="Actualiser"
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            <MdRefresh className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
