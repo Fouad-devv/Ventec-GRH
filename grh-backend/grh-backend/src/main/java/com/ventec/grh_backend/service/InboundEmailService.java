@@ -214,9 +214,12 @@ public class InboundEmailService {
 
         Map<?, ?> matchResult;
         try {
-            matchResult = aiServiceClient.matchPosting(subject, postingInfos).block();
+            matchResult = aiServiceClient.matchPosting(subject, postingInfos)
+                    .retry(2)
+                    .block();
         } catch (Exception e) {
-            log.warn("[InboundEmail] AI match error for '{}': {}", subject, e.getMessage());
+            log.warn("[InboundEmail] AI match error for '{}' [{}]: {}",
+                    subject, e.getClass().getSimpleName(), e.getMessage(), e);
             saveRecord(senderEmail, senderName, subject, "NO_MATCH", 0.0,
                     null, null, null, null, receivedAt, messageId);
             return;

@@ -484,19 +484,12 @@ async def match_posting(req) -> MatchPostingResponse:
         return MatchPostingResponse()
 
     subject_tokens = _domain_tokens(req.subject)
-    if subject_tokens:
-        any_overlap = any(
-            subject_tokens & _domain_tokens(
-                p.title + " " + (p.department or "") + " " + (p.description or "")[:300]
-            )
-            for p in req.postings
+    if not subject_tokens:
+        logger.info(
+            "match-posting '%s' → no meaningful subject tokens — returning NO_MATCH",
+            req.subject[:80],
         )
-        if not any_overlap:
-            logger.info(
-                "match-posting '%s' → NO domain overlap with any posting — returning NO_MATCH",
-                req.subject[:80],
-            )
-            return MatchPostingResponse()
+        return MatchPostingResponse()
 
     postings_list = "\n".join(
         f"{i + 1}. [id={p.id}] {p.title}"

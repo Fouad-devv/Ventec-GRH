@@ -22,6 +22,10 @@ services:
       KC_DB_URL: ${KC_DB_URL}
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_STRICT: "false"
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /realms/GRH-VENTEC HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 15s
@@ -59,7 +63,7 @@ services:
       SAMBANOVA_API_KEY6: ${SAMBANOVA_API_KEY6}
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
