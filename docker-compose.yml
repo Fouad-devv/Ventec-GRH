@@ -40,7 +40,6 @@ services:
     networks:
       - grh-network
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
       BACKEND_URL: http://backend:5000/api
       MODEL_NAME: ${AI_MODEL_NAME}
     ports:
