@@ -15,7 +15,9 @@ RUN ./mvnw package -DskipTests -B -q
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN addgroup -S grh && adduser -S grh -G grh
+RUN addgroup -S grh && adduser -S grh -G grh && \
+    mkdir -p /data/uploads && \
+    chown -R grh:grh /data
 USER grh
 
 COPY --from=build /app/target/*.jar app.jar
