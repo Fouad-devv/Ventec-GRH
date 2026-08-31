@@ -516,8 +516,8 @@
         "http://localhost:5174/*",
         "http://localhost:5175/*",
         "https://localhost:4443/*",
-        "https://ventec.ma/*",
-        "https://ventec.ma:4443/*",
+        "https://grh.ventec.ma/*",
+        "https://grh.ventec.ma:4443/*",
         "*"
       ],
       "webOrigins": [
