@@ -356,6 +356,7 @@ export const PipelinePage = () => {
   const [showRejectionConfirm, setShowRejectionConfirm] = useState(false);
   const [showInterviewConfirm, setShowInterviewConfirm] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
   const [emailResult, setEmailResult] = useState(null);
 
   useEffect(() => {
@@ -386,6 +387,7 @@ export const PipelinePage = () => {
   );
 
   const updateStatus = async (appId, status) => {
+    setUpdatingId(appId);
     try {
       await appApi.updateStatus(appId, { status });
       setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
@@ -393,6 +395,8 @@ export const PipelinePage = () => {
     } catch (e) {
       console.error(e);
       showToast('Erreur lors de la mise à jour du statut', 'error');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -558,10 +562,12 @@ export const PipelinePage = () => {
                     </span>
                   )}
                   <div className="mt-2 space-y-1">
+                    <div className="relative">
                     <select
                       value={app.status}
                       onChange={(e) => updateStatus(app.id, e.target.value)}
-                      className="w-full text-xs border border-slate-200 dark:border-slate-700 rounded px-1 py-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      disabled={updatingId === app.id}
+                      className={`w-full text-xs border border-slate-200 dark:border-slate-700 rounded px-1 py-1 bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-opacity ${updatingId === app.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {STATUSES.map((s) => (
@@ -576,6 +582,12 @@ export const PipelinePage = () => {
                         </option>
                       ))}
                     </select>
+                    {updatingId === app.id && (
+                      <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none">
+                        <div className="w-3 h-3 rounded-full border-2 border-blue-300 border-t-blue-600 animate-spin" />
+                      </div>
+                    )}
+                    </div>
                     {app.status === 'INTERVIEW' && (
                       <div className="flex gap-1">
                         {app.scheduledInterviewStatus === 'COMPLETED' ? (
