@@ -215,6 +215,8 @@ const UsersTab = ({ api }) => {
 
   const [search, setSearch]         = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [page, setPage]             = useState(1);
+  const PAGE_SIZE = 30;
 
   const [selectionMode, setSelectionMode]               = useState(false);
   const [selectedIds, setSelectedIds]                   = useState(new Set());
@@ -298,6 +300,10 @@ const UsersTab = ({ api }) => {
     const matchRole = !roleFilter || u.role === roleFilter;
     return matchSearch && matchRole;
   });
+
+  useEffect(() => setPage(1), [search, roleFilter]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const allSelected = filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
 
@@ -410,7 +416,7 @@ const UsersTab = ({ api }) => {
                   <tr>
                     <td colSpan={selectionMode ? 6 : 6} className="text-center py-10 text-slate-400">Aucun utilisateur trouvé</td>
                   </tr>
-                ) : filtered.map((u) => {
+                ) : paginated.map((u) => {
                   const isSelected = selectedIds.has(u.id);
                   return (
                     <tr
@@ -471,6 +477,18 @@ const UsersTab = ({ api }) => {
               </tbody>
             </table>
           </div>
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-white/[0.04]">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} sur {filtered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Précédent</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1).reduce((acc, p, idx, arr) => { if (idx > 0 && p - arr[idx - 1] > 1) acc.push('…'); acc.push(p); return acc; }, []).map((p, idx) => p === '…' ? (<span key={`e-${idx}`} className="px-2 text-xs text-slate-400">…</span>) : (<button key={p} onClick={() => setPage(p)} className={`w-8 h-8 text-xs rounded-lg border transition-colors ${p === page ? 'bg-blue-600 border-blue-600 text-white font-semibold' : 'border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'}`}>{p}</button>))}
+                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Suivant →</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

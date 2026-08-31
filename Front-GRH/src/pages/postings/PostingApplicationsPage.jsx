@@ -29,7 +29,7 @@ const APP_STATUS_LABELS = {
   REJECTED:    'Refusé',
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 30;
 
 // ── Score badge ────────────────────────────────────────────────────────────────
 
