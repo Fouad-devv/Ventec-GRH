@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     redirectUri: `${window.location.origin}/app/dashboard`,
     extraQueryParams: { ui_theme: localStorage.getItem('theme') || 'dark' },
   });
-  const logout = ()     => keycloak.logout({ redirectUri: window.location.origin });
+  const logout = ()     => keycloak.logout({ redirectUri: window.location.origin + '/' });
   const getToken = ()   => keycloak.token;
   const hasRole  = (role) =>
     keycloak.hasRealmRole(role) ||
