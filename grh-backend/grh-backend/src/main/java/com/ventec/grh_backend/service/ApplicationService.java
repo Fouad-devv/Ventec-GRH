@@ -166,7 +166,7 @@ public class ApplicationService {
             // FastAPI returns [{name, copies, observation}] — add tracking fields
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> rawDocs = (List<Map<String, Object>>) result.get("documents");
-            List<Map<String, Object>> checklistItems = rawDocs.stream()
+            List<Map<String, Object>> checklistItems = new ArrayList<>(rawDocs.stream()
                     .filter(doc -> !isExcludedDocument(String.valueOf(doc.getOrDefault("name", ""))))
                     .filter(doc -> !isProfileConflict(String.valueOf(doc.getOrDefault("name", "")), candidateProfile))
                     .map(doc -> {
@@ -175,7 +175,22 @@ public class ApplicationService {
                         m.putIfAbsent("received", false);
                         return m;
                     })
-                    .toList();
+                    .toList());
+
+            // Fixed rows appended for every candidate regardless of post or profile
+            Map<String, Object> bulletinDoc = new java.util.HashMap<>();
+            bulletinDoc.put("name", "Remplir le bulletin d'adhésion à l'Assurance et la Fiche Administrative (jour de l'intégration)");
+            bulletinDoc.put("required", true);
+            bulletinDoc.put("received", false);
+            checklistItems.add(bulletinDoc);
+
+            Map<String, Object> contratDoc = new java.util.HashMap<>();
+            contratDoc.put("name", "Contrat de travail");
+            contratDoc.put("copies", 2);
+            contratDoc.put("required", true);
+            contratDoc.put("received", false);
+            checklistItems.add(contratDoc);
+
             String documentsJson = objectMapper.writeValueAsString(checklistItems);
 
             var checklist = checklistRepository

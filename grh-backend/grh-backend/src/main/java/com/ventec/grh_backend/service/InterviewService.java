@@ -48,6 +48,7 @@ public class InterviewService {
         OFFICE_MAPS.put("Agence Oujda",     "https://maps.google.com/?cid=11562274598378832981");
         OFFICE_MAPS.put("Agence Agadir",    "https://maps.google.com/?cid=6755927573515155458");
         OFFICE_MAPS.put("Agence Marrakech", "https://maps.google.com/?cid=11071060659319015769");
+        OFFICE_MAPS.put("Siège Fès",        "https://maps.google.com/?cid=2087783074711302950");
     }
 
     private byte[] logoBytes;

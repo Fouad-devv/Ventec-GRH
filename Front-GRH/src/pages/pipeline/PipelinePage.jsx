@@ -32,6 +32,7 @@ const VENTEC_OFFICES = [
   { label: 'Agence Oujda',     mapsUrl: 'https://maps.google.com/?cid=11562274598378832981' },
   { label: 'Agence Agadir',    mapsUrl: 'https://maps.google.com/?cid=6755927573515155458' },
   { label: 'Agence Marrakech', mapsUrl: 'https://maps.google.com/?cid=11071060659319015769' },
+  { label: 'Siège Fès',        mapsUrl: 'https://maps.google.com/?cid=2087783074711302950' },
 ];
 
 // Converts any ISO/UTC date string to the YYYY-MM-DDTHH:mm format a datetime-local input expects,
