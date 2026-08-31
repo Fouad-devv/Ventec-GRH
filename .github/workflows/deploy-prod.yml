@@ -130,9 +130,8 @@ jobs:
       - name: Copy TLS certificates
         run: |
           mkdir -p nginx/certs/prod
-          cp /opt/grh-certs/server.crt   nginx/certs/prod/cert.pem
-          cp /opt/grh-certs/server.key   nginx/certs/prod/key.pem
-          cp /opt/grh-certs/ca-chain.crt nginx/certs/prod/ca-chain.crt
+          cat /opt/grh-certs/server.crt /opt/grh-certs/ca-chain.crt > nginx/certs/prod/cert.pem
+          cp  /opt/grh-certs/server.key   nginx/certs/prod/key.pem
 
       - name: Build and restart containers
         run: docker compose -f docker-compose.yml -p grh-prod up -d --build
