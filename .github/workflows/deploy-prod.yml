@@ -7,87 +7,132 @@ on:
 jobs:
   deploy:
     name: Deploy to production environment
-    runs-on: ubuntu-latest
+    # Runner installé sur la VM Ventec — pas besoin d'exposer la VM sur internet
+    runs-on: self-hosted
     environment: production
 
     steps:
-      - name: SSH → pull, write .env, restart containers
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          password: ${{ secrets.VM_PASSWORD }}
-          envs: >-
-            KC_USERNAME,KC_PWD,KC_DB_URL,KC_DB_USERNAME,KC_DB_PASSWORD,KC_HOSTNAME,
-            DB_URL,DB_USERNAME,DB_PASSWORD,
-            KEYCLOAK_REALM,KEYCLOAK_CLIENT_ID,
-            APP_LOGIN_URL,STORAGE_PATH,CORS_ALLOWED_ORIGINS,
-            SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASSWORD,MAIL_FROM,
-            IMAP_HOST,IMAP_PORT,IMAP_USER,IMAP_PASSWORD,EMAIL_POLL_ENABLED,EMAIL_POLL_INTERVAL_MS,
-            INIT_ADMIN_EMAIL,INIT_ADMIN_FIRSTNAME,INIT_ADMIN_LASTNAME,INIT_ADMIN_PASSWORD,INIT_ADMIN_DEPARTMENT,
-            GROQ_API_KEY,GROQ_API_KEY2,GROQ_API_KEY3,GROQ_API_KEY4,GROQ_API_KEY5,GROQ_API_KEY6,
-            GEMINI_API_KEY,GEMINI_API_KEY2,GEMINI_API_KEY3,GEMINI_API_KEY4,GEMINI_API_KEY5,GEMINI_API_KEY6,
-            SAMBANOVA_API_KEY,SAMBANOVA_API_KEY2,SAMBANOVA_API_KEY3,SAMBANOVA_API_KEY4,SAMBANOVA_API_KEY5,SAMBANOVA_API_KEY6,
-            AI_MODEL_NAME,VITE_KEYCLOAK_URL,VITE_API_URL
-          script: |
-            set -e
-            cd /opt/grh-prod
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            git fetch origin main
-            git reset --hard origin/main
+      - name: Write .env file
+        env:
+          KC_USERNAME:              ${{ secrets.KC_USERNAME }}
+          KC_PWD:                   ${{ secrets.KC_PWD }}
+          KC_HOSTNAME:              ${{ secrets.KC_HOSTNAME }}
+          KC_DB_URL:                ${{ secrets.KC_DB_URL }}
+          KC_DB_USERNAME:           ${{ secrets.KC_DB_USERNAME }}
+          KC_DB_PASSWORD:           ${{ secrets.KC_DB_PASSWORD }}
+          DB_URL:                   ${{ secrets.DB_URL }}
+          DB_USERNAME:              ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD:              ${{ secrets.DB_PASSWORD }}
+          APP_LOGIN_URL:            ${{ secrets.APP_LOGIN_URL }}
+          KEYCLOAK_PUBLIC_URL:      ${{ secrets.KEYCLOAK_PUBLIC_URL }}
+          KEYCLOAK_REALM:           ${{ secrets.KEYCLOAK_REALM }}
+          KEYCLOAK_CLIENT_ID:       ${{ secrets.KEYCLOAK_CLIENT_ID }}
+          CORS_ALLOWED_ORIGINS:     ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          APP_BASE_URL:             ${{ secrets.APP_BASE_URL }}
+          SMTP_HOST:                ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:                ${{ secrets.SMTP_PORT }}
+          SMTP_USER:                ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:            ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM:                ${{ secrets.MAIL_FROM }}
+          IMAP_HOST:                ${{ secrets.IMAP_HOST }}
+          IMAP_PORT:                ${{ secrets.IMAP_PORT }}
+          IMAP_USER:                ${{ secrets.IMAP_USER }}
+          IMAP_PASSWORD:            ${{ secrets.IMAP_PASSWORD }}
+          EMAIL_POLL_ENABLED:       ${{ secrets.EMAIL_POLL_ENABLED }}
+          EMAIL_POLL_INTERVAL_MS:   ${{ secrets.EMAIL_POLL_INTERVAL_MS }}
+          INIT_ADMIN_EMAIL:         ${{ secrets.INIT_ADMIN_EMAIL }}
+          INIT_ADMIN_FIRSTNAME:     ${{ secrets.INIT_ADMIN_FIRSTNAME }}
+          INIT_ADMIN_LASTNAME:      ${{ secrets.INIT_ADMIN_LASTNAME }}
+          INIT_ADMIN_PASSWORD:      ${{ secrets.INIT_ADMIN_PASSWORD }}
+          INIT_ADMIN_DEPARTMENT:    ${{ secrets.INIT_ADMIN_DEPARTMENT }}
+          GROQ_API_KEY:             ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY2:            ${{ secrets.GROQ_API_KEY2 }}
+          GROQ_API_KEY3:            ${{ secrets.GROQ_API_KEY3 }}
+          GROQ_API_KEY4:            ${{ secrets.GROQ_API_KEY4 }}
+          GROQ_API_KEY5:            ${{ secrets.GROQ_API_KEY5 }}
+          GROQ_API_KEY6:            ${{ secrets.GROQ_API_KEY6 }}
+          GEMINI_API_KEY:           ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY2:          ${{ secrets.GEMINI_API_KEY2 }}
+          GEMINI_API_KEY3:          ${{ secrets.GEMINI_API_KEY3 }}
+          GEMINI_API_KEY4:          ${{ secrets.GEMINI_API_KEY4 }}
+          GEMINI_API_KEY5:          ${{ secrets.GEMINI_API_KEY5 }}
+          GEMINI_API_KEY6:          ${{ secrets.GEMINI_API_KEY6 }}
+          SAMBANOVA_API_KEY:        ${{ secrets.SAMBANOVA_API_KEY }}
+          SAMBANOVA_API_KEY2:       ${{ secrets.SAMBANOVA_API_KEY2 }}
+          SAMBANOVA_API_KEY3:       ${{ secrets.SAMBANOVA_API_KEY3 }}
+          SAMBANOVA_API_KEY4:       ${{ secrets.SAMBANOVA_API_KEY4 }}
+          SAMBANOVA_API_KEY5:       ${{ secrets.SAMBANOVA_API_KEY5 }}
+          SAMBANOVA_API_KEY6:       ${{ secrets.SAMBANOVA_API_KEY6 }}
+          VITE_KEYCLOAK_URL:        ${{ secrets.VITE_KEYCLOAK_URL }}
+          VITE_KEYCLOAK_REALM:      ${{ secrets.VITE_KEYCLOAK_REALM }}
+          VITE_KEYCLOAK_CLIENT_ID:  ${{ secrets.VITE_KEYCLOAK_CLIENT_ID }}
+          VITE_API_URL:             ${{ secrets.VITE_API_URL }}
+        run: |
+          cat > .env <<EOF
+          KC_USERNAME=$KC_USERNAME
+          KC_PWD=$KC_PWD
+          KC_HOSTNAME=$KC_HOSTNAME
+          KC_DB_URL=$KC_DB_URL
+          KC_DB_USERNAME=$KC_DB_USERNAME
+          KC_DB_PASSWORD=$KC_DB_PASSWORD
+          DB_URL=$DB_URL
+          DB_USERNAME=$DB_USERNAME
+          DB_PASSWORD=$DB_PASSWORD
+          APP_LOGIN_URL=$APP_LOGIN_URL
+          KEYCLOAK_PUBLIC_URL=$KEYCLOAK_PUBLIC_URL
+          KEYCLOAK_REALM=$KEYCLOAK_REALM
+          KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID
+          CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
+          APP_BASE_URL=$APP_BASE_URL
+          SMTP_HOST=$SMTP_HOST
+          SMTP_PORT=$SMTP_PORT
+          SMTP_USER=$SMTP_USER
+          SMTP_PASSWORD=$SMTP_PASSWORD
+          MAIL_FROM=$MAIL_FROM
+          IMAP_HOST=$IMAP_HOST
+          IMAP_PORT=$IMAP_PORT
+          IMAP_USER=$IMAP_USER
+          IMAP_PASSWORD=$IMAP_PASSWORD
+          EMAIL_POLL_ENABLED=$EMAIL_POLL_ENABLED
+          EMAIL_POLL_INTERVAL_MS=$EMAIL_POLL_INTERVAL_MS
+          INIT_ADMIN_EMAIL=$INIT_ADMIN_EMAIL
+          INIT_ADMIN_FIRSTNAME=$INIT_ADMIN_FIRSTNAME
+          INIT_ADMIN_LASTNAME=$INIT_ADMIN_LASTNAME
+          INIT_ADMIN_PASSWORD=$INIT_ADMIN_PASSWORD
+          INIT_ADMIN_DEPARTMENT=$INIT_ADMIN_DEPARTMENT
+          GROQ_API_KEY=$GROQ_API_KEY
+          GROQ_API_KEY2=$GROQ_API_KEY2
+          GROQ_API_KEY3=$GROQ_API_KEY3
+          GROQ_API_KEY4=$GROQ_API_KEY4
+          GROQ_API_KEY5=$GROQ_API_KEY5
+          GROQ_API_KEY6=$GROQ_API_KEY6
+          GEMINI_API_KEY=$GEMINI_API_KEY
+          GEMINI_API_KEY2=$GEMINI_API_KEY2
+          GEMINI_API_KEY3=$GEMINI_API_KEY3
+          GEMINI_API_KEY4=$GEMINI_API_KEY4
+          GEMINI_API_KEY5=$GEMINI_API_KEY5
+          GEMINI_API_KEY6=$GEMINI_API_KEY6
+          SAMBANOVA_API_KEY=$SAMBANOVA_API_KEY
+          SAMBANOVA_API_KEY2=$SAMBANOVA_API_KEY2
+          SAMBANOVA_API_KEY3=$SAMBANOVA_API_KEY3
+          SAMBANOVA_API_KEY4=$SAMBANOVA_API_KEY4
+          SAMBANOVA_API_KEY5=$SAMBANOVA_API_KEY5
+          SAMBANOVA_API_KEY6=$SAMBANOVA_API_KEY6
+          VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
+          VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM
+          VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
+          VITE_API_URL=$VITE_API_URL
+          EOF
 
-            cat > .env << EOF
-            KC_USERNAME=$KC_USERNAME
-            KC_PWD=$KC_PWD
-            KC_DB_URL=$KC_DB_URL
-            KC_DB_USERNAME=$KC_DB_USERNAME
-            KC_DB_PASSWORD=$KC_DB_PASSWORD
-            KC_HOSTNAME=$KC_HOSTNAME
-            DB_URL=$DB_URL
-            DB_USERNAME=$DB_USERNAME
-            DB_PASSWORD=$DB_PASSWORD
-            KEYCLOAK_REALM=$KEYCLOAK_REALM
-            KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID
-            APP_LOGIN_URL=$APP_LOGIN_URL
-            STORAGE_PATH=$STORAGE_PATH
-            CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
-            SMTP_HOST=$SMTP_HOST
-            SMTP_PORT=$SMTP_PORT
-            SMTP_USER=$SMTP_USER
-            SMTP_PASSWORD=$SMTP_PASSWORD
-            MAIL_FROM=$MAIL_FROM
-            IMAP_HOST=$IMAP_HOST
-            IMAP_PORT=$IMAP_PORT
-            IMAP_USER=$IMAP_USER
-            IMAP_PASSWORD=$IMAP_PASSWORD
-            EMAIL_POLL_ENABLED=$EMAIL_POLL_ENABLED
-            EMAIL_POLL_INTERVAL_MS=$EMAIL_POLL_INTERVAL_MS
-            INIT_ADMIN_EMAIL=$INIT_ADMIN_EMAIL
-            INIT_ADMIN_FIRSTNAME=$INIT_ADMIN_FIRSTNAME
-            INIT_ADMIN_LASTNAME=$INIT_ADMIN_LASTNAME
-            INIT_ADMIN_PASSWORD=$INIT_ADMIN_PASSWORD
-            INIT_ADMIN_DEPARTMENT=$INIT_ADMIN_DEPARTMENT
-            GROQ_API_KEY=$GROQ_API_KEY
-            GROQ_API_KEY2=$GROQ_API_KEY2
-            GROQ_API_KEY3=$GROQ_API_KEY3
-            GROQ_API_KEY4=$GROQ_API_KEY4
-            GROQ_API_KEY5=$GROQ_API_KEY5
-            GROQ_API_KEY6=$GROQ_API_KEY6
-            GEMINI_API_KEY=$GEMINI_API_KEY
-            GEMINI_API_KEY2=$GEMINI_API_KEY2
-            GEMINI_API_KEY3=$GEMINI_API_KEY3
-            GEMINI_API_KEY4=$GEMINI_API_KEY4
-            GEMINI_API_KEY5=$GEMINI_API_KEY5
-            GEMINI_API_KEY6=$GEMINI_API_KEY6
-            SAMBANOVA_API_KEY=$SAMBANOVA_API_KEY
-            SAMBANOVA_API_KEY2=$SAMBANOVA_API_KEY2
-            SAMBANOVA_API_KEY3=$SAMBANOVA_API_KEY3
-            SAMBANOVA_API_KEY4=$SAMBANOVA_API_KEY4
-            SAMBANOVA_API_KEY5=$SAMBANOVA_API_KEY5
-            SAMBANOVA_API_KEY6=$SAMBANOVA_API_KEY6
-            AI_MODEL_NAME=$AI_MODEL_NAME
-            VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
-            VITE_API_URL=$VITE_API_URL
-            EOF
+      - name: Copy TLS certificates
+        run: |
+          mkdir -p nginx/certs/prod
+          cp /opt/grh-certs/server.crt   nginx/certs/prod/
+          cp /opt/grh-certs/server.key   nginx/certs/prod/
+          cp /opt/grh-certs/ca-chain.crt nginx/certs/prod/
 
-            docker compose -f docker-compose.yml -p grh-prod up -d --build
+      - name: Build and restart containers
+        run: docker compose -f docker-compose.yml -p grh-prod up -d --build
