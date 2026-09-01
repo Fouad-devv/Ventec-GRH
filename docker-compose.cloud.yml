@@ -1,0 +1,162 @@
+name: GRH-VENTEC-CLOUD
+
+# ── Local cloud simulation ────────────────────────────────────────────────────
+# Use this compose file to test the cloud architecture locally before pushing.
+# Differences from VM setup:
+#   • No nginx  — each service exposes its own port
+#   • No local PostgreSQL — point DB_URL / KC_DB_URL at a Neon.tech database
+#   • Keycloak accessible on :8080, backend on :5000, AI on :8000, frontend on :3000
+#
+# Usage:
+#   cp .env.cloud.example .env.cloud
+#   docker compose -f docker-compose.cloud.yml --env-file .env.cloud up -d --build
+
+networks:
+  grh-cloud:
+    driver: bridge
+
+services:
+
+  # ── Keycloak ────────────────────────────────────────────────────────────────
+  keycloak:
+    build:
+      context: .
+      dockerfile: Dockerfile.keycloak
+    command: start-dev --import-realm
+    container_name: GRH-keycloak-cloud
+    networks:
+      - grh-cloud
+    ports:
+      - "8080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_PWD}
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /realms/GRH-VENTEC HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 15s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
+
+  # ── FastAPI AI service ───────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ./FastAPI
+      dockerfile: Dockerfile
+    container_name: GRH-ai-service-cloud
+    networks:
+      - grh-cloud
+    ports:
+      - "8000:8000"
+    environment:
+      BACKEND_URL: http://backend:5000/api
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_KEY2: ${GEMINI_API_KEY2}
+      GEMINI_API_KEY3: ${GEMINI_API_KEY3}
+      GEMINI_API_KEY4: ${GEMINI_API_KEY4}
+      GEMINI_API_KEY5: ${GEMINI_API_KEY5}
+      GEMINI_API_KEY6: ${GEMINI_API_KEY6}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_API_KEY2: ${GROQ_API_KEY2}
+      GROQ_API_KEY3: ${GROQ_API_KEY3}
+      GROQ_API_KEY4: ${GROQ_API_KEY4}
+      GROQ_API_KEY5: ${GROQ_API_KEY5}
+      GROQ_API_KEY6: ${GROQ_API_KEY6}
+      SAMBANOVA_API_KEY: ${SAMBANOVA_API_KEY}
+      SAMBANOVA_API_KEY2: ${SAMBANOVA_API_KEY2}
+      SAMBANOVA_API_KEY3: ${SAMBANOVA_API_KEY3}
+      SAMBANOVA_API_KEY4: ${SAMBANOVA_API_KEY4}
+      SAMBANOVA_API_KEY5: ${SAMBANOVA_API_KEY5}
+      SAMBANOVA_API_KEY6: ${SAMBANOVA_API_KEY6}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Spring Boot backend ──────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./grh-backend/grh-backend
+      dockerfile: Dockerfile
+    container_name: GRH-backend-cloud
+    networks:
+      - grh-cloud
+    ports:
+      - "5000:5000"
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KC_USERNAME: ${KC_USERNAME}
+      KC_PWD: ${KC_PWD}
+      AI_SERVICE_URL: http://ai-service:8000
+      STORAGE_PATH: /data/uploads
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      APP_LOGIN_URL: ${APP_LOGIN_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      IMAP_HOST: ${IMAP_HOST}
+      IMAP_PORT: ${IMAP_PORT}
+      IMAP_USER: ${IMAP_USER}
+      IMAP_PASSWORD: ${IMAP_PASSWORD}
+      EMAIL_POLL_ENABLED: ${EMAIL_POLL_ENABLED}
+      EMAIL_POLL_INTERVAL_MS: ${EMAIL_POLL_INTERVAL_MS}
+      INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
+      INIT_ADMIN_FIRSTNAME: ${INIT_ADMIN_FIRSTNAME}
+      INIT_ADMIN_LASTNAME: ${INIT_ADMIN_LASTNAME}
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
+      INIT_ADMIN_DEPARTMENT: ${INIT_ADMIN_DEPARTMENT}
+    volumes:
+      - uploads_cloud:/data/uploads
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:5000/api/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ── React frontend (local simulation only) ───────────────────────────────────
+  # In production cloud: frontend is deployed to Vercel, not here.
+  frontend:
+    build:
+      context: ./Front-GRH
+      dockerfile: Dockerfile
+      args:
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: GRH-frontend-cloud
+    networks:
+      - grh-cloud
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  uploads_cloud:

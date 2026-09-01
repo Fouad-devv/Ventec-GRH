@@ -1,0 +1,72 @@
+name: Deploy — Cloud (Railway)
+
+# Triggers on push to testCloud branch
+# Deploys 3 services to Railway in dependency order:
+#   1. Keycloak + FastAPI (parallel)
+#   2. Spring Boot backend (after both are up)
+# Frontend is deployed automatically by Vercel GitHub integration (no step needed here)
+
+on:
+  push:
+    branches: [testCloud]
+
+jobs:
+
+  # ── Keycloak ─────────────────────────────────────────────────────────────────
+  deploy-keycloak:
+    name: Keycloak → Railway
+    runs-on: ubuntu-latest
+    environment: cloud
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@latest --silent
+
+      - name: Deploy
+        run: railway up --service keycloak --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+
+  # ── FastAPI AI service ────────────────────────────────────────────────────────
+  deploy-ai-service:
+    name: FastAPI → Railway
+    runs-on: ubuntu-latest
+    environment: cloud
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@latest --silent
+
+      - name: Deploy
+        working-directory: FastAPI
+        run: railway up --service ai-service --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+
+  # ── Spring Boot backend ───────────────────────────────────────────────────────
+  # Depends on Keycloak and FastAPI being deployed first (Railway will start them
+  # with their healthchecks before backend attempts to connect)
+  deploy-backend:
+    name: Backend → Railway
+    runs-on: ubuntu-latest
+    environment: cloud
+    needs: [deploy-keycloak, deploy-ai-service]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@latest --silent
+
+      - name: Deploy
+        working-directory: grh-backend/grh-backend
+        run: railway up --service backend --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
