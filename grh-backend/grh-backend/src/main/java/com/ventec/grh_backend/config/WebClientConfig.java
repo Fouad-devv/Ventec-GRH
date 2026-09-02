@@ -23,8 +23,8 @@ public class WebClientConfig {
     public WebClient aiWebClient() {
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000)
-                // 120s: covers PDF extraction + up to 3 Groq retries (5s+10s+20s delays)
-                .responseTimeout(Duration.ofSeconds(120));
+                // 300s: covers PDF extraction + LLM retries on free-tier cloud deployments
+                .responseTimeout(Duration.ofSeconds(300));
 
         // Default codec buffer is 256KB — CV extraction responses with full text can exceed this
         ExchangeStrategies strategies = ExchangeStrategies.builder()

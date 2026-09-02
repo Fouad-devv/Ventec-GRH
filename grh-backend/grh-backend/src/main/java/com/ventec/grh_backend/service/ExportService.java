@@ -53,6 +53,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STShd;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.Color;
@@ -184,6 +185,7 @@ public class ExportService {
     }
 
     // ── Fiche de fonction Word export ────────────────────────────────────────
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @SuppressWarnings("unchecked")
     public byte[] exportFicheFonctionDocx(UUID postingId) {
         JobPosting p = jobPostingRepository.findById(postingId)
