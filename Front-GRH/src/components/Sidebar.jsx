@@ -96,7 +96,7 @@ export const Sidebar = ({ expanded, isLarge, onClose, onExpand }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-x-hidden [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}

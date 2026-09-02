@@ -59,9 +59,9 @@ const AppLayoutInner = ({ expanded, onToggle, onClose, onExpand, isLarge }) => {
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="sticky top-0 z-30 lg:static grid grid-cols-[1fr_2fr_1fr] items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0">
+        <header className="sticky top-0 z-30 lg:static grid grid-cols-[auto_1fr_auto] lg:grid-cols-[1fr_2fr_1fr] items-center h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 lg:bg-slate-50 lg:dark:bg-slate-950 lg:border-b-0">
           {/* Left — hamburger (mobile) + back button */}
-          <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 min-w-0">
             {!isLarge && (
               <button
                 onClick={onToggle}
