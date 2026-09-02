@@ -150,24 +150,28 @@ export const LandingPage = () => {
       </div>
 
       {/* ── Header ── */}
-      <header className='a-header h-16 md:h-18 relative z-10 bg-white dark:bg-white/[0.06] mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
-        <div className='flex items-center gap-3'>
-          <img src={logo} alt='Ventec logo'
-            className='h-8 md:h-9 w-auto rounded-lg object-cover dark:border-white/20 transition-transform duration-300 hover:scale-105' />
-          <div>
-            <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-500 dark:text-cyan-400 font-semibold'>Ventec</p>
-            <h1 className='hidden md:block text-base font-semibold text-slate-900 dark:text-white leading-tight'>Plateforme RH</h1>
+      <header className='a-header sticky top-0 z-20 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-white/[0.06]'>
+        <div className='mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16'>
+          {/* Brand */}
+          <div className='flex items-center gap-2.5'>
+            <img src={logo} alt='Ventec logo'
+              className='h-7 sm:h-9 w-auto rounded-lg object-cover' />
+            <div className='flex flex-col leading-tight'>
+              <span className='text-sm font-bold text-slate-900 dark:text-white'>GRH Ventec</span>
+              <span className='text-[9px] sm:text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Plateforme RH</span>
+            </div>
+          </div>
+
+          {/* Right actions */}
+          <div className='flex items-center gap-2 sm:gap-3'>
+            <span className='hidden sm:block text-xs text-slate-500 dark:text-slate-400 font-medium'>Application interne</span>
+            <ThemeToggle />
+            <button onClick={login}
+              className='btn-glow flex items-center gap-1.5 sm:gap-2 rounded-full bg-cyan-500 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors'>
+              Connexion <HiArrowRight className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
+            </button>
           </div>
         </div>
-        <nav className='flex items-center gap-3'>
-          <span className='hidden sm:block text-xs text-slate-500 font-medium'>Application interne</span>
-          <div className='hidden sm:block w-px h-4 bg-slate-200 dark:bg-white/10' />
-          <ThemeToggle />
-          <button onClick={login}
-            className='btn-glow flex items-center gap-2 rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors'>
-            Connexion <HiArrowRight className='w-4 h-4' />
-          </button>
-        </nav>
       </header>
 
       {/* ── Hero ── */}
