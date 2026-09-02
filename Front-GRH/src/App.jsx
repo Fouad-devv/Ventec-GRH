@@ -16,6 +16,7 @@ import { HistoryPage } from './pages/postings/HistoryPage';
 import { PostingApplicationsPage } from './pages/postings/PostingApplicationsPage';
 import { InterviewsPage } from './pages/interviews/InterviewsPage';
 import { EmailCandidaturesPage } from './pages/emailCandidatures/EmailCandidaturesPage';
+import { GuidePage } from './pages/guide/GuidePage';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
         <Route path="interviews" element={<InterviewsPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="email-candidatures" element={<EmailCandidaturesPage />} />
+        <Route path="guide" element={<GuidePage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="audit" element={<AuditPage />} />
       </Route>
