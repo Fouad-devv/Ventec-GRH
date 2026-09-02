@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdAdd, MdCheck, MdClose, MdDownload, MdCheckCircle } from 'react-icons/md';
+import { MdAdd, MdArrowBack, MdCheck, MdClose, MdDownload, MdCheckCircle } from 'react-icons/md';
 import { PageHeader } from '../../components/PageHeader';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { postingsApi } from '../../api/postings';
@@ -130,9 +130,9 @@ export const DocumentsPage = () => {
           Aucun candidat embauché pour cette offre
         </div>
       ) : (
-        <div className="flex gap-5">
-          {/* Candidate list */}
-          <div className="w-60 flex-shrink-0 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-5">
+          {/* Candidate list — hidden on mobile when checklist is open */}
+          <div className={`sm:w-60 sm:flex-shrink-0 space-y-2 ${selectedApp ? 'hidden sm:block' : 'block'}`}>
             {hiredApps.map((app) => (
               <button
                 key={app.id}
@@ -155,7 +155,7 @@ export const DocumentsPage = () => {
 
           {/* Checklist panel */}
           {!selectedApp ? (
-            <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+            <div className="hidden sm:flex flex-1 items-center justify-center text-slate-400 text-sm">
               Sélectionnez un candidat pour voir sa checklist
             </div>
           ) : loadingDocs ? (
@@ -163,12 +163,20 @@ export const DocumentsPage = () => {
               Chargement...
             </div>
           ) : (
-            <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-semibold text-slate-900 dark:text-white">
-                  {selectedApp.candidateFirstName} {selectedApp.candidateLastName}
-                </h2>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    onClick={() => setSelectedApp(null)}
+                    className="sm:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                  >
+                    <MdArrowBack className="w-4 h-4" />
+                  </button>
+                  <h2 className="font-semibold text-slate-900 dark:text-white truncate">
+                    {selectedApp.candidateFirstName} {selectedApp.candidateLastName}
+                  </h2>
+                </div>
+                <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => download('docx')}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
