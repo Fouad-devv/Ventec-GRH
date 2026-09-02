@@ -311,7 +311,7 @@ export const EmailCandidaturesPage = () => {
   const noSubject    = items.filter((i) => i.status === 'NO_SUBJECT').length;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

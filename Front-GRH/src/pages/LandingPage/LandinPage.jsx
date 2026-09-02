@@ -150,39 +150,43 @@ export const LandingPage = () => {
       </div>
 
       {/* ── Header ── */}
-      <header className='a-header h-16 md:h-18 relative z-10 bg-white dark:bg-white/[0.06] mx-auto flex max-w-7xl items-center justify-between px-6 py-5 border-b border-slate-300 dark:border-white/[0.06]'>
-        <div className='flex items-center gap-3'>
-          <img src={logo} alt='Ventec logo'
-            className='h-8 md:h-9 w-auto rounded-lg object-cover dark:border-white/20 transition-transform duration-300 hover:scale-105' />
-          <div>
-            <p className='hidden md:block text-[10px] uppercase tracking-[0.35em] text-cyan-500 dark:text-cyan-400 font-semibold'>Ventec</p>
-            <h1 className='hidden md:block text-base font-semibold text-slate-900 dark:text-white leading-tight'>Plateforme RH</h1>
+      <header className='a-header sticky top-0 z-20 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-white/[0.06]'>
+        <div className='mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16'>
+          {/* Brand */}
+          <div className='flex items-center gap-2.5'>
+            <img src={logo} alt='Ventec logo'
+              className='h-7 sm:h-9 w-auto rounded-lg object-cover' />
+            <div className='hidden sm:flex flex-col leading-tight'>
+              <span className='text-sm font-bold text-slate-900 dark:text-white'>GRH Ventec</span>
+              <span className='text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Plateforme RH</span>
+            </div>
+          </div>
+
+          {/* Right actions */}
+          <div className='flex items-center gap-2 sm:gap-3'>
+            <span className='hidden md:block text-xs text-slate-500 dark:text-slate-400 font-medium'>Application interne</span>
+            <ThemeToggle />
+            <button onClick={login}
+              className='btn-glow flex items-center gap-1.5 rounded-full bg-cyan-500 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors whitespace-nowrap'>
+              Connexion <HiArrowRight className='w-3.5 h-3.5' />
+            </button>
           </div>
         </div>
-        <nav className='flex items-center gap-3'>
-          <span className='hidden sm:block text-xs text-slate-500 font-medium'>Application interne</span>
-          <div className='hidden sm:block w-px h-4 bg-slate-200 dark:bg-white/10' />
-          <ThemeToggle />
-          <button onClick={login}
-            className='btn-glow flex items-center gap-2 rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors'>
-            Connexion <HiArrowRight className='w-4 h-4' />
-          </button>
-        </nav>
       </header>
 
       {/* ── Hero ── */}
       <main className='relative z-10'>
-        <div className='mx-auto max-w-7xl px-6 pt-24 pb-12 lg:px-8'>
+        <div className='mx-auto max-w-7xl px-4 sm:px-6 pt-10 sm:pt-20 pb-8 sm:pb-12 lg:px-8'>
           <div className='flex flex-col items-center text-center'>
 
-            <div className='h-badge mb-7 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2'>
+            <div className='h-badge mb-4 sm:mb-7 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 sm:px-4 sm:py-2'>
               <div className='h-1.5 w-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse' />
-              <span className='text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300'>
+              <span className='text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300'>
                 Application Interne · Ventec
               </span>
             </div>
 
-            <h2 className='h-title max-w-4xl text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl'>
+            <h2 className='h-title max-w-4xl text-[1.75rem] font-extrabold tracking-tight sm:text-5xl lg:text-7xl leading-tight'>
               Gérez vos{' '}
               <span className='grad-anim bg-gradient-to-r from-cyan-500 via-sky-400 to-violet-500 dark:from-cyan-400 dark:via-sky-300 dark:to-violet-400 bg-clip-text text-transparent'>
                 Ressources Humaines
@@ -190,12 +194,12 @@ export const LandingPage = () => {
               {' '}avec précision
             </h2>
 
-            <p className='h-sub mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400 leading-relaxed'>
+            <p className='h-sub mt-3 sm:mt-6 max-w-2xl text-sm sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed'>
               Plateforme centralisée pour le recrutement, la gestion des talents et le suivi
               des performances au sein de Ventec.
             </p>
 
-            <div className='h-cta mt-10 flex flex-col sm:flex-row items-center gap-4'>
+            <div className='h-cta mt-6 sm:mt-10 flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
               <button onClick={login}
                 className='btn-glow inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20'>
                 Accéder à la plateforme <HiArrowRight className='w-4 h-4' />
@@ -212,7 +216,7 @@ export const LandingPage = () => {
           </div>
 
           {/* ── Dashboard mock-up ── */}
-          <div className='h-dash mt-20 relative'>
+          <div className='h-dash mt-10 sm:mt-20 relative'>
             <div className='absolute -inset-4 rounded-[2.5rem] bg-gradient-to-b from-cyan-500/8 to-violet-500/5 blur-2xl' />
             <div className='relative rounded-[2rem] border border-slate-300 dark:border-white/[0.07] bg-white/90 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40 p-6 sm:p-8'>
 
@@ -312,11 +316,11 @@ export const LandingPage = () => {
                       <p className='text-blue-200 text-xs font-medium mb-0.5'>embauches confirmées</p>
                     </div>
                   </div>
-                  <div className='flex gap-5 shrink-0'>
-                    {[{ v: '84', l: 'Candidats' }, { v: '47', l: 'Candidatures' }, { v: '8', l: 'Offres actives' }].map((s) => (
-                      <div key={s.l} className='text-center'>
-                        <p className='text-xl font-extrabold text-white'>{s.v}</p>
-                        <p className='text-blue-200 text-[9px] mt-0.5'>{s.l}</p>
+                  <div className='flex gap-3 sm:gap-5 shrink-0'>
+                    {[{ v: '84', l: 'Candidats' }, { v: '47', l: 'Candidatures' }, { v: '8', l: 'Offres actives' }].map((s, i) => (
+                      <div key={s.l} className={`text-center ${i === 2 ? 'hidden sm:block' : ''}`}>
+                        <p className='text-base sm:text-xl font-extrabold text-white'>{s.v}</p>
+                        <p className='text-blue-200 text-[8px] sm:text-[9px] mt-0.5'>{s.l}</p>
                       </div>
                     ))}
                   </div>
@@ -357,7 +361,7 @@ export const LandingPage = () => {
       </main>
 
       {/* ── Stats strip ── */}
-      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-14'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-10 sm:py-14'>
         <div className='mx-auto max-w-5xl px-6'>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-8 text-center'>
             {[
@@ -376,11 +380,11 @@ export const LandingPage = () => {
       </section>
 
       {/* ── Features ── */}
-      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-24'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-14 sm:py-24'>
         <div className='mx-auto max-w-6xl px-6'>
           <div data-reveal className='text-center mb-14'>
             <p className='text-[11px] uppercase tracking-[0.3em] text-cyan-500 dark:text-cyan-400 font-semibold mb-3'>Fonctionnalités</p>
-            <h3 className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white'>Tout ce dont vous avez besoin</h3>
+            <h3 className='text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white'>Tout ce dont vous avez besoin</h3>
             <p className='mt-4 text-slate-600 dark:text-slate-400 max-w-xl mx-auto'>
               Un ensemble complet d'outils RH pensés pour les besoins spécifiques de Ventec.
             </p>
@@ -403,7 +407,7 @@ export const LandingPage = () => {
       </section>
 
       {/* ── AI Spotlight ── */}
-      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-24 overflow-hidden bg-violet-50/60 dark:bg-transparent'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-14 sm:py-24 overflow-hidden bg-violet-50/60 dark:bg-transparent'>
         <div className='absolute inset-0 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#06080f]' />
         <div className='absolute top-0 right-0 w-[500px] h-[500px] bg-violet-500/[0.06] dark:bg-violet-600/10 rounded-full blur-[100px] pointer-events-none' />
         <div className='absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/[0.06] dark:bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none' />
@@ -416,7 +420,7 @@ export const LandingPage = () => {
                 <MdAutoAwesome className='w-4 h-4 text-violet-600 dark:text-violet-400' />
                 <span className='text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400'>Intelligence Artificielle</span>
               </div>
-              <h3 className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-5 leading-tight'>
+              <h3 className='text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-5 leading-tight'>
                 L'IA analyse les CVs,<br />
                 <span className='bg-gradient-to-r from-cyan-500 to-violet-500 dark:from-cyan-400 dark:to-violet-400 bg-clip-text text-transparent'>
                   vous recrutez les talents
@@ -498,17 +502,17 @@ export const LandingPage = () => {
       </section>
 
       {/* ── Pipeline ── */}
-      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-24'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-14 sm:py-24'>
         <div className='mx-auto max-w-5xl px-6'>
           <div data-reveal className='text-center mb-14'>
             <p className='text-[11px] uppercase tracking-[0.3em] text-violet-500 dark:text-violet-400 font-semibold mb-3'>Processus</p>
-            <h3 className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white'>Pipeline de recrutement</h3>
+            <h3 className='text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white'>Pipeline de recrutement</h3>
             <p className='mt-4 text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-sm'>
               Suivez chaque candidat à travers les étapes structurées du processus de recrutement Ventec.
             </p>
           </div>
 
-          <div className='relative grid sm:grid-cols-4 gap-6'>
+          <div className='relative grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6'>
             <div className='hidden sm:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-white/[0.1] to-transparent' />
             {pipeline.map((p, i) => (
               <div key={p.step} data-reveal style={{ '--rv-delay': `${i * 160}ms` }}>
@@ -526,14 +530,14 @@ export const LandingPage = () => {
       </section>
 
       {/* ── CTA banner ── */}
-      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-20'>
-        <div className='mx-auto max-w-3xl px-6'>
-          <div className='relative rounded-[2rem] border border-slate-300 dark:border-white/[0.08] bg-slate-200 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/30 overflow-hidden p-10 sm:p-14 text-center'>
+      <section className='relative z-10 border-t border-slate-300 dark:border-white/[0.06] py-12 sm:py-20'>
+        <div className='mx-auto max-w-3xl px-4 sm:px-6'>
+          <div className='relative rounded-[1.5rem] sm:rounded-[2rem] border border-slate-300 dark:border-white/[0.08] bg-slate-200 dark:bg-slate-900/60 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/30 overflow-hidden p-7 sm:p-10 lg:p-14 text-center'>
             <div className='absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-violet-500/5 pointer-events-none' />
             <div data-reveal="scale" className='relative'>
               <HiOfficeBuilding className='w-10 h-10 text-cyan-500 dark:text-cyan-400 mx-auto mb-5 transition-transform duration-300 hover:scale-110' />
-              <h3 className='text-3xl font-bold text-slate-900 dark:text-white'>Prêt à commencer ?</h3>
-              <p className='mt-3 text-slate-600 dark:text-slate-400'>
+              <h3 className='text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white'>Prêt à commencer ?</h3>
+              <p className='mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-400'>
                 Connectez-vous avec votre compte Ventec pour accéder à la plateforme RH.
               </p>
               <div className='mt-8'>

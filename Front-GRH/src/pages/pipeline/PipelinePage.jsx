@@ -454,7 +454,7 @@ export const PipelinePage = () => {
   const byStatus = (status) => applications.filter((a) => a.status === status);
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
 
       <div className="mb-6">
         <select
@@ -476,7 +476,8 @@ export const PipelinePage = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-4">
+        <div className="grid grid-cols-6 gap-3 min-w-[640px] sm:min-w-0 sm:grid-cols-6 md:grid-cols-6 lg:grid-cols-6">
           {STATUSES.map((status) => (
             <div key={status} className="flex flex-col gap-2">
               <div className="flex items-center justify-between mb-1">
@@ -637,6 +638,7 @@ export const PipelinePage = () => {
               ))}
             </div>
           ))}
+        </div>
         </div>
       )}
 

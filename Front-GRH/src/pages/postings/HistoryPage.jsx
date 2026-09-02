@@ -77,7 +77,7 @@ export const HistoryPage = () => {
   );
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
 
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">

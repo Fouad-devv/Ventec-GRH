@@ -704,9 +704,9 @@ export const PostingDetailPage = () => {
   const scoredApps = [...applications].sort((a, b) => (b.aiScore ?? -1) - (a.aiScore ?? -1));
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">{posting.title}</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
@@ -722,7 +722,7 @@ export const PostingDetailPage = () => {
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-start">
           {posting.status === 'DRAFT' && (
             <button onClick={handlePublish}
               className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">

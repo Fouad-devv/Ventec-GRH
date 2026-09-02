@@ -67,22 +67,23 @@ export const PostingsPage = () => {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-slate-500 dark:text-slate-400">
           {postings.length} offre{postings.length !== 1 ? 's' : ''}
         </p>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
+          className="flex items-center gap-2 px-3 sm:px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold shadow-sm transition-colors"
         >
           <MdAdd className="w-5 h-5" />
-          Nouvelle offre
+          <span className="hidden sm:inline">Nouvelle offre</span>
+          <span className="sm:hidden">Nouvelle</span>
         </button>
       </div>
 
-      <div className="flex gap-3 mb-5">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
+        <div className="relative flex-1 min-w-0">
           <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
