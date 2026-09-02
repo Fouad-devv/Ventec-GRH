@@ -1,20 +1,22 @@
-# Stage 1: build the Brevo HTTP email SPI
+# Stage 1: Build the Brevo HTTP email SPI JAR
 FROM maven:3.9-eclipse-temurin-17 AS spi-builder
 WORKDIR /build
 COPY keycloak-brevo-spi/pom.xml .
 COPY keycloak-brevo-spi/src ./src
 RUN mvn package -DskipTests -q
 
-# Stage 2: Keycloak with custom theme + Brevo SPI
-FROM quay.io/keycloak/keycloak:latest
+# Stage 2: Pre-build optimized Keycloak with brevo-http baked in as default email sender
+FROM quay.io/keycloak/keycloak:latest AS kc-builder
 
-# Custom login theme
 COPY keycloak-theme/ventec-grh /opt/keycloak/themes/ventec-grh
-
-# Brevo HTTP email provider (bypasses SMTP entirely)
 COPY --from=spi-builder /build/target/keycloak-brevo-email-1.0.0.jar /opt/keycloak/providers/
 
-# Realm import (skipped automatically if realm already exists in DB)
+ENV KC_DB=postgres
+RUN /opt/keycloak/bin/kc.sh build --spi-email-sender-default-provider=brevo-http
+
+# Stage 3: Final runtime image
+FROM quay.io/keycloak/keycloak:latest
+COPY --from=kc-builder /opt/keycloak/ /opt/keycloak/
 COPY realm-export.json /opt/keycloak/data/import/realm-export.json
 
-CMD ["start", "--import-realm"]
+CMD ["start", "--optimized", "--import-realm"]
