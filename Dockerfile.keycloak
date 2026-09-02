@@ -5,3 +5,5 @@ COPY keycloak-theme/ventec-grh /opt/keycloak/themes/ventec-grh
 
 # Realm import (skipped automatically if realm already exists in DB)
 COPY realm-export.json /opt/keycloak/data/import/realm-export.json
+
+CMD ["start", "--import-realm"]
