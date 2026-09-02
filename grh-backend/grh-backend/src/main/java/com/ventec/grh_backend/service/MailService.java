@@ -10,11 +10,17 @@ import jakarta.mail.util.ByteArrayDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -22,12 +28,24 @@ import org.springframework.stereotype.Service;
 public class MailService {
 
     private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${mail.from}")
     private String from;
 
+    @Value("${brevo.api-key:}")
+    private String brevoApiKey;
+
+    private boolean useBrevoApi() {
+        return brevoApiKey != null && !brevoApiKey.isBlank();
+    }
+
     @Async
     public void sendSimple(String to, String subject, String text) {
+        if (useBrevoApi()) {
+            sendViaBrevoApi(to, subject, "<pre>" + text + "</pre>");
+            return;
+        }
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setFrom(from);
@@ -42,6 +60,10 @@ public class MailService {
 
     @Async
     public void sendHtml(String to, String subject, String html) {
+        if (useBrevoApi()) {
+            sendViaBrevoApi(to, subject, html);
+            return;
+        }
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
@@ -63,14 +85,18 @@ public class MailService {
     @Async
     public void sendHtmlWithInline(String to, String subject, String html,
                                    String cid, byte[] imageBytes, String contentType) {
+        if (useBrevoApi()) {
+            String base64 = Base64.getEncoder().encodeToString(imageBytes);
+            String htmlWithInline = html.replace("cid:" + cid, "data:" + contentType + ";base64," + base64);
+            sendViaBrevoApi(to, subject, htmlWithInline);
+            return;
+        }
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             msg.setFrom(new InternetAddress(from));
             msg.setRecipient(RecipientType.TO, new InternetAddress(to));
             msg.setSubject(subject, "UTF-8");
 
-            // multipart/related keeps HTML and its inline images together as one unit —
-            // no separate attachment, correct rendering in Gmail and Outlook
             MimeMultipart related = new MimeMultipart("related");
 
             MimeBodyPart htmlPart = new MimeBodyPart();
@@ -87,6 +113,29 @@ public class MailService {
             mailSender.send(msg);
         } catch (Exception e) {
             log.error("Failed to send HTML email with inline image to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private void sendViaBrevoApi(String to, String subject, String html) {
+        try {
+            Map<String, Object> body = Map.of(
+                "sender", Map.of("email", from, "name", "Ventec GRH"),
+                "to", List.of(Map.of("email", to)),
+                "subject", subject,
+                "htmlContent", html
+            );
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("api-key", brevoApiKey);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<String> resp = restTemplate.exchange(
+                "https://api.brevo.com/v3/smtp/email",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                String.class
+            );
+            log.info("Email sent via Brevo API to {} (status: {})", to, resp.getStatusCode());
+        } catch (Exception e) {
+            log.error("Failed to send email via Brevo API to {}: {}", to, e.getMessage());
         }
     }
 }
