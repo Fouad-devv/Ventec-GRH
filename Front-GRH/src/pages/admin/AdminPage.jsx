@@ -584,7 +584,7 @@ export const AdminPage = () => {
   );
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <UsersTab key={refreshKey} api={api} />
     </div>
   );

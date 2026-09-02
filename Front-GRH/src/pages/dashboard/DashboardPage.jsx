@@ -191,7 +191,7 @@ export const DashboardPage = () => {
     alerts.push({ type: 'warning', message: `${emailAlertCount} email${emailAlertCount > 1 ? 's' : ''} de candidature non traité${emailAlertCount > 1 ? 's' : ''} aujourd'hui (sans offre ou sans objet)` });
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
 
       {/* ── KPI cards ── */}
       <section>
@@ -314,29 +314,29 @@ export const DashboardPage = () => {
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-6 shadow-md">
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-[0.04]" />
         <div className="absolute bottom-0 left-1/2 w-64 h-32 rounded-full bg-indigo-500 opacity-10 blur-2xl" />
-        <div className="relative flex items-center justify-between gap-6">
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
           <div>
             <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-1">Ce mois-ci</p>
             <div className="flex items-end gap-3">
-              <p className="text-white text-5xl font-extrabold leading-none">{stats?.hiredThisMonth ?? 0}</p>
-              <p className="text-blue-200 text-base font-medium mb-1">
+              <p className="text-white text-4xl sm:text-5xl font-extrabold leading-none">{stats?.hiredThisMonth ?? 0}</p>
+              <p className="text-blue-200 text-sm sm:text-base font-medium mb-1">
                 embauche{(stats?.hiredThisMonth ?? 0) !== 1 ? 's' : ''} confirmée{(stats?.hiredThisMonth ?? 0) !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
-          <div className="flex gap-6 shrink-0">
+          <div className="flex gap-4 sm:gap-6">
             <div className="text-center">
-              <p className="text-3xl font-extrabold text-white">{stats?.totalCandidates ?? 0}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-white">{stats?.totalCandidates ?? 0}</p>
               <p className="text-blue-200 text-xs mt-0.5">Candidats</p>
             </div>
             <div className="w-px bg-white/20 self-stretch" />
             <div className="text-center">
-              <p className="text-3xl font-extrabold text-white">{stats?.totalApplications ?? 0}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-white">{stats?.totalApplications ?? 0}</p>
               <p className="text-blue-200 text-xs mt-0.5">Candidatures</p>
             </div>
-            <div className="hidden sm:block w-px bg-white/20 self-stretch" />
-            <div className="hidden sm:block text-center">
-              <p className="text-3xl font-extrabold text-white">{stats?.activeJobPostings ?? 0}</p>
+            <div className="w-px bg-white/20 self-stretch" />
+            <div className="text-center">
+              <p className="text-2xl sm:text-3xl font-extrabold text-white">{stats?.activeJobPostings ?? 0}</p>
               <p className="text-blue-200 text-xs mt-0.5">Offres actives</p>
             </div>
           </div>
