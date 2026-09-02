@@ -22,8 +22,8 @@ public class SecurityConfig {
 
     private final KeycloakJwtConverter keycloakJwtConverter;
 
-    @Value("${cors.allowed-origins}")
-    private String[] allowedOrigins;
+    @Value("${cors.allowed-origins:*}")
+    private String allowedOriginsRaw;
 
     public SecurityConfig(KeycloakJwtConverter keycloakJwtConverter) {
         this.keycloakJwtConverter = keycloakJwtConverter;
@@ -52,7 +52,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(allowedOrigins));
+        List<String> origins = java.util.Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).collect(java.util.stream.Collectors.toList());
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
