@@ -16,6 +16,7 @@ import {
   MdLock,
   MdEmail,
   MdSecurity,
+  MdHelpOutline,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -30,6 +31,7 @@ const navItems = [
   { to: '/app/interviews', icon: MdEventNote, label: 'Entretiens' },
   { to: '/app/documents', icon: MdFolder, label: 'Documents' },
   { to: '/app/notifications', icon: MdNotifications, label: 'Notifications' },
+  { to: '/app/guide', icon: MdHelpOutline, label: 'Guide d\'utilisation' },
 ];
 
 const adminItems = [
