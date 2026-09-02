@@ -34,7 +34,7 @@ import java.util.HashMap;
 @Transactional
 public class InterviewService {
 
-    @Value("${app.timezone.offset-hours:1}")
+    @Value("${app.timezone.offset-hours:2}")
     private int timezoneOffsetHours;
 
     private final InterviewRepository interviewRepository;
