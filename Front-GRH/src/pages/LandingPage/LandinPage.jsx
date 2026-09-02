@@ -156,19 +156,19 @@ export const LandingPage = () => {
           <div className='flex items-center gap-2.5'>
             <img src={logo} alt='Ventec logo'
               className='h-7 sm:h-9 w-auto rounded-lg object-cover' />
-            <div className='flex flex-col leading-tight'>
+            <div className='hidden sm:flex flex-col leading-tight'>
               <span className='text-sm font-bold text-slate-900 dark:text-white'>GRH Ventec</span>
-              <span className='text-[9px] sm:text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Plateforme RH</span>
+              <span className='text-[10px] uppercase tracking-widest text-cyan-500 dark:text-cyan-400 font-semibold'>Plateforme RH</span>
             </div>
           </div>
 
           {/* Right actions */}
           <div className='flex items-center gap-2 sm:gap-3'>
-            <span className='hidden sm:block text-xs text-slate-500 dark:text-slate-400 font-medium'>Application interne</span>
+            <span className='hidden md:block text-xs text-slate-500 dark:text-slate-400 font-medium'>Application interne</span>
             <ThemeToggle />
             <button onClick={login}
-              className='btn-glow flex items-center gap-1.5 sm:gap-2 rounded-full bg-cyan-500 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors'>
-              Connexion <HiArrowRight className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
+              className='btn-glow flex items-center gap-1.5 rounded-full bg-cyan-500 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:bg-cyan-400 transition-colors whitespace-nowrap'>
+              Connexion <HiArrowRight className='w-3.5 h-3.5' />
             </button>
           </div>
         </div>
