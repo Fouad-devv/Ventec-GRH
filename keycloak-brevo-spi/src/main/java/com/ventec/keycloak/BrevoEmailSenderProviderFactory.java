@@ -15,7 +15,7 @@ public class BrevoEmailSenderProviderFactory implements EmailSenderProviderFacto
 
     @Override
     public String getId() {
-        return "brevo-http";
+        return "smtp";
     }
 
     @Override
