@@ -18,7 +18,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +34,9 @@ public class MailService {
 
     @Value("${brevo.api-key:}")
     private String brevoApiKey;
+
+    @Value("${app.logo-url:}")
+    private String logoUrl;
 
     private boolean useBrevoApi() {
         return brevoApiKey != null && !brevoApiKey.isBlank();
@@ -86,9 +88,10 @@ public class MailService {
     public void sendHtmlWithInline(String to, String subject, String html,
                                    String cid, byte[] imageBytes, String contentType) {
         if (useBrevoApi()) {
-            String base64 = Base64.getEncoder().encodeToString(imageBytes);
-            String htmlWithInline = html.replace("cid:" + cid, "data:" + contentType + ";base64," + base64);
-            sendViaBrevoApi(to, subject, htmlWithInline);
+            String resolvedHtml = (logoUrl != null && !logoUrl.isBlank())
+                    ? html.replace("cid:" + cid, logoUrl)
+                    : html.replace("src=\"cid:" + cid + "\"", "src=\"\" style=\"display:none\"");
+            sendViaBrevoApi(to, subject, resolvedHtml);
             return;
         }
         try {
