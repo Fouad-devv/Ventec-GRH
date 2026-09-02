@@ -18,7 +18,7 @@
     <dependencies>
         <dependency>
             <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-common</artifactId>
+            <artifactId>keycloak-core</artifactId>
             <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
