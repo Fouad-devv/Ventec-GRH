@@ -34,7 +34,7 @@ import java.util.HashMap;
 @Transactional
 public class InterviewService {
 
-    @Value("${app.timezone:Africa/Cairo}")
+    @Value("${app.timezone:Africa/Algiers}")
     private String appTimezone;
 
     private final InterviewRepository interviewRepository;
