@@ -21,7 +21,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +34,8 @@ import java.util.HashMap;
 @Transactional
 public class InterviewService {
 
-    @Value("${app.timezone:Africa/Casablanca}")
-    private String appTimezone;
+    @Value("${app.timezone.offset-hours:1}")
+    private int timezoneOffsetHours;
 
     private final InterviewRepository interviewRepository;
     private final ApplicationRepository applicationRepository;
@@ -249,7 +249,7 @@ public class InterviewService {
         };
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy 'à' HH'h'mm", java.util.Locale.FRENCH);
         String dateStr = interview.getScheduledAt() != null
-                ? interview.getScheduledAt().atZoneSameInstant(ZoneId.of(appTimezone)).format(fmt)
+                ? interview.getScheduledAt().atZoneSameInstant(ZoneOffset.ofHours(timezoneOffsetHours)).format(fmt)
                 : "—";
         String location = interview.getLocationOrLink() != null && !interview.getLocationOrLink().isBlank()
                 ? interview.getLocationOrLink() : "À préciser";
