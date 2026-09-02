@@ -2,7 +2,6 @@ package com.ventec.keycloak;
 
 import org.keycloak.email.EmailException;
 import org.keycloak.email.EmailSenderProvider;
-import org.keycloak.models.UserModel;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -15,20 +14,19 @@ public class BrevoEmailSenderProvider implements EmailSenderProvider {
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @Override
-    public void send(Map<String, String> config, UserModel user, String subject, String textBody, String htmlBody) throws EmailException {
+    public void send(Map<String, String> config, String address, String subject, String textBody, String htmlBody) throws EmailException {
         String apiKey = System.getenv("BREVO_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
             throw new EmailException("BREVO_API_KEY environment variable is not set");
         }
 
-        String from     = env("MAIL_FROM",         config.getOrDefault("from",            "noreply@ventec.ma"));
-        String fromName = env("MAIL_FROM_NAME",     config.getOrDefault("fromDisplayName", "Ventec GRH"));
-        String to       = user.getEmail();
-        String content  = htmlBody != null && !htmlBody.isBlank() ? htmlBody : "<pre>" + textBody + "</pre>";
+        String from     = env("MAIL_FROM",     config.getOrDefault("from",            "noreply@ventec.ma"));
+        String fromName = env("MAIL_FROM_NAME", config.getOrDefault("fromDisplayName", "Ventec GRH"));
+        String content  = (htmlBody != null && !htmlBody.isBlank()) ? htmlBody : "<pre>" + textBody + "</pre>";
 
         String json = "{"
                 + "\"sender\":{\"email\":\"" + esc(from) + "\",\"name\":\"" + esc(fromName) + "\"},"
-                + "\"to\":[{\"email\":\"" + esc(to) + "\"}],"
+                + "\"to\":[{\"email\":\"" + esc(address) + "\"}],"
                 + "\"subject\":\"" + esc(subject) + "\","
                 + "\"htmlContent\":\"" + esc(content) + "\""
                 + "}";
@@ -47,7 +45,7 @@ public class BrevoEmailSenderProvider implements EmailSenderProvider {
         } catch (EmailException e) {
             throw e;
         } catch (Exception e) {
-            throw new EmailException(e);
+            throw new EmailException(e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
