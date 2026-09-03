@@ -193,21 +193,20 @@ export const NotificationsPage = () => {
 
         {/* Row 2: offer filter + reset */}
         <div className="flex items-center gap-3">
-          {offerOptions.length > 0 && (
-            <div className="flex items-center gap-2 flex-1 max-w-xs">
-              <MdWork className="w-4 h-4 text-slate-400 shrink-0" />
-              <select
-                value={offerFilter}
-                onChange={(e) => setOfferFilter(e.target.value)}
-                className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-              >
-                <option value="">Toutes les offres</option>
-                {offerOptions.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-1 max-w-xs">
+            <MdWork className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={offerFilter}
+              onChange={(e) => setOfferFilter(e.target.value)}
+              disabled={offerOptions.length === 0}
+              className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Toutes les offres</option>
+              {offerOptions.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
           {hasActiveFilter && (
             <button onClick={resetFilters}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors">
