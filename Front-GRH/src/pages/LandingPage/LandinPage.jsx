@@ -337,8 +337,8 @@ export const LandingPage = () => {
                 </div>
                 <div className='divide-y divide-slate-100 dark:divide-white/[0.04]'>
                   {[
-                    { name: 'Yassine El Amrani', post: 'Dev Full Stack', date: '04 août', time: '10:00', emoji: '🎥' },
-                    { name: 'Sara Idrissi',       post: 'Chargée RH',     date: '05 août', time: '14:30', emoji: '🏢' },
+                    { name: 'Candidat(e) A', post: 'Dev Full Stack', date: '04 août', time: '10:00', emoji: '🎥' },
+                    { name: 'Candidat(e) B', post: 'Chargée RH',     date: '05 août', time: '14:30', emoji: '🏢' },
                   ].map((iv) => (
                     <div key={iv.name} className='flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors'>
                       <div className='w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center text-xs shrink-0'>{iv.emoji}</div>
@@ -459,9 +459,9 @@ export const LandingPage = () => {
 
                 {/* Candidate row */}
                 <div className='flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.07]'>
-                  <div className='w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0'>Y</div>
+                  <div className='w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0'>C</div>
                   <div>
-                    <p className='text-sm font-semibold text-slate-900 dark:text-white'>Yassine El Amrani</p>
+                    <p className='text-sm font-semibold text-slate-900 dark:text-white'>Candidat(e) A</p>
                     <p className='text-xs text-slate-500 dark:text-slate-400'>Développeur Full Stack · 5 ans exp.</p>
                   </div>
                 </div>
