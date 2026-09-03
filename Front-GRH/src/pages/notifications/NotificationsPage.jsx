@@ -4,7 +4,6 @@ import {
   MdMail, MdNotifications, MdRefresh, MdCalendarToday,
   MdWork, MdFilterAlt,
 } from 'react-icons/md';
-import { PageHeader } from '../../components/PageHeader';
 import { usePageActions } from '../../context/HeaderContext';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { notificationsApi } from '../../api/notifications';
@@ -100,6 +99,7 @@ export const NotificationsPage = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
   const [dateFilter, setDateFilter]   = useState('all');   // all | today | week | month
   const [offerFilter, setOfferFilter] = useState('');       // offer name or ''
   const [marking, setMarking]   = useState(null);
@@ -107,9 +107,10 @@ export const NotificationsPage = () => {
   const loadRef = useRef();
   const load = () => {
     setLoading(true);
+    setError(null);
     api.getAll()
       .then((r) => setNotifications(r.data))
-      .catch(console.error)
+      .catch((e) => setError(e?.response?.data?.message || e?.message || 'Erreur de chargement'))
       .finally(() => setLoading(false));
   };
   loadRef.current = load;
@@ -160,17 +161,15 @@ export const NotificationsPage = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
-      <PageHeader
-        title="Notifications"
-        action={
-          unread > 0 && (
-            <button onClick={markAll}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-              <MdDoneAll className="w-4 h-4" /> Tout marquer lu
-            </button>
-          )
-        }
-      />
+      {/* Actions bar */}
+      {unread > 0 && (
+        <div className="flex justify-end mb-4">
+          <button onClick={markAll}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+            <MdDoneAll className="w-4 h-4" /> Tout marquer lu
+          </button>
+        </div>
+      )}
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <div className="mb-5 space-y-3">
@@ -219,7 +218,17 @@ export const NotificationsPage = () => {
       </div>
 
       {/* ── Notification list ────────────────────────────────────────────── */}
-      {loading ? (
+      {error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+          <MdInbox className="w-10 h-10 text-red-400 opacity-60" />
+          <p className="text-sm font-medium text-red-500">Impossible de charger les notifications</p>
+          <p className="text-xs text-slate-400">{error}</p>
+          <button onClick={load}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <MdRefresh className="w-4 h-4" /> Réessayer
+          </button>
+        </div>
+      ) : loading ? (
         <div className="flex justify-center py-24">
           <div className="w-10 h-10 rounded-full border-4 border-blue-100 dark:border-blue-900 border-t-blue-600 animate-spin" />
         </div>
