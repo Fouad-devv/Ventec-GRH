@@ -6,3 +6,6 @@
 
 # TLS certificates — generate locally with nginx/generate-self-signed.sh
 nginx/certs/**/*.pem
+
+# Claude Code internal files
+.claude/
