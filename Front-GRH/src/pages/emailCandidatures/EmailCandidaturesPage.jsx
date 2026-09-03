@@ -182,14 +182,13 @@ export const EmailCandidaturesPage = () => {
     return opts.sort((a, b) => a.localeCompare(b));
   }, [items]);
 
-  const filteredItems = useMemo(() => {
-    setPage(1);
-    return items.filter((item) => {
-      if (filterStatus  && item.status              !== filterStatus)  return false;
-      if (filterPosting && item.matchedPostingTitle !== filterPosting) return false;
-      return true;
-    });
-  }, [items, filterStatus, filterPosting]);
+  const filteredItems = useMemo(() => items.filter((item) => {
+    if (filterStatus  && item.status              !== filterStatus)  return false;
+    if (filterPosting && item.matchedPostingTitle !== filterPosting) return false;
+    return true;
+  }), [items, filterStatus, filterPosting]);
+
+  useEffect(() => { setPage(1); }, [filterStatus, filterPosting]);
 
   const totalPages    = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const paginatedItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
