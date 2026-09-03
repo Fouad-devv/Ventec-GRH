@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { MdSearch, MdFilterList, MdClearAll, MdRefresh } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { auditApi } from '../../api/audit';
@@ -140,10 +140,11 @@ export function AuditPage() {
   });
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
+  const loadRef = useRef(null);
 
   usePageActions(
     <button
-      onClick={load}
+      onClick={() => loadRef.current?.()}
       className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
       title="Actualiser"
     >
@@ -186,6 +187,7 @@ export function AuditPage() {
     }
   }, [page, filters]);
 
+  loadRef.current = load;
   useEffect(() => { load(); }, [load]);
 
   const handleFilterChange = (key, val) => {
