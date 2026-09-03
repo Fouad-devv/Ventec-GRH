@@ -366,7 +366,7 @@ export const PostingApplicationsPage = () => {
                 {/* Main content */}
                 <div className="flex-1 min-w-0">
                   {/* Name + status */}
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar
                         firstName={app.candidateFirstName}
@@ -389,7 +389,7 @@ export const PostingApplicationsPage = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {app.status !== 'REJECTED' && (
                         <button
                           onClick={() => handleContactedToggle(app.candidateId, app.candidateContacted)}

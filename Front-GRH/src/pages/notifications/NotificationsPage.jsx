@@ -306,7 +306,7 @@ export const NotificationsPage = () => {
                     onClick={() => markRead(n.id)}
                     disabled={marking === n.id}
                     title="Marquer comme lu"
-                    className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-30"
+                    className="absolute bottom-3 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-lg text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-30"
                   >
                     {marking === n.id
                       ? <div className="w-4 h-4 border-2 border-blue-400/40 border-t-blue-500 rounded-full animate-spin" />
