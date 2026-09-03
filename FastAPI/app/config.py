@@ -43,17 +43,17 @@ class Settings(BaseSettings):
     gemini_fast_models: List[str] = [
         "gemini-flash-lite-latest",  # fastest, cheapest
         "gemini-flash-latest",       # fallback
-        "gemini-3.5-flash-lite",     # last resort
+        "gemini-2.0-flash-lite",     # last resort
     ]
     gemini_smart_models: List[str] = [
         "gemini-flash-latest",       # best quality
-        "gemini-3.5-flash",          # fallback
-        "gemini-3.1-flash-lite",     # last resort
+        "gemini-2.0-flash",          # fallback
+        "gemini-1.5-flash",          # last resort
     ]
     gemini_scoring_models: List[str] = [
-        "gemini-3.5-flash",          # best quality
-        "gemini-3.6-flash",          # fallback
-        "gemini-3.1-flash-lite",     # lightweight fallback
+        "gemini-flash-latest",       # best quality
+        "gemini-2.0-flash",          # fallback
+        "gemini-flash-lite-latest",  # lightweight fallback
     ]
 
     # ── Groq model chains ─────────────────────────────────────────────────────
