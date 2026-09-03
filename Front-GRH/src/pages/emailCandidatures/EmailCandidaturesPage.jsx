@@ -275,27 +275,30 @@ export const EmailCandidaturesPage = () => {
       {selectedIds.size > 0 && (
         <button
           onClick={() => setConfirmSelected(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors"
+          title={`Supprimer (${selectedIds.size})`}
         >
           <MdDelete className="w-4 h-4" />
-          Supprimer ({selectedIds.size})
+          <span className="hidden sm:inline">Supprimer ({selectedIds.size})</span>
         </button>
       )}
       {items.length > 0 && selectedIds.size === 0 && (
         <button
           onClick={() => setConfirmAll(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+          title="Tout supprimer"
         >
           <MdDelete className="w-4 h-4" />
-          Tout supprimer
+          <span className="hidden sm:inline">Tout supprimer</span>
         </button>
       )}
       <button
         onClick={load}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+        title="Actualiser"
       >
         <MdRefresh className="w-4 h-4" />
-        Actualiser
+        <span className="hidden sm:inline">Actualiser</span>
       </button>
     </div>
   );
@@ -395,24 +398,28 @@ export const EmailCandidaturesPage = () => {
 
       {/* Selection toolbar — shown when rows are selected */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl">
-          <MdEmail className="w-4 h-4 text-blue-500 shrink-0" />
-          <p className="text-sm font-medium text-blue-700 dark:text-blue-300 flex-1">
-            {selectedIds.size} entrée{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
-          </p>
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            className="text-xs text-blue-500 dark:text-blue-400 hover:underline"
-          >
-            Désélectionner tout
-          </button>
-          <button
-            onClick={() => setConfirmSelected(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-colors"
-          >
-            <MdDelete className="w-3.5 h-3.5" />
-            Supprimer la sélection
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl">
+          <div className="flex items-center gap-2">
+            <MdEmail className="w-4 h-4 text-blue-500 shrink-0" />
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              {selectedIds.size} entrée{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-blue-500 dark:text-blue-400 hover:underline"
+            >
+              Désélectionner tout
+            </button>
+            <button
+              onClick={() => setConfirmSelected(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-colors"
+            >
+              <MdDelete className="w-3.5 h-3.5" />
+              Supprimer la sélection
+            </button>
+          </div>
         </div>
       )}
 

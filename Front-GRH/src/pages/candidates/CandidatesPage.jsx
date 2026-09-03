@@ -247,28 +247,31 @@ export const CandidatesPage = () => {
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           {selectionMode && (
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/40 border-b border-blue-100 dark:border-blue-900">
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                {selectedIds.size} sélectionné{selectedIds.size !== 1 ? 's' : ''}
-              </span>
-              <button
-                onClick={() => setSelectedIds(allSelected ? new Set() : new Set(candidates.map((c) => c.id)))}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
-              </button>
-              <div className="flex-1" />
-              <button onClick={exitSelectionMode} className="text-xs text-slate-500 dark:text-slate-400 hover:underline">
-                Annuler
-              </button>
-              {selectedIds.size > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/40 border-b border-blue-100 dark:border-blue-900">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {selectedIds.size} sélectionné{selectedIds.size !== 1 ? 's' : ''}
+                </span>
                 <button
-                  onClick={() => setConfirmDeleteSelected(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                  onClick={() => setSelectedIds(allSelected ? new Set() : new Set(candidates.map((c) => c.id)))}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  <MdDelete className="w-3.5 h-3.5" /> Supprimer ({selectedIds.size})
+                  {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
                 </button>
-              )}
+              </div>
+              <div className="flex items-center gap-2 sm:ml-auto">
+                <button onClick={exitSelectionMode} className="text-xs text-slate-500 dark:text-slate-400 hover:underline">
+                  Annuler
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={() => setConfirmDeleteSelected(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                  >
+                    <MdDelete className="w-3.5 h-3.5" /> Supprimer ({selectedIds.size})
+                  </button>
+                )}
+              </div>
             </div>
           )}
           <div className="overflow-x-auto">
