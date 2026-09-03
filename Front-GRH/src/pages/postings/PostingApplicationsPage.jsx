@@ -351,6 +351,7 @@ export const PostingApplicationsPage = () => {
               key={app.id}
               className="bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] rounded-2xl p-4 sm:p-5 hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors group"
             >
+              {/* Top row: rank + score + name + buttons */}
               <div className="flex items-start gap-4">
 
                 {/* Rank */}
@@ -363,9 +364,8 @@ export const PostingApplicationsPage = () => {
                 {/* Score circle */}
                 <ScoreBadge score={app.aiScore} />
 
-                {/* Main content */}
+                {/* Name + buttons */}
                 <div className="flex-1 min-w-0">
-                  {/* Name + status */}
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar
@@ -433,21 +433,21 @@ export const PostingApplicationsPage = () => {
                       </button>
                     </div>
                   </div>
-
-                  {/* AI summary */}
-                  {app.aiSummary && (
-                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {app.aiSummary}
-                    </p>
-                  )}
-
-                  {!app.aiSummary && app.status === 'NEW' && (
-                    <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">
-                      Pas encore évalué — lancez le filtre IA pour obtenir un score.
-                    </p>
-                  )}
                 </div>
               </div>
+
+              {/* AI summary — full width below */}
+              {app.aiSummary && (
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {app.aiSummary}
+                </p>
+              )}
+
+              {!app.aiSummary && app.status === 'NEW' && (
+                <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">
+                  Pas encore évalué — lancez le filtre IA pour obtenir un score.
+                </p>
+              )}
             </div>
           );
           })}
