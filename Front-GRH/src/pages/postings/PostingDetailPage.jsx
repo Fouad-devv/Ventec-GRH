@@ -814,20 +814,6 @@ export const PostingDetailPage = () => {
                 Importer
               </button>
 
-              {/* AI regenerate */}
-              <button
-                onClick={handleFicheGenerate}
-                disabled={ficheUploading || ficheGenerating}
-                title="Régénérer avec l'IA"
-                className="flex items-center gap-1.5 px-3 py-2 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 rounded-xl text-sm font-semibold hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {ficheGenerating ? (
-                  <div className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-500 rounded-full animate-spin" />
-                ) : (
-                  <MdAutoAwesome className="w-4 h-4" />
-                )}
-                Régénérer
-              </button>
 
               <input
                 ref={ficheReplaceRef}
