@@ -521,7 +521,7 @@
         "*"
       ],
       "webOrigins": [
-        "+"
+        "*"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -812,7 +812,7 @@
         "/admin/GRH-VENTEC/console/*"
       ],
       "webOrigins": [
-        "+"
+        "*"
       ],
       "notBefore": 0,
       "bearerOnly": false,
