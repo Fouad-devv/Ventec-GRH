@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: Dockerfile.keycloak
     container_name: GRH-Ventec-keycloak
-    command: start --import-realm
+    command: start --optimized --import-realm
     networks:
       - grh-network
     environment:
@@ -30,8 +30,8 @@ services:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /realms/GRH-VENTEC HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 15s
       timeout: 5s
-      retries: 24
-      start_period: 60s
+      retries: 60
+      start_period: 600s
 
   # ── FastAPI AI service ──────────────────────────────────────────
   ai-service:

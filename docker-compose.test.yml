@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: Dockerfile.keycloak
     container_name: GRH-Ventec-keycloak-test
-    command: start-dev --import-realm
+    command: start --optimized --import-realm
     networks:
       - grh-network-test
     environment:
