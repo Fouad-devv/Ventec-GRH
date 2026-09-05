@@ -93,10 +93,21 @@ public class ApplicationService {
         User updater = userRepository.findByKeycloakId(keycloakId).orElse(null);
         app.setUpdatedBy(updater);
 
-        // Clear convocation flag BEFORE saving so the returned response already reflects the reset
+        // When moving RH→TECH: complete old interview + clear convocation flag BEFORE saving
+        // so toResponse sees scheduledInterviewId=null and interviewNotifiedAt=null immediately
         boolean movingToNewInterviewPhase =
                 "INTERVIEW_TECH".equals(req.status()) && "INTERVIEW_RH".equals(previousStatus);
         if (movingToNewInterviewPhase) {
+            try {
+                interviewRepository.findByApplicationId(app.getId()).stream()
+                        .filter(i -> "SCHEDULED".equals(i.getStatus()))
+                        .forEach(i -> {
+                            i.setStatus("COMPLETED");
+                            interviewRepository.save(i);
+                        });
+            } catch (Exception e) {
+                log.warn("Failed to complete interview on phase transition for application {}: {}", id, e.getMessage());
+            }
             app.setInterviewNotifiedAt(null);
         }
 
@@ -131,20 +142,6 @@ public class ApplicationService {
         // Notify manager when candidate is shortlisted
         if ("SHORTLISTED".equals(req.status()) && !"SHORTLISTED".equals(previousStatus)) {
             notifyManagerShortlist(app);
-        }
-
-        // Complete the old RH interview when entering INTERVIEW_TECH phase
-        if (movingToNewInterviewPhase) {
-            try {
-                interviewRepository.findByApplicationId(app.getId()).stream()
-                        .filter(i -> "SCHEDULED".equals(i.getStatus()))
-                        .forEach(i -> {
-                            i.setStatus("COMPLETED");
-                            interviewRepository.save(i);
-                        });
-            } catch (Exception e) {
-                log.warn("Failed to complete interview on phase transition for application {}: {}", id, e.getMessage());
-            }
         }
 
         // Complete any scheduled interview when candidate is rejected

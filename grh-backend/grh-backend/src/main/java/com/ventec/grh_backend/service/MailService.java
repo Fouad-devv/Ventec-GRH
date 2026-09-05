@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -123,6 +124,13 @@ public class MailService {
     public void sendHtmlWithInlineAndAttachment(String to, String subject, String html,
                                                 String cid, byte[] imageBytes, String imageContentType,
                                                 byte[] attachmentBytes, String attachmentFilename) {
+        if (useBrevoApi()) {
+            String resolvedHtml = (logoUrl != null && !logoUrl.isBlank())
+                    ? html.replace("cid:" + cid, logoUrl)
+                    : html.replace("src=\"cid:" + cid + "\"", "src=\"\" style=\"display:none\"");
+            sendViaBrevoApiWithAttachment(to, subject, resolvedHtml, attachmentBytes, attachmentFilename);
+            return;
+        }
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             msg.setFrom(new InternetAddress(from));
@@ -179,6 +187,35 @@ public class MailService {
             log.info("Email sent via Brevo API to {} (status: {})", to, resp.getStatusCode());
         } catch (Exception e) {
             log.error("Failed to send email via Brevo API to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private void sendViaBrevoApiWithAttachment(String to, String subject, String html,
+                                               byte[] attachmentBytes, String attachmentFilename) {
+        try {
+            java.util.Map<String, Object> attachmentEntry = new java.util.HashMap<>();
+            attachmentEntry.put("content", Base64.getEncoder().encodeToString(attachmentBytes));
+            attachmentEntry.put("name", attachmentFilename);
+
+            java.util.Map<String, Object> body = new java.util.HashMap<>();
+            body.put("sender", Map.of("email", from, "name", "Ventec GRH"));
+            body.put("to", List.of(Map.of("email", to)));
+            body.put("subject", subject);
+            body.put("htmlContent", html);
+            body.put("attachment", List.of(attachmentEntry));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("api-key", brevoApiKey);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<String> resp = restTemplate.exchange(
+                "https://api.brevo.com/v3/smtp/email",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                String.class
+            );
+            log.info("Email with attachment sent via Brevo API to {} (status: {})", to, resp.getStatusCode());
+        } catch (Exception e) {
+            log.error("Failed to send email with attachment via Brevo API to {}: {}", to, e.getMessage());
         }
     }
 }
