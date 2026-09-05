@@ -92,6 +92,14 @@ public class ApplicationService {
         if (req.notes() != null) app.setNotes(req.notes());
         User updater = userRepository.findByKeycloakId(keycloakId).orElse(null);
         app.setUpdatedBy(updater);
+
+        // Clear convocation flag BEFORE saving so the returned response already reflects the reset
+        boolean movingToNewInterviewPhase =
+                "INTERVIEW_TECH".equals(req.status()) && "INTERVIEW_RH".equals(previousStatus);
+        if (movingToNewInterviewPhase) {
+            app.setInterviewNotifiedAt(null);
+        }
+
         ApplicationResponse saved = toResponse(applicationRepository.save(app));
 
         auditLogService.log("APPLICATION_STATUS_CHANGED", "APPLICATION", id.toString(),
@@ -125,9 +133,7 @@ public class ApplicationService {
             notifyManagerShortlist(app);
         }
 
-        // When moving from RH to Technical phase, complete the RH interview and reset convocation
-        boolean movingToNewInterviewPhase =
-                "INTERVIEW_TECH".equals(req.status()) && "INTERVIEW_RH".equals(previousStatus);
+        // Complete the old RH interview when entering INTERVIEW_TECH phase
         if (movingToNewInterviewPhase) {
             try {
                 interviewRepository.findByApplicationId(app.getId()).stream()
@@ -139,8 +145,6 @@ public class ApplicationService {
             } catch (Exception e) {
                 log.warn("Failed to complete interview on phase transition for application {}: {}", id, e.getMessage());
             }
-            app.setInterviewNotifiedAt(null);
-            applicationRepository.save(app);
         }
 
         // Complete any scheduled interview when candidate is rejected
@@ -402,7 +406,7 @@ public class ApplicationService {
             }
             Interview interview = interviewRepository.findByApplicationId(app.getId())
                     .stream()
-                    .filter(i -> !"CANCELLED".equals(i.getStatus()))
+                    .filter(i -> "SCHEDULED".equals(i.getStatus()))
                     .findFirst().orElse(null);
             if (interview == null) {
                 noInterview++;

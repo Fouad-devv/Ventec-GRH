@@ -392,8 +392,8 @@ export const PipelinePage = () => {
   const updateStatus = async (appId, status) => {
     setUpdatingId(appId);
     try {
-      await appApi.updateStatus(appId, { status });
-      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
+      const res = await appApi.updateStatus(appId, { status });
+      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, ...res.data } : a));
       showToast('Statut du candidat mis à jour');
     } catch (e) {
       console.error(e);
