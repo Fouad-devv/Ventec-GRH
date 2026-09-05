@@ -17,6 +17,7 @@ const ACTION_LABELS = {
   JOB_POSTING_UPDATED:           'Offre modifiée',
   JOB_POSTING_DELETED:           'Offre supprimée',
   JOB_POSTING_CLOSED:            'Offre clôturée',
+  JOB_POSTING_PUBLISHED:         'Offre republiée',
   JOB_POSTING_DUPLICATED:        'Offre dupliquée',
   FICHE_FONCTION_GENERATED:      'Fiche de fonction générée',
   INTERVIEW_SCHEDULED:           'Entretien planifié',
@@ -57,6 +58,7 @@ const ACTION_COLORS = {
   JOB_POSTING_UPDATED:          'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   JOB_POSTING_DELETED:          'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   JOB_POSTING_CLOSED:           'bg-slate-100 text-slate-700 dark:bg-slate-700/40 dark:text-slate-300',
+  JOB_POSTING_PUBLISHED:        'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
   JOB_POSTING_DUPLICATED:       'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
   FICHE_FONCTION_GENERATED:     'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300',
   INTERVIEW_SCHEDULED:          'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
@@ -91,6 +93,7 @@ function formatDetails(action, detailsJson) {
       case 'JOB_POSTING_UPDATED':
       case 'JOB_POSTING_DELETED':
       case 'JOB_POSTING_CLOSED':
+      case 'JOB_POSTING_PUBLISHED':
       case 'FICHE_FONCTION_GENERATED':
         return d.title || '—';
       case 'JOB_POSTING_DUPLICATED':
@@ -117,9 +120,8 @@ function formatDetails(action, detailsJson) {
 
 function formatDate(ts) {
   if (!ts) return '—';
-  return new Date(ts).toLocaleString('fr-FR', {
+  return new Date(ts).toLocaleDateString('fr-FR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
   });
 }
 
@@ -133,7 +135,6 @@ export function AuditPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading]     = useState(false);
   const [metaActions, setMetaActions] = useState([]);
-  const [metaUsers, setMetaUsers]   = useState([]);
 
   const [filters, setFilters] = useState({
     action: '', entityType: '', performedBy: '', from: '', to: '',
@@ -158,7 +159,6 @@ export function AuditPage() {
     api.getMeta()
       .then((r) => {
         setMetaActions(r.data.actions || []);
-        setMetaUsers(r.data.users || []);
       })
       .catch(() => {});
   }, []);
