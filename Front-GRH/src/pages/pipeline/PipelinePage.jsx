@@ -594,19 +594,13 @@ export const PipelinePage = () => {
                     </div>
                     {(app.status === 'INTERVIEW_RH' || app.status === 'INTERVIEW_TECH') && (
                       <div className="flex gap-1">
-                        {app.scheduledInterviewStatus === 'COMPLETED' ? (
-                          <span className="flex-1 flex items-center justify-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                            <MdCheckCircle className="w-3 h-3" /> Entretien terminé
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => setScheduleApp(app)}
-                            className={`flex-1 flex items-center justify-center gap-1 text-xs hover:underline ${app.scheduledInterviewId ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}
-                          >
-                            <MdCalendarMonth className="w-3 h-3" />
-                            {app.scheduledInterviewId ? 'Modifier' : 'Planifier'}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setScheduleApp(app)}
+                          className={`flex-1 flex items-center justify-center gap-1 text-xs hover:underline ${app.scheduledInterviewId ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}
+                        >
+                          <MdCalendarMonth className="w-3 h-3" />
+                          {app.scheduledInterviewId ? 'Modifier' : 'Planifier'}
+                        </button>
                         <button
                           onClick={() => setDetailApp(app)}
                           className="flex-1 flex items-center justify-center gap-1 text-xs text-violet-600 dark:text-violet-400 hover:underline"

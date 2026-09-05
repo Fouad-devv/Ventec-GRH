@@ -125,10 +125,9 @@ public class ApplicationService {
             notifyManagerShortlist(app);
         }
 
-        // When moving between interview phases, complete the previous interview and reset convocation
+        // When moving from RH to Technical phase, complete the RH interview and reset convocation
         boolean movingToNewInterviewPhase =
-                ("INTERVIEW_TECH".equals(req.status()) && "INTERVIEW_RH".equals(previousStatus)) ||
-                ("INTERVIEW_RH".equals(req.status()) && "INTERVIEW_TECH".equals(previousStatus));
+                "INTERVIEW_TECH".equals(req.status()) && "INTERVIEW_RH".equals(previousStatus);
         if (movingToNewInterviewPhase) {
             try {
                 interviewRepository.findByApplicationId(app.getId()).stream()
@@ -447,7 +446,7 @@ public class ApplicationService {
     public ApplicationResponse toResponse(Application a) {
         Interview activeInterview = interviewRepository.findByApplicationId(a.getId())
                 .stream()
-                .filter(i -> !"CANCELLED".equals(i.getStatus()))
+                .filter(i -> "SCHEDULED".equals(i.getStatus()))
                 .findFirst()
                 .orElse(null);
         return new ApplicationResponse(
