@@ -29,6 +29,17 @@ const TYPE_MAP = {
   ON_SITE: { label: 'Présentiel', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
 };
 
+const APP_STATUS_MAP = {
+  INTERVIEW_RH:   { label: 'Entretien RH',        cls: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' },
+  INTERVIEW_TECH: { label: 'Entretien Technique',  cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
+};
+
+const InterviewKindBadge = ({ applicationStatus }) => {
+  const entry = APP_STATUS_MAP[applicationStatus];
+  if (!entry) return null;
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${entry.cls}`}>{entry.label}</span>;
+};
+
 const TypeBadge = ({ type }) => {
   const { label, cls } = TYPE_MAP[type] || { label: type || '—', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' };
   return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>{label}</span>;
@@ -412,7 +423,7 @@ export const InterviewsPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
-                  {['Date & Heure', 'Candidat', "Offre d'emploi", 'Format', 'Durée', 'Responsable', 'Statut'].map((h) => (
+                  {['Date & Heure', 'Candidat', "Offre d'emploi", 'Type', 'Format', 'Durée', 'Responsable', 'Statut'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
@@ -439,6 +450,9 @@ export const InterviewsPage = () => {
                     </td>
                     <td className="px-4 py-3 max-w-[180px]">
                       <span className="text-slate-500 dark:text-slate-400 truncate block">{iv.jobPostingTitle || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <InterviewKindBadge applicationStatus={iv.applicationStatus} />
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <TypeBadge type={iv.type} />

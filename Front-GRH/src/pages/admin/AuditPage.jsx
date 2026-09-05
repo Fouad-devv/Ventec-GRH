@@ -33,16 +33,19 @@ const ENTITY_LABELS = {
 };
 
 const STATUS_FR = {
-  NEW:         'Nouveau',
-  SHORTLISTED: 'Présélectionné',
-  HIRED:       'Recruté',
-  REJECTED:    'Refusé',
-  SCHEDULED:   'Planifié',
-  COMPLETED:   'Terminé',
-  CANCELLED:   'Annulé',
-  PUBLISHED:   'Publié',
-  CLOSED:      'Clôturé',
-  DRAFT:       'Brouillon',
+  NEW:            'Nouveau',
+  SHORTLISTED:    'Présélectionné',
+  HIRED:          'Recruté',
+  REJECTED:       'Refusé',
+  SCHEDULED:      'Planifié',
+  COMPLETED:      'Terminé',
+  CANCELLED:      'Annulé',
+  PUBLISHED:      'Publié',
+  CLOSED:         'Clôturé',
+  DRAFT:          'Brouillon',
+  SCREENING:      'Présélection',
+  INTERVIEW_RH:   'Entretien RH',
+  INTERVIEW_TECH: 'Entretien Technique',
 };
 
 /* ── Color maps ───────────────────────────────────────────── */

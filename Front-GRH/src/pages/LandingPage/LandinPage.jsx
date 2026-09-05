@@ -74,12 +74,13 @@ export const LandingPage = () => {
     : n >= 40 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
     : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300';
 
-  const statusLabel = { PENDING: 'En attente', REVIEWING: 'En cours', SHORTLISTED: 'Sélectionné', INTERVIEW: 'Entretien' };
+  const statusLabel = { PENDING: 'En attente', REVIEWING: 'En cours', SHORTLISTED: 'Sélectionné', INTERVIEW_RH: 'Entretien RH', INTERVIEW_TECH: 'Entretien Technique' };
   const statusColor = {
-    PENDING:     'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
-    REVIEWING:   'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
-    SHORTLISTED: 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300',
-    INTERVIEW:   'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300',
+    PENDING:        'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
+    REVIEWING:      'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
+    SHORTLISTED:    'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300',
+    INTERVIEW_RH:   'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
+    INTERVIEW_TECH: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300',
   };
 
   return (

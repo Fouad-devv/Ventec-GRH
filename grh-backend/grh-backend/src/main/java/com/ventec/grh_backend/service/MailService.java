@@ -55,11 +55,6 @@ public class MailService {
         }
     }
 
-    /**
-     * Sends an HTML email with one inline image using a proper multipart/related structure.
-     * The HTML must reference the image via <img src="cid:{cid}">.
-     * multipart/related ensures the image is truly inline — not shown as an attachment.
-     */
     @Async
     public void sendHtmlWithInline(String to, String subject, String html,
                                    String cid, byte[] imageBytes, String contentType) {
@@ -69,8 +64,6 @@ public class MailService {
             msg.setRecipient(RecipientType.TO, new InternetAddress(to));
             msg.setSubject(subject, "UTF-8");
 
-            // multipart/related keeps HTML and its inline images together as one unit —
-            // no separate attachment, correct rendering in Gmail and Outlook
             MimeMultipart related = new MimeMultipart("related");
 
             MimeBodyPart htmlPart = new MimeBodyPart();
@@ -87,6 +80,46 @@ public class MailService {
             mailSender.send(msg);
         } catch (Exception e) {
             log.error("Failed to send HTML email with inline image to {}: {}", to, e.getMessage());
+        }
+    }
+
+    @Async
+    public void sendHtmlWithInlineAndAttachment(String to, String subject, String html,
+                                                String cid, byte[] imageBytes, String imageContentType,
+                                                byte[] attachmentBytes, String attachmentFilename) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            msg.setFrom(new InternetAddress(from));
+            msg.setRecipient(RecipientType.TO, new InternetAddress(to));
+            msg.setSubject(subject, "UTF-8");
+
+            MimeMultipart mixed = new MimeMultipart("mixed");
+
+            MimeMultipart related = new MimeMultipart("related");
+            MimeBodyPart htmlPart = new MimeBodyPart();
+            htmlPart.setContent(html, "text/html; charset=UTF-8");
+            related.addBodyPart(htmlPart);
+
+            MimeBodyPart imgPart = new MimeBodyPart();
+            imgPart.setDataHandler(new DataHandler(new ByteArrayDataSource(imageBytes, imageContentType)));
+            imgPart.setContentID("<" + cid + ">");
+            imgPart.setHeader("Content-Disposition", "inline; filename=\"logo.jpeg\"");
+            related.addBodyPart(imgPart);
+
+            MimeBodyPart relatedWrapper = new MimeBodyPart();
+            relatedWrapper.setContent(related);
+            mixed.addBodyPart(relatedWrapper);
+
+            MimeBodyPart attachPart = new MimeBodyPart();
+            attachPart.setDataHandler(new DataHandler(new ByteArrayDataSource(attachmentBytes, "application/pdf")));
+            attachPart.setFileName(attachmentFilename);
+            attachPart.setDisposition(MimeBodyPart.ATTACHMENT);
+            mixed.addBodyPart(attachPart);
+
+            msg.setContent(mixed);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            log.error("Failed to send HTML email with attachment to {}: {}", to, e.getMessage());
         }
     }
 }

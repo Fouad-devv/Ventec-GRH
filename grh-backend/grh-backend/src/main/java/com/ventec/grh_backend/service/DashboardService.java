@@ -50,7 +50,8 @@ public class DashboardService {
                 posting != null ? posting.getTitle() : null,
                 i.getScheduledAt(),
                 i.getDurationMinutes(),
-                i.getType()
+                i.getType(),
+                app != null ? app.getStatus() : null
         );
     }
 
@@ -95,7 +96,7 @@ public class DashboardService {
                 applicationRepository.count(),
                 applicationRepository.countByStatus("NEW") + applicationRepository.countByStatus("SCREENING"),
                 applicationRepository.countByStatus("SHORTLISTED"),
-                applicationRepository.countByStatus("INTERVIEW"),
+                applicationRepository.countByStatus("INTERVIEW_RH") + applicationRepository.countByStatus("INTERVIEW_TECH"),
                 applicationRepository.countByStatus("HIRED"),
                 applicationRepository.countByStatus("REJECTED"),
                 interviewsThisWeek,
