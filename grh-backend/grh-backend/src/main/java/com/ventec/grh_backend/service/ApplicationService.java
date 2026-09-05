@@ -125,6 +125,25 @@ public class ApplicationService {
             notifyManagerShortlist(app);
         }
 
+        // When moving between interview phases, complete the previous interview and reset convocation
+        boolean movingToNewInterviewPhase =
+                ("INTERVIEW_TECH".equals(req.status()) && "INTERVIEW_RH".equals(previousStatus)) ||
+                ("INTERVIEW_RH".equals(req.status()) && "INTERVIEW_TECH".equals(previousStatus));
+        if (movingToNewInterviewPhase) {
+            try {
+                interviewRepository.findByApplicationId(app.getId()).stream()
+                        .filter(i -> "SCHEDULED".equals(i.getStatus()))
+                        .forEach(i -> {
+                            i.setStatus("COMPLETED");
+                            interviewRepository.save(i);
+                        });
+            } catch (Exception e) {
+                log.warn("Failed to complete interview on phase transition for application {}: {}", id, e.getMessage());
+            }
+            app.setInterviewNotifiedAt(null);
+            applicationRepository.save(app);
+        }
+
         // Complete any scheduled interview when candidate is rejected
         if ("REJECTED".equals(req.status()) && !"REJECTED".equals(previousStatus)) {
             try {
