@@ -723,7 +723,7 @@ export const PostingDetailPage = () => {
         </div>
 
         <div className="flex gap-2 flex-wrap items-start">
-          {posting.status === 'DRAFT' && (
+          {(posting.status === 'DRAFT' || posting.status === 'CLOSED') && (
             <button onClick={handlePublish}
               className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
               <MdPlayArrow className="w-4 h-4" /> Publier
