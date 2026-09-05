@@ -367,8 +367,10 @@ export const DashboardPage = () => {
                   {stats.upcomingInterviews.map((iv) => {
                     const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
                     const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
-                    const kindLabel = iv.applicationStatus === 'INTERVIEW_TECH' ? 'Technique' : iv.applicationStatus === 'INTERVIEW_RH' ? 'RH' : null;
-                    const kindCls   = iv.applicationStatus === 'INTERVIEW_TECH'
+                    const isTechKind = !!(iv.responsableEmail && iv.responsableEmail.trim());
+                    const hasKind   = iv.applicationStatus === 'INTERVIEW_RH' || iv.applicationStatus === 'INTERVIEW_TECH';
+                    const kindLabel = hasKind ? (isTechKind ? 'Technique' : 'RH') : null;
+                    const kindCls   = isTechKind
                       ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
                       : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300';
                     return (
