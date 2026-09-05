@@ -99,7 +99,10 @@ public class PostingService {
         JobPosting posting = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Job posting not found: " + id));
         posting.setStatus("PUBLISHED");
-        return toResponse(jobPostingRepository.save(posting));
+        JobPosting saved = jobPostingRepository.save(posting);
+        auditLogService.log("JOB_POSTING_PUBLISHED", "JOB_POSTING", id.toString(),
+                java.util.Map.of("title", saved.getTitle() != null ? saved.getTitle() : ""));
+        return toResponse(saved);
     }
 
     public JobPostingResponse closePosting(UUID id) {
