@@ -270,7 +270,7 @@ public class InterviewService {
         };
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy 'à' HH'h'mm", java.util.Locale.FRENCH);
         String dateStr = interview.getScheduledAt() != null
-                ? interview.getScheduledAt().atZoneSameInstant(ZoneOffset.ofHours(timezoneOffsetHours)).format(fmt)
+                ? interview.getScheduledAt().atZoneSameInstant(ZoneId.systemDefault()).format(fmt)
                 : "—";
         String location = interview.getLocationOrLink() != null && !interview.getLocationOrLink().isBlank()
                 ? interview.getLocationOrLink() : "À préciser";
