@@ -412,7 +412,8 @@ public class ApplicationService {
             postingTitle = app.getJobPosting().getTitle();
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
-            interviewService.sendConvocationEmail(candidate.getEmail(), firstName, lastName, postingTitle, interview);
+            interviewService.sendConvocationEmail(candidate.getEmail(), firstName, lastName, postingTitle, interview,
+                    "INTERVIEW_RH".equals(app.getStatus()));
             if ("INTERVIEW_TECH".equals(app.getStatus())
                     && interview.getResponsableEmail() != null && !interview.getResponsableEmail().isBlank()) {
                 String responsableNom = interview.getResponsableNom() != null ? interview.getResponsableNom() : "Responsable";

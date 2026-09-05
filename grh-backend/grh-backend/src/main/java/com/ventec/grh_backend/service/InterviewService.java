@@ -53,13 +53,19 @@ public class InterviewService {
     }
 
     private byte[] logoBytes;
+    private byte[] formulaireBytes;
 
     @PostConstruct
-    void initLogo() {
+    void initStaticResources() {
         try {
             logoBytes = new ClassPathResource("images/ventec-logo.jpeg").getInputStream().readAllBytes();
         } catch (Exception e) {
             log.warn("Could not load Ventec logo: {}", e.getMessage());
+        }
+        try {
+            formulaireBytes = new ClassPathResource("documents/formulaire-entretien.pdf").getInputStream().readAllBytes();
+        } catch (Exception e) {
+            log.warn("Could not load formulaire PDF: {}", e.getMessage());
         }
     }
 
@@ -210,15 +216,18 @@ public class InterviewService {
     }
 
     public void sendConvocationEmail(String candidateEmail, String firstName, String lastName,
-                                     String postingTitle, Interview interview) {
+                                     String postingTitle, Interview interview, boolean attachFormulaire) {
         String html = buildInterviewEmailHtml(firstName, lastName, postingTitle, interview);
-        if (logoBytes != null) {
-            mailService.sendHtmlWithInline(candidateEmail,
-                    "Convocation à un entretien — " + postingTitle,
-                    html, "ventec-logo", logoBytes, "image/jpeg");
+        String subject = "Convocation à un entretien — " + postingTitle;
+        if (attachFormulaire && formulaireBytes != null) {
+            mailService.sendHtmlWithInlineAndAttachment(candidateEmail, subject,
+                    html, "ventec-logo",
+                    logoBytes != null ? logoBytes : new byte[0], "image/jpeg",
+                    formulaireBytes, "Formulaire-Entretien-Ventec.pdf");
+        } else if (logoBytes != null) {
+            mailService.sendHtmlWithInline(candidateEmail, subject, html, "ventec-logo", logoBytes, "image/jpeg");
         } else {
-            mailService.sendHtml(candidateEmail,
-                    "Convocation à un entretien — " + postingTitle, html);
+            mailService.sendHtml(candidateEmail, subject, html);
         }
     }
 
