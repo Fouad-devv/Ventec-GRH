@@ -11,17 +11,19 @@ import { interviewsApi } from '../../api/interviews';
 import { usePageBack } from '../../context/HeaderContext';
 
 const STATUS_STYLES = {
-  PENDING:     'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-  REVIEWING:   'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  SHORTLISTED: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-  INTERVIEW:   'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300',
-  HIRED:       'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-  REJECTED:    'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+  PENDING:        'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  REVIEWING:      'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  SHORTLISTED:    'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  INTERVIEW_RH:   'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
+  INTERVIEW_TECH: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
+  HIRED:          'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  REJECTED:       'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
 };
 
 const STATUS_LABELS = {
   PENDING: 'En attente', REVIEWING: 'En cours', SHORTLISTED: 'Sélectionné',
-  INTERVIEW: 'Entretien', HIRED: 'Embauché', REJECTED: 'Refusé',
+  INTERVIEW_RH: 'Entretien RH', INTERVIEW_TECH: 'Entretien Technique',
+  HIRED: 'Embauché', REJECTED: 'Refusé',
 };
 
 const ScoreBadge = ({ score }) => {

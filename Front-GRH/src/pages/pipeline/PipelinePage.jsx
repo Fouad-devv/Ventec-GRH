@@ -24,7 +24,7 @@ const ScoreBadge = ({ score }) => {
   );
 };
 
-const STATUSES = ['NEW', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'HIRED', 'REJECTED'];
+const STATUSES = ['SCREENING', 'SHORTLISTED', 'INTERVIEW_RH', 'INTERVIEW_TECH', 'HIRED', 'REJECTED'];
 
 const VENTEC_OFFICES = [
   { label: 'Siège Casablanca', mapsUrl: 'https://maps.google.com/?cid=9982332426923818859' },
@@ -55,7 +55,8 @@ const toISOWithLocalOffset = (localStr) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
 };
 
-const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) => {
+const ScheduleInterviewModal = ({ application, appStatus, onClose, onScheduled, axios }) => {
+  const isTech = appStatus === 'INTERVIEW_TECH';
   const api = interviewsApi(axios);
   const { showToast } = useToast();
   const interviewId = application.scheduledInterviewId ?? null;
@@ -141,13 +142,15 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled, axios }) =>
               className={fieldCls}
             />
           )}
-          <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Responsable</p>
-            <input value={form.responsableNom} onChange={set('responsableNom')} placeholder="Nom complet du responsable"
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
-            <input type="email" value={form.responsableEmail} onChange={set('responsableEmail')} placeholder="Email du responsable"
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
-          </div>
+          {isTech && (
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+              <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Responsable technique <span className="text-red-500">*</span></p>
+              <input required value={form.responsableNom} onChange={set('responsableNom')} placeholder="Nom complet du responsable"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              <input required type="email" value={form.responsableEmail} onChange={set('responsableEmail')} placeholder="Email du responsable"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">Annuler</button>
@@ -484,8 +487,8 @@ export const PipelinePage = () => {
                 <StatusBadge status={status} />
                 <span className="text-xs text-slate-400">{byStatus(status).length}</span>
               </div>
-              {status === 'INTERVIEW' && byStatus('INTERVIEW').length > 0 && (() => {
-                const pendingInterview = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
+              {(status === 'INTERVIEW_RH' || status === 'INTERVIEW_TECH') && byStatus(status).length > 0 && (() => {
+                const pendingInterview = byStatus(status).filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
                 const withEmail = pendingInterview.filter((a) => a.candidateEmail).length;
                 const noEmail = pendingInterview.length - withEmail;
                 const allNotified = pendingInterview.length === 0;
@@ -534,7 +537,7 @@ export const PipelinePage = () => {
                 <div key={app.id} className={`bg-white dark:bg-slate-900 rounded-lg border p-3 text-sm shadow-sm ${
                   !app.candidateEmail
                     ? 'border-red-300 dark:border-red-700'
-                    : app.status === 'INTERVIEW' && !app.scheduledInterviewId
+                    : (app.status === 'INTERVIEW_RH' || app.status === 'INTERVIEW_TECH') && !app.scheduledInterviewId
                     ? 'border-amber-300 dark:border-amber-700'
                     : 'border-slate-200 dark:border-slate-800'
                 }`}>
@@ -552,12 +555,12 @@ export const PipelinePage = () => {
                       <MdWarning className="w-2.5 h-2.5" /> Candidat sans email
                     </span>
                   )}
-                  {app.status === 'INTERVIEW' && !app.scheduledInterviewId && (
+                  {(app.status === 'INTERVIEW_RH' || app.status === 'INTERVIEW_TECH') && !app.scheduledInterviewId && (
                     <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                       <MdWarning className="w-2.5 h-2.5" /> Non planifié
                     </span>
                   )}
-                  {app.status === 'INTERVIEW' && app.interviewNotifiedAt && (
+                  {(app.status === 'INTERVIEW_RH' || app.status === 'INTERVIEW_TECH') && app.interviewNotifiedAt && (
                     <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
                       <MdCheckCircle className="w-2.5 h-2.5" /> Convoqué
                     </span>
@@ -573,10 +576,10 @@ export const PipelinePage = () => {
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s === 'NEW' ? 'Nouveau'
-                            : s === 'SCREENING' ? 'Présélection'
+                          {s === 'SCREENING' ? 'Présélection'
                             : s === 'SHORTLISTED' ? 'Sélectionné'
-                            : s === 'INTERVIEW' ? 'Entretien'
+                            : s === 'INTERVIEW_RH' ? 'Entretien RH'
+                            : s === 'INTERVIEW_TECH' ? 'Entretien Technique'
                             : s === 'HIRED' ? 'Embauché'
                             : s === 'REJECTED' ? 'Rejeté'
                             : s}
@@ -589,7 +592,7 @@ export const PipelinePage = () => {
                       </div>
                     )}
                     </div>
-                    {app.status === 'INTERVIEW' && (
+                    {(app.status === 'INTERVIEW_RH' || app.status === 'INTERVIEW_TECH') && (
                       <div className="flex gap-1">
                         {app.scheduledInterviewStatus === 'COMPLETED' ? (
                           <span className="flex-1 flex items-center justify-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
@@ -645,6 +648,7 @@ export const PipelinePage = () => {
       {scheduleApp && (
         <ScheduleInterviewModal
           application={scheduleApp}
+          appStatus={scheduleApp.status}
           axios={axios}
           onClose={() => setScheduleApp(null)}
           onScheduled={() => { setScheduleApp(null); loadApplications(); }}
@@ -661,7 +665,7 @@ export const PipelinePage = () => {
 
       {/* Interview convocation confirmation modal */}
       {showInterviewConfirm && (() => {
-        const pendingInterview = byStatus('INTERVIEW').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
+        const pendingInterview = [...byStatus('INTERVIEW_RH'), ...byStatus('INTERVIEW_TECH')].filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
         const withEmail = pendingInterview.filter((a) => a.candidateEmail).length;
         const noEmailCount = pendingInterview.length - withEmail;
         return (

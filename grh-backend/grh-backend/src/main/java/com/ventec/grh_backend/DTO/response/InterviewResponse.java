@@ -20,5 +20,6 @@ public record InterviewResponse(
         String candidateFirstName,
         String candidateLastName,
         String jobPostingTitle,
-        UUID jobPostingId
+        UUID jobPostingId,
+        String applicationStatus
 ) {}

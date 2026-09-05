@@ -367,6 +367,10 @@ export const DashboardPage = () => {
                   {stats.upcomingInterviews.map((iv) => {
                     const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
                     const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
+                    const kindLabel = iv.applicationStatus === 'INTERVIEW_TECH' ? 'Technique' : iv.applicationStatus === 'INTERVIEW_RH' ? 'RH' : null;
+                    const kindCls   = iv.applicationStatus === 'INTERVIEW_TECH'
+                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
+                      : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300';
                     return (
                       <button
                         key={iv.interviewId}
@@ -377,9 +381,16 @@ export const DashboardPage = () => {
                           {TYPE_ICONS[iv.type] ?? '📅'}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                            {iv.candidateFirstName} {iv.candidateLastName}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                              {iv.candidateFirstName} {iv.candidateLastName}
+                            </p>
+                            {kindLabel && (
+                              <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${kindCls}`}>
+                                {kindLabel}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{iv.jobPostingTitle}</p>
                         </div>
                         <div className="text-right shrink-0">

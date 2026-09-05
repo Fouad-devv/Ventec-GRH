@@ -394,6 +394,12 @@ public class ApplicationService {
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
             interviewService.sendConvocationEmail(candidate.getEmail(), firstName, lastName, postingTitle, interview);
+            if ("INTERVIEW_TECH".equals(app.getStatus())
+                    && interview.getResponsableEmail() != null && !interview.getResponsableEmail().isBlank()) {
+                String responsableNom = interview.getResponsableNom() != null ? interview.getResponsableNom() : "Responsable";
+                interviewService.sendResponsableEmail(interview.getResponsableEmail(), responsableNom,
+                        firstName, lastName, postingTitle, interview, candidate.getCvPath());
+            }
             app.setInterviewNotifiedAt(java.time.OffsetDateTime.now());
             applicationRepository.save(app);
             sent++;
