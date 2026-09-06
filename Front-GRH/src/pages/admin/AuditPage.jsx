@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MdSearch, MdFilterList, MdClearAll, MdRefresh } from 'react-icons/md';
 import useAxiosPrivate from '../../api/useAxiosPrivate';
 import { auditApi } from '../../api/audit';
@@ -128,10 +129,32 @@ function formatDate(ts) {
   });
 }
 
+function getNavLink(log) {
+  const { entityType, entityId, details } = log;
+  switch (entityType) {
+    case 'CANDIDATE':
+      return entityId ? `/app/candidates/${entityId}` : null;
+    case 'JOB_POSTING':
+      return entityId ? `/app/postings/${entityId}` : null;
+    case 'APPLICATION': {
+      try {
+        const d = JSON.parse(details || '{}');
+        if (d.jobPostingId) return `/app/postings/${d.jobPostingId}/applications`;
+      } catch { /* ignore */ }
+      return '/app/pipeline';
+    }
+    case 'INTERVIEW':
+      return '/app/interviews';
+    default:
+      return null;
+  }
+}
+
 /* ── Main page ────────────────────────────────────────────── */
 export function AuditPage() {
-  const axios = useAxiosPrivate();
-  const api   = auditApi(axios);
+  const axios    = useAxiosPrivate();
+  const api      = auditApi(axios);
+  const navigate = useNavigate();
 
   const [logs, setLogs]           = useState([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -319,10 +342,13 @@ export function AuditPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {logs.map((log) => (
+                {logs.map((log) => {
+                  const navLink = getNavLink(log);
+                  return (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-700/20 transition-colors"
+                    onClick={() => navLink && navigate(navLink)}
+                    className={`hover:bg-slate-50/60 dark:hover:bg-slate-700/20 transition-colors ${navLink ? 'cursor-pointer' : ''}`}
                   >
                     {/* Timestamp */}
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">
@@ -346,7 +372,7 @@ export function AuditPage() {
                     </td>
 
                     {/* Details */}
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-xs truncate">
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-sm">
                       {formatDetails(log.action, log.details)}
                     </td>
 
@@ -371,7 +397,8 @@ export function AuditPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
