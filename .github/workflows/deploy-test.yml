@@ -31,7 +31,6 @@ jobs:
           KEYCLOAK_REALM:           ${{ secrets.KEYCLOAK_REALM }}
           KEYCLOAK_CLIENT_ID:       ${{ secrets.KEYCLOAK_CLIENT_ID }}
           CORS_ALLOWED_ORIGINS:     ${{ secrets.CORS_ALLOWED_ORIGINS }}
-          APP_BASE_URL:             ${{ secrets.APP_BASE_URL }}
           SMTP_HOST:                ${{ secrets.SMTP_HOST }}
           SMTP_PORT:                ${{ secrets.SMTP_PORT }}
           SMTP_USER:                ${{ secrets.SMTP_USER }}
@@ -86,7 +85,6 @@ jobs:
           KEYCLOAK_REALM=$KEYCLOAK_REALM
           KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID
           CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
-          APP_BASE_URL=$APP_BASE_URL
           SMTP_HOST=$SMTP_HOST
           SMTP_PORT=$SMTP_PORT
           SMTP_USER=$SMTP_USER
