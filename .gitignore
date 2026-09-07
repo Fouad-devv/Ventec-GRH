@@ -3,6 +3,7 @@
 .env.*
 **/.env
 **/.env.*
+!.env.example
 
 # TLS certificates — generate locally with nginx/generate-self-signed.sh
 nginx/certs/**/*.pem
