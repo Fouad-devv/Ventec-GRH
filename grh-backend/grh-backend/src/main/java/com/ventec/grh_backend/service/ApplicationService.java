@@ -396,11 +396,7 @@ public class ApplicationService {
         List<String> noEmailCandidates = new ArrayList<>();
         String postingTitle = null;
         for (Application app : toNotify) {
-            var candidate = app.getCandidate();
-            if (candidate.getEmail() == null || candidate.getEmail().isBlank()) {
-                noEmailCandidates.add(candidate.getFirstName() + " " + candidate.getLastName());
-                continue;
-            }
+            if (!"INTERVIEW_TECH".equals(app.getStatus())) continue;
             Interview interview = interviewRepository.findByApplicationId(app.getId())
                     .stream()
                     .filter(i -> "SCHEDULED".equals(i.getStatus()))
@@ -410,19 +406,19 @@ public class ApplicationService {
                 continue;
             }
             postingTitle = app.getJobPosting().getTitle();
+            var candidate = app.getCandidate();
             String firstName = candidate.getFirstName() != null ? candidate.getFirstName() : "";
             String lastName  = candidate.getLastName()  != null ? candidate.getLastName()  : "";
-            interviewService.sendConvocationEmail(candidate.getEmail(), firstName, lastName, postingTitle, interview,
-                    "INTERVIEW_RH".equals(app.getStatus()));
-            if ("INTERVIEW_TECH".equals(app.getStatus())
-                    && interview.getResponsableEmail() != null && !interview.getResponsableEmail().isBlank()) {
+            if (interview.getResponsableEmail() != null && !interview.getResponsableEmail().isBlank()) {
                 String responsableNom = interview.getResponsableNom() != null ? interview.getResponsableNom() : "Responsable";
                 interviewService.sendResponsableEmail(interview.getResponsableEmail(), responsableNom,
                         firstName, lastName, postingTitle, interview, candidate.getCvPath());
+                app.setInterviewNotifiedAt(java.time.OffsetDateTime.now());
+                applicationRepository.save(app);
+                sent++;
+            } else {
+                noEmailCandidates.add(firstName + " " + lastName);
             }
-            app.setInterviewNotifiedAt(java.time.OffsetDateTime.now());
-            applicationRepository.save(app);
-            sent++;
         }
         if (sent > 0) {
             auditLogService.log("INTERVIEW_NOTIFICATIONS_SENT", "JOB_POSTING", jobPostingId.toString(),

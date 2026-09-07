@@ -445,7 +445,7 @@ export const PipelinePage = () => {
       setEmailResult({ sent, noInterview, noEmail: noEmail || [], type: 'interview' });
       setShowInterviewConfirm(false);
       loadApplications();
-      showToast(`${sent} convocation${sent > 1 ? 's' : ''} envoyée${sent > 1 ? 's' : ''}`);
+      showToast(`${sent} responsable${sent > 1 ? 's' : ''} notifié${sent > 1 ? 's' : ''}`);
     } catch (e) {
       console.error(e);
       showToast("Erreur lors de l'envoi des convocations", 'error');
@@ -487,26 +487,23 @@ export const PipelinePage = () => {
                 <StatusBadge status={status} />
                 <span className="text-xs text-slate-400">{byStatus(status).length}</span>
               </div>
-              {(status === 'INTERVIEW_RH' || status === 'INTERVIEW_TECH') && byStatus(status).length > 0 && (() => {
+              {status === 'INTERVIEW_TECH' && byStatus(status).length > 0 && (() => {
                 const pendingInterview = byStatus(status).filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
-                const withEmail = pendingInterview.filter((a) => a.candidateEmail).length;
-                const noEmail = pendingInterview.length - withEmail;
-                const allNotified = pendingInterview.length === 0;
+                const pending = pendingInterview.length;
+                const allNotified = pending === 0;
                 return (
                   <button
                     onClick={() => { setEmailResult(null); setShowInterviewConfirm(true); }}
-                    disabled={withEmail === 0}
+                    disabled={allNotified}
                     title={
                       allNotified
-                        ? 'Tous les entretiens planifiés ont déjà été convoqués'
-                        : withEmail === 0
-                        ? `${noEmail} candidat(s) sans email — impossible d'envoyer des convocations`
-                        : `Envoyer la convocation à ${withEmail} candidat(s)`
+                        ? 'Tous les responsables ont déjà été notifiés'
+                        : `Notifier le responsable pour ${pending} entretien(s) technique(s)`
                     }
                     className="flex items-center justify-center gap-1 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-950 border border-cyan-200 dark:border-cyan-900"
                   >
                     <MdMail className="w-3.5 h-3.5 shrink-0" />
-                    {allNotified ? 'Tous convoqués' : withEmail > 0 ? `Convoquer (${withEmail})` : 'Aucun email disponible'}
+                    {allNotified ? 'Responsables notifiés' : `Notifier responsable (${pending})`}
                   </button>
                 );
               })()}
@@ -560,9 +557,9 @@ export const PipelinePage = () => {
                       <MdWarning className="w-2.5 h-2.5" /> Non planifié
                     </span>
                   )}
-                  {(app.status === 'INTERVIEW_RH' || app.status === 'INTERVIEW_TECH') && app.interviewNotifiedAt && (
+                  {app.status === 'INTERVIEW_TECH' && app.interviewNotifiedAt && (
                     <span className="inline-flex items-center gap-0.5 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                      <MdCheckCircle className="w-2.5 h-2.5" /> Convoqué
+                      <MdCheckCircle className="w-2.5 h-2.5" /> Responsable notifié
                     </span>
                   )}
                   <div className="mt-2 space-y-1">
@@ -657,11 +654,10 @@ export const PipelinePage = () => {
         />
       )}
 
-      {/* Interview convocation confirmation modal */}
+      {/* Responsable notification confirmation modal */}
       {showInterviewConfirm && (() => {
-        const pendingInterview = [...byStatus('INTERVIEW_RH'), ...byStatus('INTERVIEW_TECH')].filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
-        const withEmail = pendingInterview.filter((a) => a.candidateEmail).length;
-        const noEmailCount = pendingInterview.length - withEmail;
+        const pendingInterview = byStatus('INTERVIEW_TECH').filter((a) => a.scheduledInterviewId && !a.interviewNotifiedAt);
+        const pending = pendingInterview.length;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm mx-4 shadow-xl p-6">
@@ -670,17 +666,12 @@ export const PipelinePage = () => {
                   <MdMail className="w-5 h-5 text-cyan-600" />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Envoyer les convocations</h2>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Notifier le responsable technique</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">{withEmail} candidat{withEmail !== 1 ? 's' : ''}</span> recevront la convocation à leur entretien planifié.
-                    Les candidats sans entretien planifié ou déjà convoqués seront ignorés.
+                    Le responsable technique sera informé par email pour
+                    <span className="font-semibold text-slate-700 dark:text-slate-200"> {pending} entretien{pending !== 1 ? 's' : ''}</span> planifié{pending !== 1 ? 's' : ''}.
+                    Les entretiens sans responsable configuré seront ignorés.
                   </p>
-                  {noEmailCount > 0 && (
-                    <p className="flex items-center gap-1 mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                      <MdWarning className="w-3.5 h-3.5 shrink-0" />
-                      {noEmailCount} candidat{noEmailCount !== 1 ? 's' : ''} sans email {noEmailCount !== 1 ? 'seront ignorés' : 'sera ignoré'}.
-                    </p>
-                  )}
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
@@ -770,7 +761,7 @@ export const PipelinePage = () => {
               <MdCheckCircle className="w-5 h-5 shrink-0" />
               <span className="flex-1">
                 {emailResult.type === 'interview'
-                  ? `${emailResult.sent} convocation${emailResult.sent !== 1 ? 's' : ''} envoyée${emailResult.sent !== 1 ? 's' : ''} avec succès.`
+                  ? `${emailResult.sent} responsable${emailResult.sent !== 1 ? 's' : ''} notifié${emailResult.sent !== 1 ? 's' : ''} avec succès.`
                   : `${emailResult.sent} email${emailResult.sent !== 1 ? 's' : ''} de refus envoyé${emailResult.sent !== 1 ? 's' : ''} avec succès.`}
               </span>
               {!emailResult.noEmail?.length && (
