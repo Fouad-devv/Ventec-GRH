@@ -603,7 +603,7 @@ CONTENU DU CV (informations personnelles supprimées) :
                 except Exception as retry_err:
                     logger.warning("Retry %d failed for %s: %s", attempt + 1, candidate_id, retry_err)
         logger.error("LLM scoring failed for candidate %s: %s", candidate_id, e)
-        return {"candidate_id": candidate_id, "score": 0.0, "summary": f"Erreur lors de l'évaluation: {e}"}
+        return {"candidate_id": candidate_id, "score": None, "summary": f"Erreur lors de l'évaluation: {e}", "_failed": True}
 
 
 async def score_multiple_candidates(

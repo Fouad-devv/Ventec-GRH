@@ -139,7 +139,17 @@ async def run_filter(req) -> None:
             min_experience=req.min_experience,
         )
 
-        await _send_callback(callback_url, "DONE", results)
+        successful = [r for r in results if not r.get("_failed")]
+        failed    = [r for r in results if r.get("_failed")]
+
+        error_msg = None
+        if failed:
+            error_msg = (
+                f"Évaluation IA temporairement indisponible pour {len(failed)} candidat(s) "
+                f"(service surchargé). Relancez le scoring pour les évaluer."
+            )
+
+        await _send_callback(callback_url, "DONE", successful, error_message=error_msg)
 
     except Exception as e:
         logger.error("Filter job %s failed: %s", req.filter_job_id, e)
