@@ -142,13 +142,19 @@ const ScheduleInterviewModal = ({ application, appStatus, onClose, onScheduled, 
               className={fieldCls}
             />
           )}
-          {isTech && (
+          {isTech ? (
             <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
               <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Responsable technique <span className="text-red-500">*</span></p>
               <input required value={form.responsableNom} onChange={set('responsableNom')} placeholder="Nom complet du responsable"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+                className={fieldCls} />
               <input required type="email" value={form.responsableEmail} onChange={set('responsableEmail')} placeholder="Email du responsable"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+                className={fieldCls} />
+            </div>
+          ) : (
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+              <p className="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide">Responsable RH</p>
+              <input value={form.responsableNom} onChange={set('responsableNom')} placeholder="Nom complet du responsable RH"
+                className={fieldCls} />
             </div>
           )}
           <div className="flex gap-3 pt-2">
