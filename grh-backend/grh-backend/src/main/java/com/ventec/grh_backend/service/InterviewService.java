@@ -20,7 +20,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +76,8 @@ public class InterviewService {
             }
         }
 
+        String kind = "INTERVIEW_TECH".equals(app.getStatus()) ? "TECH" : "RH";
+
         Interview interview = Interview.builder()
                 .application(app)
                 .scheduledAt(req.scheduledAt())
@@ -85,6 +86,7 @@ public class InterviewService {
                 .locationOrLink(req.locationOrLink())
                 .interviewerIds(interviewerIdsJson)
                 .notes(req.notes())
+                .interviewKind(kind)
                 .responsableNom(req.responsableNom())
                 .responsableEmail(req.responsableEmail())
                 .status("SCHEDULED")
@@ -248,7 +250,7 @@ public class InterviewService {
         };
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy 'à' HH'h'mm", java.util.Locale.FRENCH);
         String dateStr = interview.getScheduledAt() != null
-                ? interview.getScheduledAt().atZoneSameInstant(ZoneId.systemDefault()).format(fmt)
+                ? interview.getScheduledAt().format(fmt)
                 : "—";
         String location = interview.getLocationOrLink() != null && !interview.getLocationOrLink().isBlank()
                 ? interview.getLocationOrLink() : "À préciser";
@@ -343,6 +345,7 @@ public class InterviewService {
                 i.getNotes(),
                 i.getQuestions(),
                 i.getCreatedAt(),
+                i.getInterviewKind(),
                 i.getResponsableNom(),
                 i.getResponsableEmail(),
                 candidate != null ? candidate.getFirstName() : null,
