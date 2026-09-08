@@ -6,6 +6,48 @@ networks:
 
 services:
 
+  # ── PostgreSQL — Keycloak ─────────────────────────────────────────
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: GRH-postgres-keycloak-test
+    networks:
+      - grh-network-test
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: ${KC_DB_USERNAME}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+      POSTGRES_DB: keycloak_db
+    volumes:
+      - postgres_kc_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── PostgreSQL — Application ───────────────────────────────────────
+  postgres-app:
+    image: postgres:16-alpine
+    container_name: GRH-postgres-app-test
+    networks:
+      - grh-network-test
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: grh_db
+    volumes:
+      - postgres_app_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # ── Keycloak ────────────────────────────────────────────────────
   keycloak:
     build:
@@ -19,13 +61,16 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_USERNAME}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_PWD}
       KC_DB: postgres
-      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak_db
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: ${KC_HOSTNAME}
       KC_HOSTNAME_STRICT: "false"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /realms/GRH-VENTEC HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 15s
@@ -77,7 +122,7 @@ services:
     networks:
       - grh-network-test
     environment:
-      DB_URL: ${DB_URL}
+      DB_URL: jdbc:postgresql://postgres-app:5432/grh_db
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       KEYCLOAK_URL: http://keycloak:8080
@@ -109,6 +154,8 @@ services:
     volumes:
       - uploads_test:/data/uploads
     depends_on:
+      postgres-app:
+        condition: service_healthy
       keycloak:
         condition: service_healthy
       ai-service:
@@ -161,3 +208,5 @@ services:
 
 volumes:
   uploads_test:
+  postgres_app_data:
+  postgres_kc_data:

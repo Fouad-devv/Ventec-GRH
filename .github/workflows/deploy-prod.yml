@@ -20,10 +20,8 @@ jobs:
           KC_USERNAME:              ${{ secrets.KC_USERNAME }}
           KC_PWD:                   ${{ secrets.KC_PWD }}
           KC_HOSTNAME:              ${{ secrets.KC_HOSTNAME }}
-          KC_DB_URL:                ${{ secrets.KC_DB_URL }}
           KC_DB_USERNAME:           ${{ secrets.KC_DB_USERNAME }}
           KC_DB_PASSWORD:           ${{ secrets.KC_DB_PASSWORD }}
-          DB_URL:                   ${{ secrets.DB_URL }}
           DB_USERNAME:              ${{ secrets.DB_USERNAME }}
           DB_PASSWORD:              ${{ secrets.DB_PASSWORD }}
           APP_LOGIN_URL:            ${{ secrets.APP_LOGIN_URL }}
@@ -74,10 +72,8 @@ jobs:
           KC_USERNAME=$KC_USERNAME
           KC_PWD=$KC_PWD
           KC_HOSTNAME=$KC_HOSTNAME
-          KC_DB_URL=$KC_DB_URL
           KC_DB_USERNAME=$KC_DB_USERNAME
           KC_DB_PASSWORD=$KC_DB_PASSWORD
-          DB_URL=$DB_URL
           DB_USERNAME=$DB_USERNAME
           DB_PASSWORD=$DB_PASSWORD
           APP_LOGIN_URL=$APP_LOGIN_URL
