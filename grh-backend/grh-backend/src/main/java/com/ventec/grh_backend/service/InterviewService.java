@@ -20,8 +20,9 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +33,9 @@ import java.util.HashMap;
 @Slf4j
 @Transactional
 public class InterviewService {
+
+    @Value("${app.timezone.offset-hours:2}")
+    private int timezoneOffsetHours;
 
     private final InterviewRepository interviewRepository;
     private final ApplicationRepository applicationRepository;
@@ -78,6 +82,7 @@ public class InterviewService {
         }
 
         String kind = "INTERVIEW_TECH".equals(app.getStatus()) ? "TECH" : "RH";
+        int offsetMinutes = req.scheduledAt() != null ? req.scheduledAt().getOffset().getTotalSeconds() / 60 : 60;
 
         Interview interview = Interview.builder()
                 .application(app)
@@ -88,6 +93,7 @@ public class InterviewService {
                 .interviewerIds(interviewerIdsJson)
                 .notes(req.notes())
                 .interviewKind(kind)
+                .scheduledAtOffsetMinutes(offsetMinutes)
                 .responsableNom(req.responsableNom())
                 .responsableEmail(req.responsableEmail())
                 .status("SCHEDULED")
@@ -121,7 +127,7 @@ public class InterviewService {
         var posting = app != null ? app.getJobPosting() : null;
 
         boolean scheduleChanged = false;
-        if (req.scheduledAt() != null)     { interview.setScheduledAt(req.scheduledAt());         scheduleChanged = true; }
+        if (req.scheduledAt() != null)     { interview.setScheduledAt(req.scheduledAt()); interview.setScheduledAtOffsetMinutes(req.scheduledAt().getOffset().getTotalSeconds() / 60); scheduleChanged = true; }
         if (req.durationMinutes() != null) { interview.setDurationMinutes(req.durationMinutes()); scheduleChanged = true; }
         if (req.type() != null)            { interview.setType(req.type());                       scheduleChanged = true; }
         if (req.locationOrLink() != null)  { interview.setLocationOrLink(req.locationOrLink());   scheduleChanged = true; }
@@ -251,7 +257,7 @@ public class InterviewService {
         };
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy 'à' HH'h'mm", java.util.Locale.FRENCH);
         String dateStr = interview.getScheduledAt() != null
-                ? interview.getScheduledAt().atZoneSameInstant(ZoneId.of("Africa/Casablanca")).format(fmt)
+                ? interview.getScheduledAt().atZoneSameInstant(ZoneOffset.ofHours(timezoneOffsetHours)).format(fmt)
                 : "—";
         String location = interview.getLocationOrLink() != null && !interview.getLocationOrLink().isBlank()
                 ? interview.getLocationOrLink() : "À préciser";

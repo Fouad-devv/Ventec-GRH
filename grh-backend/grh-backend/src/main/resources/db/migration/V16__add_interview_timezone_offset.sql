@@ -1,0 +1,1 @@
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS scheduled_at_offset INTEGER DEFAULT 60;
