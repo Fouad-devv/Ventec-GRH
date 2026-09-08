@@ -46,6 +46,9 @@ public class Interview {
     @Column(columnDefinition = "jsonb")
     private String questions;
 
+    @Column(name = "interview_kind")
+    private String interviewKind;
+
     @Column(name = "responsable_nom")
     private String responsableNom;
 

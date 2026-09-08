@@ -34,9 +34,9 @@ const APP_STATUS_MAP = {
   INTERVIEW_TECH: { label: 'Entretien Technique',  cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
 };
 
-const InterviewKindBadge = ({ applicationStatus, responsableEmail }) => {
-  if (applicationStatus !== 'INTERVIEW_RH' && applicationStatus !== 'INTERVIEW_TECH') return null;
-  const isTech = applicationStatus === 'INTERVIEW_TECH';
+const InterviewKindBadge = ({ interviewKind }) => {
+  if (!interviewKind) return null;
+  const isTech = interviewKind === 'TECH';
   const { label, cls } = isTech ? APP_STATUS_MAP.INTERVIEW_TECH : APP_STATUS_MAP.INTERVIEW_RH;
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{label}</span>;
 };
@@ -453,7 +453,7 @@ export const InterviewsPage = () => {
                       <span className="text-slate-500 dark:text-slate-400 truncate block">{iv.jobPostingTitle || '—'}</span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <InterviewKindBadge applicationStatus={iv.applicationStatus} responsableEmail={iv.responsableEmail} />
+                      <InterviewKindBadge interviewKind={iv.interviewKind} />
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <TypeBadge type={iv.type} />

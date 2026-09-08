@@ -81,6 +81,8 @@ public class InterviewService {
             }
         }
 
+        String kind = "INTERVIEW_TECH".equals(app.getStatus()) ? "TECH" : "RH";
+
         Interview interview = Interview.builder()
                 .application(app)
                 .scheduledAt(req.scheduledAt())
@@ -89,6 +91,7 @@ public class InterviewService {
                 .locationOrLink(req.locationOrLink())
                 .interviewerIds(interviewerIdsJson)
                 .notes(req.notes())
+                .interviewKind(kind)
                 .responsableNom(req.responsableNom())
                 .responsableEmail(req.responsableEmail())
                 .status("SCHEDULED")
@@ -348,6 +351,7 @@ public class InterviewService {
                 i.getNotes(),
                 i.getQuestions(),
                 i.getCreatedAt(),
+                i.getInterviewKind(),
                 i.getResponsableNom(),
                 i.getResponsableEmail(),
                 candidate != null ? candidate.getFirstName() : null,
