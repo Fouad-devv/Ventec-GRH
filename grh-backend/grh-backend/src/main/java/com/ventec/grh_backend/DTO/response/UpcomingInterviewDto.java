@@ -13,5 +13,6 @@ public record UpcomingInterviewDto(
         OffsetDateTime scheduledAt,
         Integer durationMinutes,
         String type,
-        String applicationStatus
+        String applicationStatus,
+        String interviewKind
 ) {}
