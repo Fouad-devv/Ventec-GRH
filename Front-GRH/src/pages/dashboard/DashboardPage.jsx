@@ -367,7 +367,7 @@ export const DashboardPage = () => {
                   {stats.upcomingInterviews.map((iv) => {
                     const date = iv.scheduledAt ? new Date(iv.scheduledAt) : null;
                     const TYPE_ICONS = { VIDEO: '🎥', PHONE: '📞', ON_SITE: '🏢' };
-                    const isTechKind = !!(iv.responsableEmail && iv.responsableEmail.trim());
+                    const isTechKind = iv.applicationStatus === 'INTERVIEW_TECH';
                     const hasKind   = iv.applicationStatus === 'INTERVIEW_RH' || iv.applicationStatus === 'INTERVIEW_TECH';
                     const kindLabel = hasKind ? (isTechKind ? 'Technique' : 'RH') : null;
                     const kindCls   = isTechKind
