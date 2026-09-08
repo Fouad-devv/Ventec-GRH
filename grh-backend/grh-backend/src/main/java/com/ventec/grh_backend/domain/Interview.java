@@ -49,6 +49,9 @@ public class Interview {
     @Column(name = "interview_kind")
     private String interviewKind;
 
+    @Column(name = "scheduled_at_offset")
+    private Integer scheduledAtOffsetMinutes;
+
     @Column(name = "responsable_nom")
     private String responsableNom;
 
