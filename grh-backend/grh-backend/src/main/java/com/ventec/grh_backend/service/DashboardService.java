@@ -51,7 +51,8 @@ public class DashboardService {
                 i.getScheduledAt(),
                 i.getDurationMinutes(),
                 i.getType(),
-                app != null ? app.getStatus() : null
+                app != null ? app.getStatus() : null,
+                i.getInterviewKind()
         );
     }
 
