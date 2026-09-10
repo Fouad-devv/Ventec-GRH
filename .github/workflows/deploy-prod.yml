@@ -9,7 +9,7 @@ jobs:
     name: Deploy to production environment
     # Runner installé sur la VM Ventec — pas besoin d'exposer la VM sur internet
     runs-on: self-hosted
-    environment: production
+    environment: prod
 
     steps:
       - name: Checkout code
