@@ -122,10 +122,11 @@ jobs:
           EOF
 
       - name: Copy TLS certificates
+        shell: powershell
         run: |
-          mkdir -p nginx/certs/test
-          cat /opt/grh-certs/server.crt /opt/grh-certs/ca-chain.crt > nginx/certs/test/cert.pem
-          cp  /opt/grh-certs/server.key   nginx/certs/test/key.pem
+          New-Item -ItemType Directory -Force -Path nginx\certs\test
+          Copy-Item "C:\grh-certs\cert.pem" -Destination "nginx\certs\test\cert.pem"
+          Copy-Item "C:\grh-certs\key.pem"  -Destination "nginx\certs\test\key.pem"
 
       - name: Build and restart containers
         run: docker compose -f docker-compose.test.yml -p grh-test up -d --build
