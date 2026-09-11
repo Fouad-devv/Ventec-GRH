@@ -1,0 +1,127 @@
+name: Deploy — Production (Linux)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to production environment
+    runs-on: self-hosted
+    environment: prod
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Write .env file
+        env:
+          KC_USERNAME:              ${{ secrets.KC_USERNAME }}
+          KC_PWD:                   ${{ secrets.KC_PWD }}
+          KC_HOSTNAME:              ${{ secrets.KC_HOSTNAME }}
+          KC_DB_USERNAME:           ${{ secrets.KC_DB_USERNAME }}
+          KC_DB_PASSWORD:           ${{ secrets.KC_DB_PASSWORD }}
+          DB_USERNAME:              ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD:              ${{ secrets.DB_PASSWORD }}
+          APP_LOGIN_URL:            ${{ secrets.APP_LOGIN_URL }}
+          KEYCLOAK_PUBLIC_URL:      ${{ secrets.KEYCLOAK_PUBLIC_URL }}
+          KEYCLOAK_REALM:           ${{ secrets.KEYCLOAK_REALM }}
+          KEYCLOAK_CLIENT_ID:       ${{ secrets.KEYCLOAK_CLIENT_ID }}
+          CORS_ALLOWED_ORIGINS:     ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          SMTP_HOST:                ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:                ${{ secrets.SMTP_PORT }}
+          SMTP_USER:                ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:            ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM:                ${{ secrets.MAIL_FROM }}
+          IMAP_HOST:                ${{ secrets.IMAP_HOST }}
+          IMAP_PORT:                ${{ secrets.IMAP_PORT }}
+          IMAP_USER:                ${{ secrets.IMAP_USER }}
+          IMAP_PASSWORD:            ${{ secrets.IMAP_PASSWORD }}
+          EMAIL_POLL_ENABLED:       ${{ secrets.EMAIL_POLL_ENABLED }}
+          EMAIL_POLL_INTERVAL_MS:   ${{ secrets.EMAIL_POLL_INTERVAL_MS }}
+          INIT_ADMIN_EMAIL:         ${{ secrets.INIT_ADMIN_EMAIL }}
+          INIT_ADMIN_FIRSTNAME:     ${{ secrets.INIT_ADMIN_FIRSTNAME }}
+          INIT_ADMIN_LASTNAME:      ${{ secrets.INIT_ADMIN_LASTNAME }}
+          INIT_ADMIN_PASSWORD:      ${{ secrets.INIT_ADMIN_PASSWORD }}
+          INIT_ADMIN_DEPARTMENT:    ${{ secrets.INIT_ADMIN_DEPARTMENT }}
+          GROQ_API_KEY:             ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY2:            ${{ secrets.GROQ_API_KEY2 }}
+          GROQ_API_KEY3:            ${{ secrets.GROQ_API_KEY3 }}
+          GROQ_API_KEY4:            ${{ secrets.GROQ_API_KEY4 }}
+          GROQ_API_KEY5:            ${{ secrets.GROQ_API_KEY5 }}
+          GROQ_API_KEY6:            ${{ secrets.GROQ_API_KEY6 }}
+          GEMINI_API_KEY:           ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY2:          ${{ secrets.GEMINI_API_KEY2 }}
+          GEMINI_API_KEY3:          ${{ secrets.GEMINI_API_KEY3 }}
+          GEMINI_API_KEY4:          ${{ secrets.GEMINI_API_KEY4 }}
+          GEMINI_API_KEY5:          ${{ secrets.GEMINI_API_KEY5 }}
+          GEMINI_API_KEY6:          ${{ secrets.GEMINI_API_KEY6 }}
+          SAMBANOVA_API_KEY:        ${{ secrets.SAMBANOVA_API_KEY }}
+          SAMBANOVA_API_KEY2:       ${{ secrets.SAMBANOVA_API_KEY2 }}
+          SAMBANOVA_API_KEY3:       ${{ secrets.SAMBANOVA_API_KEY3 }}
+          SAMBANOVA_API_KEY4:       ${{ secrets.SAMBANOVA_API_KEY4 }}
+          SAMBANOVA_API_KEY5:       ${{ secrets.SAMBANOVA_API_KEY5 }}
+          SAMBANOVA_API_KEY6:       ${{ secrets.SAMBANOVA_API_KEY6 }}
+          VITE_KEYCLOAK_URL:        ${{ secrets.VITE_KEYCLOAK_URL }}
+          VITE_KEYCLOAK_REALM:      ${{ secrets.VITE_KEYCLOAK_REALM }}
+          VITE_KEYCLOAK_CLIENT_ID:  ${{ secrets.VITE_KEYCLOAK_CLIENT_ID }}
+          VITE_API_URL:             ${{ secrets.VITE_API_URL }}
+        run: |
+          echo "KC_USERNAME=$KC_USERNAME"             > .env
+          echo "KC_PWD=$KC_PWD"                      >> .env
+          echo "KC_HOSTNAME=$KC_HOSTNAME"             >> .env
+          echo "KC_DB_USERNAME=$KC_DB_USERNAME"       >> .env
+          echo "KC_DB_PASSWORD=$KC_DB_PASSWORD"       >> .env
+          echo "DB_USERNAME=$DB_USERNAME"             >> .env
+          echo "DB_PASSWORD=$DB_PASSWORD"             >> .env
+          echo "APP_LOGIN_URL=$APP_LOGIN_URL"         >> .env
+          echo "KEYCLOAK_PUBLIC_URL=$KEYCLOAK_PUBLIC_URL" >> .env
+          echo "KEYCLOAK_REALM=$KEYCLOAK_REALM"       >> .env
+          echo "KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID" >> .env
+          echo "CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS" >> .env
+          echo "SMTP_HOST=$SMTP_HOST"                 >> .env
+          echo "SMTP_PORT=$SMTP_PORT"                 >> .env
+          echo "SMTP_USER=$SMTP_USER"                 >> .env
+          echo "SMTP_PASSWORD=$SMTP_PASSWORD"         >> .env
+          echo "MAIL_FROM=$MAIL_FROM"                 >> .env
+          echo "IMAP_HOST=$IMAP_HOST"                 >> .env
+          echo "IMAP_PORT=$IMAP_PORT"                 >> .env
+          echo "IMAP_USER=$IMAP_USER"                 >> .env
+          echo "IMAP_PASSWORD=$IMAP_PASSWORD"         >> .env
+          echo "EMAIL_POLL_ENABLED=$EMAIL_POLL_ENABLED" >> .env
+          echo "EMAIL_POLL_INTERVAL_MS=$EMAIL_POLL_INTERVAL_MS" >> .env
+          echo "INIT_ADMIN_EMAIL=$INIT_ADMIN_EMAIL"   >> .env
+          echo "INIT_ADMIN_FIRSTNAME=$INIT_ADMIN_FIRSTNAME" >> .env
+          echo "INIT_ADMIN_LASTNAME=$INIT_ADMIN_LASTNAME" >> .env
+          echo "INIT_ADMIN_PASSWORD=$INIT_ADMIN_PASSWORD" >> .env
+          echo "INIT_ADMIN_DEPARTMENT=$INIT_ADMIN_DEPARTMENT" >> .env
+          echo "GROQ_API_KEY=$GROQ_API_KEY"           >> .env
+          echo "GROQ_API_KEY2=$GROQ_API_KEY2"         >> .env
+          echo "GROQ_API_KEY3=$GROQ_API_KEY3"         >> .env
+          echo "GROQ_API_KEY4=$GROQ_API_KEY4"         >> .env
+          echo "GROQ_API_KEY5=$GROQ_API_KEY5"         >> .env
+          echo "GROQ_API_KEY6=$GROQ_API_KEY6"         >> .env
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY"       >> .env
+          echo "GEMINI_API_KEY2=$GEMINI_API_KEY2"     >> .env
+          echo "GEMINI_API_KEY3=$GEMINI_API_KEY3"     >> .env
+          echo "GEMINI_API_KEY4=$GEMINI_API_KEY4"     >> .env
+          echo "GEMINI_API_KEY5=$GEMINI_API_KEY5"     >> .env
+          echo "GEMINI_API_KEY6=$GEMINI_API_KEY6"     >> .env
+          echo "SAMBANOVA_API_KEY=$SAMBANOVA_API_KEY" >> .env
+          echo "SAMBANOVA_API_KEY2=$SAMBANOVA_API_KEY2" >> .env
+          echo "SAMBANOVA_API_KEY3=$SAMBANOVA_API_KEY3" >> .env
+          echo "SAMBANOVA_API_KEY4=$SAMBANOVA_API_KEY4" >> .env
+          echo "SAMBANOVA_API_KEY5=$SAMBANOVA_API_KEY5" >> .env
+          echo "SAMBANOVA_API_KEY6=$SAMBANOVA_API_KEY6" >> .env
+          echo "VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL" >> .env
+          echo "VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM" >> .env
+          echo "VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID" >> .env
+          echo "VITE_API_URL=$VITE_API_URL"           >> .env
+
+      - name: Copy TLS certificates
+        run: |
+          mkdir -p nginx/certs/prod
+          cp /etc/grh-certs/cert.pem nginx/certs/prod/cert.pem
+          cp /etc/grh-certs/key.pem  nginx/certs/prod/key.pem
+
+      - name: Build and restart containers
+        run: docker compose -f docker-compose.yml -p grh-prod up -d --build
