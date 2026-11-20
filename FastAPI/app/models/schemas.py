@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, field_validator
+from typing import Optional, List, Union
 
 
 class FilterRequest(BaseModel):
@@ -125,7 +125,7 @@ class GenerateFicheFonctionRequest(BaseModel):
 class GenerateFicheFonctionResponse(BaseModel):
     missions: List[str]
     activites_principales: List[ActivityItem]
-    collaborateurs_directs: str = "Néant"
+    collaborateurs_directs: Union[str, List[str]] = "Néant"
     indicateurs_performance: List[str]
     niveau_formation: str
     experience_requise: str
@@ -133,6 +133,13 @@ class GenerateFicheFonctionResponse(BaseModel):
     interlocuteurs_internes: List[str]
     interlocuteurs_externes: List[str]
     interimaire: str = ""
+
+    @field_validator("collaborateurs_directs", mode="before")
+    @classmethod
+    def coerce_list_to_str(cls, v):
+        if isinstance(v, list):
+            return ", ".join(str(x) for x in v) if v else "Néant"
+        return v
 
 
 # ── Match email subject to job posting (inbound email pipeline) ─────────────
