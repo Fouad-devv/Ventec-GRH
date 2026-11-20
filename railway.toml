@@ -6,7 +6,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.keycloak"
 
 [deploy]
-startCommand = "start --import-realm"
 healthcheckPath = "/health/live"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
