@@ -6,7 +6,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.keycloak"
 
 [deploy]
-healthcheckPath = "/health/live"
+healthcheckPath = "/realms/master"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
