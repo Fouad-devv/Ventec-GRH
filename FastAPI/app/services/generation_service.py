@@ -447,7 +447,7 @@ Fiche de poste :
 """
     raw = await _call_with_fallback(
         [{"role": "user", "content": prompt}],
-        model_type="smart", use_json=True, label="extract-job-posting", temperature=0.1,
+        model_type="fast", use_json=True, label="extract-job-posting", temperature=0.1,
     )
     data = safe_json_loads(raw)
 
