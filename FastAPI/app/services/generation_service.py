@@ -280,7 +280,7 @@ Règles strictes :
 """
     response_raw = await _call_with_fallback(
         [{"role": "user", "content": prompt}],
-        model_type="smart", use_json=True, label="generate-fiche-fonction", temperature=0.3,
+        model_type="fast", use_json=False, label="generate-fiche-fonction", temperature=0.3,
     )
     data = safe_json_loads(response_raw)
 
