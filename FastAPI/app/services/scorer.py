@@ -7,7 +7,6 @@ CRITICAL non-discrimination rule:
   - Only skills, experience, and education are passed.
   - The LLM is explicitly instructed to ignore any demographic information.
 """
-import asyncio
 import json
 import logging
 import re
@@ -211,7 +210,9 @@ _SKIP_SCORING_SIGNALS = (
     "decommissioned", "model_decommissioned",
     "404", "not found", "model_not_found", "does not exist",
     "402", "payment", "billing", "subscription",
-    "quota", "resource_exhausted", "quota_exceeded",  # Gemini quota signals
+    "quota", "resource_exhausted", "quota_exceeded",
+    "503", "service unavailable", "temporarily unavailable", "high demand",
+    "unavailable", "transient",
 )
 
 
@@ -579,29 +580,6 @@ CONTENU DU CV (informations personnelles supprimées) :
 
         return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
     except Exception as e:
-        e_str = str(e).lower()
-        is_transient = any(s in e_str for s in (
-            "503", "service unavailable", "high demand", "unavailable", "temporarily",
-            "rate limit", "429", "too many requests",
-        ))
-        if is_transient:
-            # All providers are temporarily overloaded — retry the full chain after backoff
-            for attempt in range(2):
-                wait = 10 * (attempt + 1)  # 10s, 20s
-                logger.warning(
-                    "All scoring providers unavailable for %s — retrying in %ds (attempt %d/2)",
-                    candidate_id, wait, attempt + 1,
-                )
-                await asyncio.sleep(wait)
-                try:
-                    raw = await _call_scoring(messages, label=candidate_id)
-                    data = _parse_score_json(raw)
-                    score = float(data.get("score", 50))
-                    summary = str(data.get("summary", ""))
-                    logger.info("Scoring retry succeeded for candidate %s", candidate_id)
-                    return {"candidate_id": candidate_id, "score": min(max(score, 0), 100), "summary": summary}
-                except Exception as retry_err:
-                    logger.warning("Retry %d failed for %s: %s", attempt + 1, candidate_id, retry_err)
         logger.error("LLM scoring failed for candidate %s: %s", candidate_id, e)
         return {"candidate_id": candidate_id, "score": None, "summary": f"Erreur lors de l'évaluation: {e}", "_failed": True}
 
