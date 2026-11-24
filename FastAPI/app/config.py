@@ -41,9 +41,7 @@ class Settings(BaseSettings):
     gemini_model_smart: str = "gemini-flash-latest"
 
     gemini_fast_models: List[str] = [
-        "gemini-flash-lite-latest",  # fastest, cheapest
-        "gemini-flash-latest",       # fallback
-        "gemini-3.5-flash-lite",     # last resort
+        "gemini-3.5-flash-lite",
     ]
     gemini_smart_models: List[str] = [
         "gemini-flash-latest",       # best quality
